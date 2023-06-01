@@ -1,0 +1,80 @@
+package com.aerospike.graph.generator.util;
+
+import com.aerospike.graph.generator.emitter.Emitable;
+import com.aerospike.graph.generator.emitter.Emitter;
+import com.aerospike.graph.generator.encoder.Encoder;
+import com.aerospike.graph.generator.output.Output;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.MapConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.stream.Stream;
+
+public class RuntimeUtil {
+    private static final Logger logger = LoggerFactory.getLogger(RuntimeUtil.class);
+    private static final String STATIC_OPEN_METHOD = "open";
+
+    public static Output loadOutput(final Configuration config) {
+        logger.debug("Loading output");
+        return (Output) openClassRef(config.getString(ConfigurationBase.Keys.OUTPUT), config);
+    }
+
+    public static Encoder loadEncoder(final Configuration config) {
+        logger.debug("Loading encoder");
+        return (Encoder) openClassRef(config.getString(ConfigurationBase.Keys.ENCODER), config);
+    }
+
+    public static Emitter loadEmitter(final Configuration config) {
+        logger.debug("Loading emitter");
+        return (Emitter) openClassRef(config.getString(ConfigurationBase.Keys.EMITTER), config);
+    }
+
+    public static Object openClassRef(final String className, final Configuration config) {
+
+        try {
+            final Class clazz = Class.forName(className);
+            return clazz.getMethod(STATIC_OPEN_METHOD, Configuration.class).invoke(null, config);
+        } catch (Exception e) {
+            throw new RuntimeException("Error loading class: " + className, e);
+        }
+    }
+
+
+    public static void invokeClassMain(final String className, Object[] args) {
+        final Class clazz = loadClass(className);
+        try {
+            clazz.getMethod("main", String[].class).invoke(null, new Object[]{args});
+        } catch (Exception e) {
+            throw new RuntimeException("Error loading class: " + className, e);
+        }
+    }
+
+    public static Class loadClass(final String className) {
+        try {
+            return Class.forName(className);
+        } catch (Exception e) {
+            throw new RuntimeException("Error loading class: " + className, e);
+        }
+    }
+
+    public static Configuration loadConfiguration(String propertiesFile) {
+        try {
+            Properties catalogProps = new Properties();
+            catalogProps.load(new FileInputStream(propertiesFile));
+            return new MapConfiguration(catalogProps);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Stream<Stream<Emitable>> walk(Stream<Emitable> input, Output writer) {
+        return input.flatMap(emitable ->
+                emitable.emit(writer).flatMap(emitable1 ->
+                        walk(emitable1.emit(writer), writer)));
+    }
+}
+
