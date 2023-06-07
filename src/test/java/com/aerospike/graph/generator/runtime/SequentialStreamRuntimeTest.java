@@ -61,10 +61,7 @@ public class SequentialStreamRuntimeTest extends AbstractGeneratorTest {
         final Output graphOutput = new GraphOutput(graph, encoder);
         final Emitter emitter = Generator.open(testConfiguration);
         final LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(testConfiguration, stitchMemory, Optional.of(graphOutput), Optional.of(emitter));
-        final Iterator<CapturedError> x = runtime.processVertexStream().iterator();
-        while (x.hasNext())
-            System.out.println(x.next());
-
+        runtime.processVertexStream();
         final List<Vertex> allV = graph.traversal().V().toList();
         final Integer entriesPerFile = Integer.parseInt(testConfiguration.getString(ENTRIES_PER_FILE));
         final Integer rootVertexIdEnd = Integer.parseInt(testConfiguration.getString(ROOT_VERTEX_ID_END));
@@ -73,8 +70,8 @@ public class SequentialStreamRuntimeTest extends AbstractGeneratorTest {
         final GraphSchema newSchema = Parser.parse(Path.of(newGraphSchemaLocationRelativeToModule()));
         final VertexSchema rootVertexSchema = newSchema.vertexTypes.stream().filter(v -> v.label.equals(newSchema.entrypointVertexType)).findFirst().get();
         assertEquals(rootVertexIdEnd.longValue(), graph.traversal().V().hasLabel(rootVertexSchema.label).count().next().longValue());
-        assertEquals((Long)(7L * rootVertexIdEnd), (Long)graphOutput.getEdgeMetric());
-        assertEquals((Long)(8L * rootVertexIdEnd), (Long)graphOutput.getVertexMetric());
+        assertEquals((Long) (7L * rootVertexIdEnd), (Long) graphOutput.getEdgeMetric());
+        assertEquals((Long) (8L * rootVertexIdEnd), (Long) graphOutput.getVertexMetric());
     }
 
     @Test
@@ -85,9 +82,7 @@ public class SequentialStreamRuntimeTest extends AbstractGeneratorTest {
         final Output graphOutput = TraversalOutput.open(remoteConfiguration);
         final Emitter emitter = Generator.open(remoteConfiguration);
         final LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(remoteConfiguration, stitchMemory, Optional.of(graphOutput), Optional.of(emitter));
-        final Iterator<CapturedError> x = runtime.processVertexStream().iterator();
-        while (x.hasNext())
-            System.out.println(x.next());
+        runtime.processVertexStream();
 
         final String host = TraversalEncoder.CONFIG.getOrDefault(remoteConfiguration, TraversalEncoder.Config.Keys.HOST);
         final String port = TraversalEncoder.CONFIG.getOrDefault(remoteConfiguration, TraversalEncoder.Config.Keys.PORT);
@@ -108,9 +103,9 @@ public class SequentialStreamRuntimeTest extends AbstractGeneratorTest {
         final Integer rootVertexIdEnd = Integer.parseInt(remoteConfiguration.getString(ROOT_VERTEX_ID_END));
         assertEquals(8 * rootVertexIdEnd, allV.size());
         assertEquals(rootVertexIdEnd.longValue(), g.V().hasLabel(emitter.getRootVertexSchema().label).count().next().longValue());
-        assertEquals((Long) (7L * rootVertexIdEnd),(Long) graphOutput.getEdgeMetric());
-        assertEquals((Long) (7L * rootVertexIdEnd),(Long) graphOutput.getEdgeMetric());
-        assertEquals((Long) (8L * rootVertexIdEnd),(Long) graphOutput.getVertexMetric());
+        assertEquals((Long) (7L * rootVertexIdEnd), (Long) graphOutput.getEdgeMetric());
+        assertEquals((Long) (7L * rootVertexIdEnd), (Long) graphOutput.getEdgeMetric());
+        assertEquals((Long) (8L * rootVertexIdEnd), (Long) graphOutput.getVertexMetric());
     }
 
     @Test
@@ -121,9 +116,8 @@ public class SequentialStreamRuntimeTest extends AbstractGeneratorTest {
         final Output csvOutput = DirectoryOutput.open(testConfiguration);
         final Emitter emitter = Generator.open(testConfiguration);
         final LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(testConfiguration, stitchMemory, Optional.of(csvOutput), Optional.of(emitter));
-        final Iterator<CapturedError> x = runtime.processVertexStream().iterator();
-        while (x.hasNext())
-            System.out.println(x.next());
+        runtime.processVertexStream();
+
         csvOutput.close();
         final long stopTime = System.currentTimeMillis();
         System.out.println(csvOutput);
@@ -165,7 +159,7 @@ public class SequentialStreamRuntimeTest extends AbstractGeneratorTest {
             String label = it.getFileName().toString().split("_")[0];
             final String labelHeader = encoder.encodeVertexMetadata(label);
             try {
-                if(!Files.readAllLines(it).stream().filter(line -> line.equals(labelHeader)).iterator().hasNext())
+                if (!Files.readAllLines(it).stream().filter(line -> line.equals(labelHeader)).iterator().hasNext())
                     throw new RuntimeException("Missing header for " + it.getFileName());
             } catch (IOException e) {
                 throw new RuntimeException(e);

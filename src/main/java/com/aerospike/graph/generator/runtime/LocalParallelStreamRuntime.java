@@ -1,5 +1,6 @@
 package com.aerospike.graph.generator.runtime;
 
+import com.aerospike.graph.generator.emitter.Emitable;
 import com.aerospike.graph.generator.emitter.EmittedVertex;
 import com.aerospike.graph.generator.emitter.Emitter;
 import com.aerospike.graph.generator.emitter.generated.GeneratedVertex;
@@ -64,7 +65,11 @@ public class LocalParallelStreamRuntime implements Runtime {
         this.customThreadPool = new ForkJoinPool(Integer.parseInt(CONFIG.getOrDefault(config, Config.Keys.THREADS)));
     }
 
-    public Stream<CapturedError> processVertexStream() {
+    private void handleError(Exception e) {
+        System.err.println(e);
+    }
+
+    public void processVertexStream() {
 
         final int threads = customThreadPool.getParallelism();
         final long rootVertexIdStart = Long.parseLong(Generator.CONFIG.getOrDefault(config, Generator.Config.Keys.ROOT_VERTEX_ID_START));
@@ -74,7 +79,7 @@ public class LocalParallelStreamRuntime implements Runtime {
         final Iterator<List<Long>> idSupplier = new SyncronizedBatchIterator<>(
                 LongStream.range(rootVertexIdEnd + 1, Long.MAX_VALUE).iterator(), 1000);
 
-        Stream<Map.Entry<Output, Stream<EmittedVertex>>> vertexIterators =
+        Map<Output, Stream<EmittedVertex>> vertexIterators =
                 IntStream.range(0, threads).mapToObj(threadNumber -> {
                             final Emitter emitter = RuntimeUtil.loadEmitter(config);
                             final Output output = RuntimeUtil.loadOutput(config);
@@ -85,32 +90,23 @@ public class LocalParallelStreamRuntime implements Runtime {
                                     .withIdSupplier(new BatchedIterator<>(idSupplier))
                                     .vertexStream(startId, endId));
                         }
-                );
-        if(Boolean.parseBoolean(CONFIG.getOrDefault(config, Config.Keys.DROP_OUTPUT))){
+                ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        if (Boolean.parseBoolean(CONFIG.getOrDefault(config, Config.Keys.DROP_OUTPUT))) {
             RuntimeUtil.loadOutput(config).dropStorage();
         }
         try {
-            return customThreadPool.submit(
-                    () -> {
-                        return vertexIterators.sequential()
-                                .map(outputIteratorMap -> {
-                                            final Output output = outputIteratorMap.getKey();
-                                            final Stream<EmittedVertex> vertexIterator = outputIteratorMap.getValue();
-                                            return vertexIterator.map(generatedVertex -> {
-                                                Optional<CapturedError> result;
-                                                try {
-                                                    IteratorUtils.iterate(RuntimeUtil.walk(generatedVertex.emit(output), output).iterator());
-                                                } catch (Exception e) {
-                                                    result = Optional.of(new CapturedError(e, new GeneratedVertex.GeneratedVertexId(generatedVertex.id().getId())));
-                                                    return result;
-                                                }
-                                                result = Optional.empty();
-                                                return result;
-                                            });
-                                        }
-                                )
-                                .map(stream -> stream.filter(Optional::isPresent).map(Optional::get));
-                    }).get().flatMap(stream -> stream);
+            customThreadPool.submit(
+                    () -> vertexIterators.entrySet().stream().parallel().forEach(outputProducerPair -> {
+                        final Output output = outputProducerPair.getKey();
+                        final Stream<EmittedVertex> vertexIterator = outputProducerPair.getValue();
+                        vertexIterator.iterator().forEachRemaining(generatedVertex -> {
+                            try {
+                                IteratorUtils.iterate(RuntimeUtil.walk(generatedVertex.emit(output), output));
+                            } catch (Exception e) {
+                                handleError(e);
+                            }
+                        });
+                    })).get();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -120,10 +116,11 @@ public class LocalParallelStreamRuntime implements Runtime {
         outputMap.values().forEach(Output::close);
     }
 
-    public Map<Long, Output>  getOutputMap() {
+    public Map<Long, Output> getOutputMap() {
         return outputMap;
     }
-    public List<Long> getOutputVertexMetrics(){
+
+    public List<Long> getOutputVertexMetrics() {
         return List.copyOf(outputMap.values().stream().map(Output::getVertexMetric).collect(Collectors.toList()));
     }
 
@@ -133,12 +130,12 @@ public class LocalParallelStreamRuntime implements Runtime {
     }
 
     @Override
-    public Stream<CapturedError> processEdgeStream() {
-        return Stream.empty();
+    public void processEdgeStream() {
+        return;
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("LocalParallelStreamRuntime: \n");
         sb.append("  Threads: ").append(customThreadPool.getParallelism()).append("\n");

@@ -6,11 +6,13 @@ import com.aerospike.graph.generator.encoder.Encoder;
 import com.aerospike.graph.generator.output.Output;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -71,10 +73,10 @@ public class RuntimeUtil {
         }
     }
 
-    public static Stream<Stream<Emitable>> walk(Stream<Emitable> input, Output writer) {
-        return input.flatMap(emitable ->
-                emitable.emit(writer).sequential().flatMap(emitable1 ->
-                        walk(emitable1.emit(writer).sequential(), writer)));
+    public static Iterator<Emitable> walk(Stream<Emitable> input, Output writer) {
+        return IteratorUtils.flatMap(input.iterator(), emitable ->
+                IteratorUtils.flatMap(emitable.emit(writer).iterator(),
+                        emitable1 -> walk(emitable1.emit(writer), writer)));
     }
 }
 

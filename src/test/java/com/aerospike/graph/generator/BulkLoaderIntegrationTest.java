@@ -67,14 +67,13 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
         final LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(config, stitchMemory,
                 Optional.of(output), Optional.of(emitter));
 
-        final Stream<CapturedError> vitr = runtime.processVertexStream();
-        final Stream<CapturedError> eitr = runtime.processEdgeStream();
-        vitr.forEach(System.err::println);
-        eitr.forEach(System.err::println);
+        runtime.processVertexStream();
+        runtime.processEdgeStream();
+
         System.out.println(output);
         output.close();
         Configuration fireflyConfig = RuntimeUtil.loadConfiguration(DEFAULT_CONFIG_REL);
-        final Graph fireflyGraph = (Graph)RuntimeUtil.openClassRef("com.aerospike.graph.structure.FireflyGraph",fireflyConfig);
+        final Graph fireflyGraph = (Graph) RuntimeUtil.openClassRef("com.aerospike.graph.structure.FireflyGraph", fireflyConfig);
         fireflyGraph.traversal().V().drop().iterate();
         RuntimeUtil.invokeClassMain(BULK_LOADER_MAIN_CLASS, buildArgs(DEFAULT_CONFIG_REL, DEFAULT_PARAMS));
         final TinkerGraph classicGraph = TinkerFactory.createClassic();
@@ -99,16 +98,15 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
         final StitchMemory stitchMemory = new StitchMemory("none");
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(stitchMemory, config);
 
-        final Stream<CapturedError> vitr = runtime.processVertexStream();
-        final Stream<CapturedError> eitr = runtime.processEdgeStream();
-        vitr.forEach(System.err::println);
-        eitr.forEach(System.err::println);
+        runtime.processVertexStream();
+        runtime.processEdgeStream();
+
         final List<Output> outputs = List.copyOf(runtime.getOutputMap().values());
         outputs.forEach(Output::close);
         outputs.forEach(System.err::println);
 
         Configuration fireflyConfig = RuntimeUtil.loadConfiguration(DEFAULT_CONFIG_REL);
-        final Graph fireflyGraph = (Graph)RuntimeUtil.openClassRef("com.aerospike.graph.structure.FireflyGraph",fireflyConfig);
+        final Graph fireflyGraph = (Graph) RuntimeUtil.openClassRef("com.aerospike.graph.structure.FireflyGraph", fireflyConfig);
         fireflyGraph.traversal().V().drop().iterate();
         RuntimeUtil.invokeClassMain(BULK_LOADER_MAIN_CLASS, buildArgs(DEFAULT_CONFIG_REL, DEFAULT_PARAMS));
         final TinkerGraph classicGraph = TinkerFactory.createClassic();
@@ -145,14 +143,12 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
         final Emitter emitter = RuntimeUtil.loadEmitter(config);
         final LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(config, stitchMemory, Optional.of(output), Optional.of(emitter));
 
-        final Stream<CapturedError> vitr = runtime.processVertexStream();
-        final Stream<CapturedError> eitr = runtime.processEdgeStream();
-        vitr.forEach(System.err::println);
-        eitr.forEach(System.err::println);
+        runtime.processVertexStream();
+        runtime.processEdgeStream();
         System.out.println(output);
         output.close();
         Configuration fireflyConfig = RuntimeUtil.loadConfiguration(DEFAULT_CONFIG_REL);
-        final Graph fireflyGraph = (Graph)RuntimeUtil.openClassRef("com.aerospike.graph.structure.FireflyGraph",fireflyConfig);
+        final Graph fireflyGraph = (Graph) RuntimeUtil.openClassRef("com.aerospike.graph.structure.FireflyGraph", fireflyConfig);
         fireflyGraph.traversal().V().drop().iterate();
         RuntimeUtil.invokeClassMain(BULK_LOADER_MAIN_CLASS, buildArgs(DEFAULT_CONFIG_REL, DEFAULT_PARAMS));
         // The correct number of verticies have moved from the TinkerGraph to the CSV files

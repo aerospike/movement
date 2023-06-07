@@ -78,10 +78,8 @@ public class CLI {
                 Thread.sleep(TimeUnit.SECONDS.toMillis(5));
             }
         });
-        final Stream<CapturedError> vitr = runtime.processVertexStream();
-        final Stream<CapturedError> eitr = runtime.processEdgeStream();
-        vitr.sequential().forEach(System.err::println);
-        eitr.sequential().forEach(System.err::println);
+        runtime.processVertexStream();
+        runtime.processEdgeStream();
         outputTicker(runtime.getOutputVertexMetrics(), runtime.getOutputEdgeMetrics(), startTime);
         backgroundTicker.cancel(true);
         runtime.close();

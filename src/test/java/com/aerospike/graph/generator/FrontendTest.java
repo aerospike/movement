@@ -41,9 +41,11 @@ public class FrontendTest extends AbstractGeneratorTest {
     public void invokeTestRemoteGraph() {
         String[] args = {"-c", testGeneratorTraversalPropertiesLocationRelativeToProject()};
         IntStream.range(0, 100).forEach(i -> {
+            System.out.println("pass");
             final long startTime = System.currentTimeMillis();
             try {
                 CLI.main(args);
+                Thread.sleep(1000);
             } catch (Exception e) {
                 e.printStackTrace();
             }

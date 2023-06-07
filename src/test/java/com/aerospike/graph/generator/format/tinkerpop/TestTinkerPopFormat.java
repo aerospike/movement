@@ -63,7 +63,7 @@ public class TestTinkerPopFormat extends AbstractGeneratorTest {
         rootVertex.emit(graphOutput);
         final Iterator<Emitable> paths = rootVertex.stream().iterator();
         assertTrue(paths.hasNext());
-        IteratorUtils.iterate(RuntimeUtil.walk(IteratorUtils.stream(paths), graphOutput).iterator());
+        IteratorUtils.iterate(RuntimeUtil.walk(IteratorUtils.stream(paths), graphOutput));
         final List<Vertex> all = IteratorUtils.list(graph.vertices());
         assertTrue(all.size() > 1);
         assertTrue(graph.traversal().V().hasLabel(rootVertexSchema.label).hasNext());

@@ -6,6 +6,7 @@ import com.aerospike.graph.generator.emitter.generated.StitchMemory;
 import com.aerospike.graph.generator.output.Output;
 import com.aerospike.graph.generator.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -26,45 +27,39 @@ public class LocalSequentialStreamRuntime implements Runtime {
         this.output = output.orElse(RuntimeUtil.loadOutput(config));
     }
 
-    public Stream<CapturedError> processVertexStream() {
+    public void processVertexStream() {
 
-        return emitter.vertexStream().map(generatedVertex -> {
+        emitter.vertexStream().forEach(generatedVertex -> {
             Optional<CapturedError> result;
             try {
-                RuntimeUtil.walk(generatedVertex.emit(output), output).forEach(it -> {
-                    return;
-                });
+                IteratorUtils.iterate(RuntimeUtil.walk(generatedVertex.emit(output), output));
             } catch (Exception e) {
                 result = Optional.of(new CapturedError(e, new GeneratedVertex.GeneratedVertexId(generatedVertex.id().getId())));
-                return result;
             }
             result = Optional.empty();
-            return result;
-
-        }).filter(Optional::isPresent).map(Optional::get);
+        });
     }
 
     @Override
-    public Stream<CapturedError> processEdgeStream() {
-        return emitter.edgeStream().map(emittedEdge -> {
+    public void processEdgeStream() {
+        emitter.edgeStream().map(emittedEdge -> {
             Optional<CapturedError> result;
             try {
-                RuntimeUtil.walk(emittedEdge.emit(output), output).forEach(it -> {
-                    return;
-                });
+                IteratorUtils.iterate(RuntimeUtil.walk(emittedEdge.emit(output), output));
             } catch (Exception e) {
                 result = Optional.of(new CapturedError(e, new GeneratedVertex.GeneratedVertexId(-1L)));
                 return result;
             }
             result = Optional.empty();
             return result;
-
         }).filter(Optional::isPresent).map(Optional::get);
     }
-    public Long getOutputEdgeMetric(){
+
+    public Long getOutputEdgeMetric() {
         return output.getEdgeMetric();
     }
-    public Long getOutputVertexMetric(){
+
+    public Long getOutputVertexMetric() {
         return output.getEdgeMetric();
     }
 }

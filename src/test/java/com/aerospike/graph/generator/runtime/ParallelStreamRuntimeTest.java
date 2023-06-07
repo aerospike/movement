@@ -38,9 +38,7 @@ public class ParallelStreamRuntimeTest extends AbstractGeneratorTest {
         final StitchMemory stitchMemory = new StitchMemory("none");
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(stitchMemory, testCSVConfiguration);
         final Encoder<String> encoder = CSVEncoder.open(testCSVConfiguration);
-        final Iterator<CapturedError> x = runtime.processVertexStream().iterator();
-        while (x.hasNext())
-            System.out.println(x.next());
+        runtime.processVertexStream();
         final long stopTime = System.currentTimeMillis();
         runtime.close();
         final Path directory = Path.of(testCSVConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY));

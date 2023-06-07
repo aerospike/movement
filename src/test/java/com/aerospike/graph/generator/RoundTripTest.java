@@ -29,10 +29,8 @@ public class RoundTripTest extends AbstractGeneratorTest {
         final Emitter emitter = RuntimeUtil.loadEmitter(config);
         final LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(config, stitchMemory, Optional.of(output), Optional.of(emitter));
 
-        final Stream<CapturedError> vitr = runtime.processVertexStream();
-        final Stream<CapturedError> eitr = runtime.processEdgeStream();
-        vitr.forEach(System.err::println);
-        eitr.forEach(System.err::println);
+        runtime.processVertexStream();
+        runtime.processEdgeStream();
         System.out.println(output);
         output.close();
     }
