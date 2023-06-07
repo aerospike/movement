@@ -5,22 +5,32 @@ import com.aerospike.graph.generator.emitter.generated.schema.def.ValueGenerator
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
 public abstract class ValueGenerator<T> {
     public static ValueGenerator getGenerator(ValueGeneratorConfig valueGenerator) {
-        if(valueGenerator.impl.equals(RandomBoolean.class.getCanonicalName())){
+        if (valueGenerator.impl.equals(RandomBoolean.class.getCanonicalName())) {
             return RandomBoolean.INSTANCE;
-        } else if(valueGenerator.impl.equals(RandomString.class.getCanonicalName())){
+        } else if (valueGenerator.impl.equals(RandomString.class.getCanonicalName())) {
             return RandomString.INSTANCE;
-        } else if(valueGenerator.impl.equals(RandomDigitSequence.class.getCanonicalName())){
+        } else if (valueGenerator.impl.equals(RandomDigitSequence.class.getCanonicalName())) {
             return RandomDigitSequence.INSTANCE;
+        } else if (valueGenerator.impl.equals(FormattedRandomSSN.class.getCanonicalName())) {
+            return FormattedRandomSSN.INSTANCE;
+        }  else if (valueGenerator.impl.equals(FormattedRandomUSAddress.class.getCanonicalName())) {
+            return FormattedRandomUSAddress.INSTANCE;
+        } else if (valueGenerator.impl.equals(FormattedRandomUSPhone.class.getCanonicalName())) {
+            return FormattedRandomUSPhone.INSTANCE;
+        } else if (valueGenerator.impl.equals(FormattedRandomUSZip.class.getCanonicalName())) {
+            return FormattedRandomUSZip.INSTANCE;
         } else {
             try {
                 return (ValueGenerator) Class.forName(valueGenerator.impl).getConstructor().newInstance();
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                     NoSuchMethodException | ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -68,4 +78,48 @@ public abstract class ValueGenerator<T> {
         }
     }
 
+    public static class FormattedRandomSSN extends ValueGenerator<String> {
+        public static FormattedRandomSSN INSTANCE = new FormattedRandomSSN();
+
+        public String generate(Map<String, Object> params) {
+            return String.format("%03d-%02d-%04d",
+                    new Random().nextInt(1000),
+                    new Random().nextInt(100),
+                    new Random().nextInt(10000));
+        }
+    }
+
+    public static class FormattedRandomUSPhone extends ValueGenerator<String> {
+        public static FormattedRandomUSPhone INSTANCE = new FormattedRandomUSPhone();
+
+        public String generate(Map<String, Object> params) {
+            return String.format("+1 (%03d) %03d-%04d",
+                    new Random().nextInt(1000),
+                    new Random().nextInt(1000),
+                    new Random().nextInt(10000));
+        }
+    }
+
+    public static class FormattedRandomUSZip extends ValueGenerator<String> {
+        public static FormattedRandomUSZip INSTANCE = new FormattedRandomUSZip();
+
+        public String generate(Map<String, Object> params) {
+            return String.format("%05d",
+                    new Random().nextInt(100000));
+        }
+    }
+
+    public static class FormattedRandomUSAddress extends ValueGenerator<String> {
+        private Set<String> streetNames = Set.of(
+                "Maple", "Oak", "Pine", "Elm", "Cedar", "Willow", "Birch", "Juniper", "Ash", "Cypress", "Magnolia", "Spruce", "Hawthorn", "Aspen", "Sycamore", "Linden", "Poplar", "Chestnut", "Mulberry", "Redwood", "Dogwood", "Alder", "Cherry", "Walnut", "Beech", "Hazel", "Locust", "Yew", "Hemlock", "Sequoia", "Ginkgo", "Olive", "Acacia", "Baobab", "Eucalyptus", "Mimosa", "Sassafras", "Cactus", "Fig", "Honeysuckle", "Jacaranda", "Kiwi", "Myrtle", "Nectarine", "Pecan", "Plum", "Quince", "Raspberry", "Sage", "Tamarind", "Verbena", "Wisteria", "Xylosma", "Yam", "Zinnia", "Begonia", "Calendula", "Dahlia", "Echinacea");
+        private Set<String> streetSuffix = Set.of("ln", "ct", "st", "cir", "sq", "dr", "ave", "rd", "blvd", "way", "pl", "ter", "trl", "pkwy", "hwy");
+        public static FormattedRandomUSAddress INSTANCE = new FormattedRandomUSAddress();
+
+        public String generate(Map<String, Object> params) {
+            return String.format("%d %s %s",
+                    new Random().nextInt(10000),
+                    streetNames.stream().skip(new Random().nextInt(streetNames.size())).findFirst().get(),
+                    streetSuffix.stream().skip(new Random().nextInt(streetSuffix.size())).findFirst().get());
+        }
+    }
 }

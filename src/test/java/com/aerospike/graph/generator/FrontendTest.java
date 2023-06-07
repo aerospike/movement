@@ -16,14 +16,14 @@ public class FrontendTest extends AbstractGeneratorTest {
 
     @Before
     public void setup() {
-        testConfiguration = RuntimeUtil.loadConfiguration("../" + testGeneratorPropertiesLocationRelativeToProject());
+        testConfiguration = RuntimeUtil.loadConfiguration( testGeneratorPropertiesLocationRelativeToProject());
         TestUtil.recursiveDelete(Path.of(testConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY)));
     }
 
     @Test
     @Ignore
     public void invokeTestCSV() throws InterruptedException, IOException {
-        String[] args = {"-c", "../" + testGeneratorPropertiesLocationRelativeToProject()};
+        String[] args = {"-c", testGeneratorPropertiesLocationRelativeToProject()};
         final long startTime = System.currentTimeMillis();
         CLI.main(args);
         final long stopTime = System.currentTimeMillis();

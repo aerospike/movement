@@ -45,7 +45,7 @@ public class CLI {
             return;
         }
         final Configuration config = RuntimeUtil.loadConfiguration(cli.configPath);
-        if(cli.overrides != null && cli.overrides.size()>0) {
+        if (cli.overrides != null && cli.overrides.size() > 0) {
             final Map<String, String> overrides = new HashMap<>(cli.overrides);
             overrides.forEach(config::setProperty);
         }
@@ -101,7 +101,7 @@ public class CLI {
             long totalOutputTime = System.currentTimeMillis() - startTime + 1;
             long elementsPerSecond = 0;
             if (totalOutputVertices + totalOutputEdges > 0)
-                elementsPerSecond = (totalOutputVertices + totalOutputEdges) / (totalOutputTime / 1000);
+                elementsPerSecond = (totalOutputVertices + totalOutputEdges) / (1 + totalOutputTime / 1000);
             System.out.printf("%,d vertices and %,d edges written to %s outputs at %,d elements per second%n", totalOutputVertices, totalOutputEdges, outputVertexMetrics.size(), elementsPerSecond);
         } catch (Exception e) {
             e.printStackTrace();

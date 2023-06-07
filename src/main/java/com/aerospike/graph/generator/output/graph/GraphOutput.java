@@ -3,10 +3,13 @@ package com.aerospike.graph.generator.output.graph;
 import com.aerospike.graph.generator.emitter.EmittedEdge;
 import com.aerospike.graph.generator.emitter.EmittedVertex;
 import com.aerospike.graph.generator.emitter.generated.GeneratedVertex;
+import com.aerospike.graph.generator.emitter.tinkerpop.SourceGraph;
 import com.aerospike.graph.generator.encoder.Encoder;
 import com.aerospike.graph.generator.output.Output;
 import com.aerospike.graph.generator.output.OutputWriter;
 import com.aerospike.graph.generator.runtime.CapturedError;
+import com.aerospike.graph.generator.util.RuntimeUtil;
+import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
@@ -30,6 +33,11 @@ public class GraphOutput implements Output, OutputWriter {
         this.edgeMetric = new AtomicLong(0);
     }
 
+//    public static SourceGraph open(Configuration config) {
+//        final SourceGraph.GraphProvider provider = (SourceGraph.GraphProvider)
+//                RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, SourceGraph.Config.Keys.GRAPH_PROVIDER), config);
+//        return new SourceGraph(provider.getGraph());
+//    }
 
     @Override
     public Stream<Optional<CapturedError>> writeVertexStream(final Stream<EmittedVertex> vertexStream) {

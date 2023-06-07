@@ -100,7 +100,7 @@ public class CSVEncoder extends Encoder<String> {
         List<String> fields = new ArrayList<>();
         fields.add("~id");
         fields.add("~label");
-        vertexSchema.properties.forEach(p -> fields.add(p.name));
+        vertexSchema.properties.stream().map(p -> p.name).sorted().forEach(fields::add);
         return fields;
     }
 

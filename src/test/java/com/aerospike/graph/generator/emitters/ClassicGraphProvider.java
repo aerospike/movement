@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ClassicGraphProvider implements SourceGraph.GraphProvider {
-    private static Map<String, List<String>> edgeLabelCache = new ConcurrentHashMap<>();
+    private Map<String, List<String>> edgeLabelCache = new ConcurrentHashMap<>();
     private Map<String, List<String>> vertexLabelCache = new ConcurrentHashMap<>();
 
     static Graph crewGraph = TinkerFactory.createClassic();
@@ -38,7 +38,13 @@ public class ClassicGraphProvider implements SourceGraph.GraphProvider {
 
     @Override
     public List<String> getAllPropertyKeysForEdgeLabel(final String label) {
-        return null;
+        return edgeLabelCache.computeIfAbsent(label, k ->
+                crewGraph.traversal().E()
+                        .hasLabel(label)
+                        .properties()
+                        .key()
+                        .dedup()
+                        .toList());
     }
 
 

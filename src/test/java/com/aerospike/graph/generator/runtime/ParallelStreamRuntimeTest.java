@@ -30,6 +30,7 @@ public class ParallelStreamRuntimeTest extends AbstractGeneratorTest {
     public void setup() {
         testCSVConfiguration = ConfigurationBase.getCSVSampleConfiguration(testGraphSchemaLocationRelativeToModule(), TestUtil.createTempDirectory().toString());
     }
+
     @Test
     public void writeToCSVTest() throws IOException {
         final long startTime = System.currentTimeMillis();
@@ -64,8 +65,10 @@ public class ParallelStreamRuntimeTest extends AbstractGeneratorTest {
         Files.walk(directory.resolve("vertices")).filter(Files::isRegularFile).forEach(it -> {
             String label = it.getFileName().toString().split("_")[0];
             try {
-                assertTrue(Files.readAllLines(it).stream().filter(line -> line.equals(encoder.encodeVertexMetadata(label))).iterator().hasNext());
-            } catch (IOException e) {
+                String metadata = encoder.encodeVertexMetadata(label);
+                if(!Files.readAllLines(it).stream().filter(line -> line.equals(metadata)).iterator().hasNext())
+                    throw new Exception("Metadata not found in file: " + it);
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         });
@@ -75,7 +78,5 @@ public class ParallelStreamRuntimeTest extends AbstractGeneratorTest {
         System.out.println("Total time: " + totalTime / 1000 + "s");
         System.out.println("Total size: " + writtenSize / 1024 / 1024 + " MB");
         System.out.println("MB/s: " + (writtenSize / totalTime) / 1000);
-
     }
-
 }
