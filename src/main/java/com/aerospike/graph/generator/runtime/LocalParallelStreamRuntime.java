@@ -41,11 +41,13 @@ public class LocalParallelStreamRuntime implements Runtime {
 
         public static class Keys {
             public static final String THREADS = "runtime.threads";
+            public static final String DROP_OUTPUT = "runtime.dropOutput";
 
         }
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
             put(Config.Keys.THREADS, String.valueOf(getRuntime().availableProcessors()));
+            put(Config.Keys.DROP_OUTPUT, "false");
         }};
     }
 
@@ -63,6 +65,7 @@ public class LocalParallelStreamRuntime implements Runtime {
     }
 
     public Stream<CapturedError> processVertexStream() {
+
         final int threads = customThreadPool.getParallelism();
         final long rootVertexIdStart = Long.parseLong(Generator.CONFIG.getOrDefault(config, Generator.Config.Keys.ROOT_VERTEX_ID_START));
         final long rootVertexIdEnd = Long.parseLong(Generator.CONFIG.getOrDefault(config, Generator.Config.Keys.ROOT_VERTEX_ID_END));
@@ -83,10 +86,13 @@ public class LocalParallelStreamRuntime implements Runtime {
                                     .vertexStream(startId, endId));
                         }
                 );
+        if(Boolean.parseBoolean(CONFIG.getOrDefault(config, Config.Keys.DROP_OUTPUT))){
+            RuntimeUtil.loadOutput(config).dropStorage();
+        }
         try {
             return customThreadPool.submit(
                     () -> {
-                        return vertexIterators.parallel()
+                        return vertexIterators.sequential()
                                 .map(outputIteratorMap -> {
                                             final Output output = outputIteratorMap.getKey();
                                             final Stream<EmittedVertex> vertexIterator = outputIteratorMap.getValue();

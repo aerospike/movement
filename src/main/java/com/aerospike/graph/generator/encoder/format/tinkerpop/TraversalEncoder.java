@@ -13,11 +13,7 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -26,7 +22,6 @@ import java.util.stream.Collectors;
  */
 public class TraversalEncoder extends Encoder<Element> {
     public static final Config CONFIG = new Config();
-
 
     public static class Config extends ConfigurationBase {
         @Override
@@ -50,6 +45,7 @@ public class TraversalEncoder extends Encoder<Element> {
 
 
     private final GraphTraversalSource g;
+
 
     private TraversalEncoder(GraphTraversalSource g) {
         this.g = g;
@@ -75,46 +71,61 @@ public class TraversalEncoder extends Encoder<Element> {
 
     @Override
     public Element encodeEdge(final EmittedEdge edge) {
-        final List<Object> args = edge.propertyNames().map(name -> {
+        final List<Object> args = edge.propertyNames().flatMap(name -> {
             final ArrayList<Object> results = new ArrayList<Object>();
-            results.add(name);
-            results.add(edge.propertyValue(name));
+            Optional<Object> op = edge.propertyValue(name);
+            if (op.isPresent()) {
+                results.add(name);
+                results.add(op.get());
+            }
             return results.stream();
         }).collect(Collectors.toList());
-
-        final Vertex inV = g.V(String.valueOf(edge.toId().getId())).next();
-        final Vertex outV = g.V(String.valueOf(edge.fromId().getId())).next();
-        Map<Object, Object> keyVales = new HashMap<>();
+        final Vertex inV, outV;
+        final Object toId = edge.toId().getId();
+        try {
+            inV = g.V(String.valueOf(toId)).next();
+        } catch (NoSuchElementException nse) {
+            throw new RuntimeException("No such vertex found for edge: " + edge);
+        }
+        final Object fromId = edge.fromId().getId();
+        try {
+            outV = g.V(String.valueOf(fromId)).next();
+        } catch (NoSuchElementException nse) {
+            throw new RuntimeException("No such vertex found for edge: " + edge);
+        }
+        Map<Object, Object> keyValues = new HashMap<>();
         final Iterator<Object> i = args.iterator();
         while (i.hasNext()) {
-            keyVales.put(i.next(), i.next());
+            keyValues.put(i.next(), i.next());
         }
         return g
                 .V(outV)
                 .addE(EncoderUtil.getFieldFromEdge((EmittedEdge) edge, "~label"))
                 .to(inV)
-                .property(keyVales)
+                .property(keyValues)
                 .next();
     }
 
 
     @Override
     public Element encodeVertex(final EmittedVertex vertex) {
-        final List<Object> args = vertex.propertyNames().map(name -> {
+        final List<Object> args = vertex.propertyNames().flatMap(name -> {
             final ArrayList<Object> results = new ArrayList<Object>();
-            results.add(name);
-            results.add(vertex.propertyValue(name));
+            Optional<Object> op = vertex.propertyValue(name);
+            if (op.isPresent()) {
+                results.add(name);
+                results.add(op.get());
+            }
             return results.stream();
         }).collect(Collectors.toList());
-
-        Map<Object, Object> keyVales = new HashMap<>();
+        Map<Object, Object> keyValues = new HashMap<>();
         final Iterator<Object> i = args.iterator();
         while (i.hasNext()) {
-            keyVales.put(i.next(), i.next());
+            keyValues.put(i.next(), i.next());
         }
         return g.addV(vertex.label())
                 .property(T.id, vertex.id().getId())
-                .property(keyVales)
+                .property(keyValues)
                 .next();
     }
 

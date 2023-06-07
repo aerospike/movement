@@ -107,4 +107,9 @@ public class GraphOutput implements Output, OutputWriter {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public void dropStorage() {
+        graph.traversal().V().drop().iterate();
+    }
 }

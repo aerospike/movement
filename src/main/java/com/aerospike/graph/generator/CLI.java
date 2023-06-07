@@ -3,6 +3,7 @@ package com.aerospike.graph.generator;
 import com.aerospike.graph.generator.emitter.generated.StitchMemory;
 import com.aerospike.graph.generator.runtime.CapturedError;
 import com.aerospike.graph.generator.runtime.LocalParallelStreamRuntime;
+import com.aerospike.graph.generator.runtime.LocalSequentialStreamRuntime;
 import com.aerospike.graph.generator.util.ConfigurationBase;
 import com.aerospike.graph.generator.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -14,6 +15,7 @@ import picocli.CommandLine.Option;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
@@ -66,6 +68,7 @@ public class CLI {
     public static void run(Configuration config) {
         final StitchMemory stitchMemory = new StitchMemory("none");
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(stitchMemory, config);
+//        LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(config, stitchMemory, Optional.empty(), Optional.empty());
         final long startTime = System.currentTimeMillis();
         final ForkJoinTask<Object> backgroundTicker = new ForkJoinPool(1).submit(() -> {
             while (true) {
@@ -77,11 +80,13 @@ public class CLI {
         });
         final Stream<CapturedError> vitr = runtime.processVertexStream();
         final Stream<CapturedError> eitr = runtime.processEdgeStream();
-        vitr.parallel().forEach(System.err::println);
-        eitr.parallel().forEach(System.err::println);
+        vitr.sequential().forEach(System.err::println);
+        eitr.sequential().forEach(System.err::println);
         outputTicker(runtime.getOutputVertexMetrics(), runtime.getOutputEdgeMetrics(), startTime);
         backgroundTicker.cancel(true);
         runtime.close();
+        if (config.containsKey("runtime.testMode") && !config.getBoolean("runtime.testMode"))
+            System.exit(0);
     }
 
 

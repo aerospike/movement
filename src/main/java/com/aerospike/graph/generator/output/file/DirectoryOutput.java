@@ -9,9 +9,11 @@ import com.aerospike.graph.generator.output.Output;
 import com.aerospike.graph.generator.output.OutputWriter;
 import com.aerospike.graph.generator.runtime.CapturedError;
 import com.aerospike.graph.generator.util.ConfigurationBase;
+import com.aerospike.graph.generator.util.IOUtil;
 import com.aerospike.graph.generator.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -159,6 +161,13 @@ public class DirectoryOutput implements Output {
                 .forEachRemaining(it -> {
                     it.close();
                 });
+    }
+
+    @Override
+    public void dropStorage() {
+        LoggerFactory.getLogger(DirectoryOutput.class).info("Dropping storage at {}", root);
+        IOUtil.recursiveDelete(root);
+        root.toFile().mkdirs();
     }
 
     public Long getEdgeMetric() {

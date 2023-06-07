@@ -13,6 +13,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 /**
@@ -31,7 +32,7 @@ import java.util.stream.Stream;
 public class GeneratedVertex implements Emitable, EmittedVertex {
     private final boolean root;
     public final VertexContext context;
-    private boolean emitted = false;
+    private AtomicBoolean emitted = new AtomicBoolean(false);
     public final long id;
 
     public GeneratedVertex(final boolean root,
@@ -57,9 +58,8 @@ public class GeneratedVertex implements Emitable, EmittedVertex {
 
 
     public Stream<Emitable> emit(Output output) {
-        if (!this.emitted)
+        if (!emitted.getAndSet(true))
             output.vertexWriter(this.context.vertexSchema.label).writeVertex(this);
-        this.emitted = true;
         return stream();
     }
 

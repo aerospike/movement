@@ -14,19 +14,6 @@ import java.nio.file.Path;
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
 public class TestUtil {
-    public static void recursiveDelete(Path path) {
-        try {
-            Files.walk(path).filter(Files::isRegularFile).forEach(p -> {
-                try {
-                    Files.delete(p);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        } catch (IOException e) {
-
-        }
-    }
     public static Path createTempFile() {
         final Path tempFile;
         try {

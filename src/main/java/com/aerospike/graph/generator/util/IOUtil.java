@@ -71,6 +71,20 @@ public final class IOUtil {
         return visitor.getTotalSize();
     }
 
+    public static void recursiveDelete(Path path) {
+        try {
+            Files.walk(path).filter(Files::isRegularFile).forEach(p -> {
+                try {
+                    Files.delete(p);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (IOException e) {
+
+        }
+    }
+
     private static class SizeVisitor extends SimpleFileVisitor<Path> {
         private long totalSize;
 

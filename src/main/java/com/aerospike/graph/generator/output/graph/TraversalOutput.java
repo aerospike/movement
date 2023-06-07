@@ -12,6 +12,8 @@ import com.aerospike.graph.generator.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -24,6 +26,7 @@ public class TraversalOutput implements Output, OutputWriter {
     private final Encoder<Element> encoder;
     private final AtomicLong vertexMetric;
     private final AtomicLong edgeMetric;
+    Logger logger = LoggerFactory.getLogger(TraversalOutput.class);
 
     private TraversalOutput(final Encoder<Element> encoder) {
         this.encoder = encoder;
@@ -98,6 +101,22 @@ public class TraversalOutput implements Output, OutputWriter {
     @Override
     public void close() {
         encoder.close();
+    }
+
+    @Override
+    public void dropStorage() {
+        GraphTraversalSource g = ((TraversalEncoder) encoder).getTraversal();
+        g.V().drop().iterate();
+        int count = 0;
+        while (g.V().hasNext()) {
+            count++;
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.printf("waited %d seconds to drop data \n", count);
     }
 
     @Override

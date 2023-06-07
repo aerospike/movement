@@ -77,4 +77,6 @@ public class TestTinkerPopFormat extends AbstractGeneratorTest {
         edgeSchema.properties.stream().map(property -> property.name).forEach(name -> assertTrue(anEdge.property(name).isPresent()));
     }
 
+
+
 }

@@ -37,6 +37,9 @@ public abstract class AbstractGeneratorTest {
         return "conf/generator-sample.properties";
     }
 
+    public String testGeneratorTraversalPropertiesLocationRelativeToProject() {
+        return "conf/generator-sample-traversal.properties";
+    }
     public String newGraphSchemaLocationRelativeToModule() {
         return "src/test/resources/new_schema.yaml";
     }

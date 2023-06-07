@@ -14,6 +14,7 @@ import com.aerospike.graph.generator.runtime.CapturedError;
 import com.aerospike.graph.generator.runtime.LocalParallelStreamRuntime;
 import com.aerospike.graph.generator.runtime.LocalSequentialStreamRuntime;
 import com.aerospike.graph.generator.util.ConfigurationBase;
+import com.aerospike.graph.generator.util.IOUtil;
 import com.aerospike.graph.generator.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
@@ -43,7 +44,7 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
 
     @Before
     public void delete() {
-        TestUtil.recursiveDelete(Path.of("/tmp/generate"));
+        IOUtil.recursiveDelete(Path.of("/tmp/generate"));
     }
 
 

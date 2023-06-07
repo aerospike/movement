@@ -129,7 +129,13 @@ public class EdgeGenerator {
             final VertexSchema vertexSchema = Util.getSchemaFromVertexName(graphSchema, edgeSchema.inVertex);
             if (!idSupplier.hasNext())
                 return Stream.empty();
-            final GeneratedEdge ge = new GeneratedEdge(edgeGenerator, idSupplier.next(), outVid);
+            Long nextId;
+            try {
+                nextId = idSupplier.next();
+            } catch (NoSuchElementException e) {
+                return Stream.empty();
+            }
+            final GeneratedEdge ge = new GeneratedEdge(edgeGenerator, nextId, outVid);
             final VertexContext context = new VertexContext(graphSchema,
                     vertexSchema,
                     idSupplier,

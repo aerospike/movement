@@ -20,5 +20,7 @@ public interface Output {
     OutputWriter edgeWriter(String label);
     Long getEdgeMetric();
     Long getVertexMetric();
-    public void close();
+    void close();
+    void dropStorage();
+
 }

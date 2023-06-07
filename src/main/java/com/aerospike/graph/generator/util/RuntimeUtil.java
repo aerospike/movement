@@ -73,8 +73,8 @@ public class RuntimeUtil {
 
     public static Stream<Stream<Emitable>> walk(Stream<Emitable> input, Output writer) {
         return input.flatMap(emitable ->
-                emitable.emit(writer).flatMap(emitable1 ->
-                        walk(emitable1.emit(writer), writer)));
+                emitable.emit(writer).sequential().flatMap(emitable1 ->
+                        walk(emitable1.emit(writer).sequential(), writer)));
     }
 }
 
