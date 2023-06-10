@@ -83,7 +83,7 @@ public class CLI {
         outputTicker(runtime.getOutputVertexMetrics(), runtime.getOutputEdgeMetrics(), startTime);
         backgroundTicker.cancel(true);
         runtime.close();
-        if (config.containsKey("runtime.testMode") && !config.getBoolean("runtime.testMode"))
+        if (!config.containsKey("runtime.testMode") || !config.getBoolean("runtime.testMode"))
             System.exit(0);
     }
 

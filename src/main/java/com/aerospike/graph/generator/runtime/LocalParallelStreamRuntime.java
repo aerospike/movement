@@ -1,9 +1,7 @@
 package com.aerospike.graph.generator.runtime;
 
-import com.aerospike.graph.generator.emitter.Emitable;
 import com.aerospike.graph.generator.emitter.EmittedVertex;
 import com.aerospike.graph.generator.emitter.Emitter;
-import com.aerospike.graph.generator.emitter.generated.GeneratedVertex;
 import com.aerospike.graph.generator.emitter.generated.Generator;
 import com.aerospike.graph.generator.emitter.generated.StitchMemory;
 import com.aerospike.graph.generator.output.Output;
@@ -19,7 +17,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -43,12 +40,14 @@ public class LocalParallelStreamRuntime implements Runtime {
         public static class Keys {
             public static final String THREADS = "runtime.threads";
             public static final String DROP_OUTPUT = "runtime.dropOutput";
+            public static final String OUTPUT_STARTUP_DELAY_MS = "runtime.outputStallTimeMs";
 
         }
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
             put(Config.Keys.THREADS, String.valueOf(getRuntime().availableProcessors()));
             put(Config.Keys.DROP_OUTPUT, "false");
+            put(Config.Keys.OUTPUT_STARTUP_DELAY_MS, "100");
         }};
     }
 
@@ -81,7 +80,12 @@ public class LocalParallelStreamRuntime implements Runtime {
 
         Map<Output, Stream<EmittedVertex>> vertexIterators =
                 IntStream.range(0, threads).mapToObj(threadNumber -> {
-                            final Emitter emitter = RuntimeUtil.loadEmitter(config);
+                    try {
+                        Thread.sleep(Long.parseLong(CONFIG.getOrDefault(config, Config.Keys.OUTPUT_STARTUP_DELAY_MS)));
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    final Emitter emitter = RuntimeUtil.loadEmitter(config);
                             final Output output = RuntimeUtil.loadOutput(config);
                             outputMap.put((long) threadNumber, output);
                             final long startId = rootVertexIdStart + (threadNumber * rootVertexIdRangePerThread);

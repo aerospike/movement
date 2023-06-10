@@ -116,7 +116,6 @@ public class TraversalOutput implements Output, OutputWriter {
                 e.printStackTrace();
             }
         }
-        System.out.printf("waited %d seconds to drop data \n", count);
     }
 
     @Override

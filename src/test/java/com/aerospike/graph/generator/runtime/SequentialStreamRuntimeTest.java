@@ -58,7 +58,7 @@ public class SequentialStreamRuntimeTest extends AbstractGeneratorTest {
         final StitchMemory stitchMemory = new StitchMemory("none");
         final Graph graph = TinkerGraph.open();
         final Encoder encoder = new GraphEncoder(graph);
-        final Output graphOutput = new GraphOutput(graph, encoder);
+        final Output graphOutput = new GraphOutput((GraphEncoder) encoder);
         final Emitter emitter = Generator.open(testConfiguration);
         final LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(testConfiguration, stitchMemory, Optional.of(graphOutput), Optional.of(emitter));
         runtime.processVertexStream();

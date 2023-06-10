@@ -1,6 +1,6 @@
 package com.aerospike.graph.generator.emitters;
 
-import com.aerospike.graph.generator.emitter.tinkerpop.SourceGraph;
+import com.aerospike.graph.generator.common.tinkerpop.GraphProvider;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ClassicGraphProvider implements SourceGraph.GraphProvider {
+public class ClassicGraphProvider implements GraphProvider {
     private Map<String, List<String>> edgeLabelCache = new ConcurrentHashMap<>();
     private Map<String, List<String>> vertexLabelCache = new ConcurrentHashMap<>();
 
@@ -48,7 +48,7 @@ public class ClassicGraphProvider implements SourceGraph.GraphProvider {
     }
 
 
-    public static SourceGraph.GraphProvider open(Configuration config) {
+    public static GraphProvider open(Configuration config) {
         return new ClassicGraphProvider(config);
     }
 }

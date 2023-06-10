@@ -1,18 +1,24 @@
 package com.aerospike.graph.generator.output.graph;
 
+import com.aerospike.graph.generator.common.tinkerpop.GraphProvider;
 import com.aerospike.graph.generator.emitter.EmittedEdge;
 import com.aerospike.graph.generator.emitter.EmittedVertex;
 import com.aerospike.graph.generator.emitter.generated.GeneratedVertex;
 import com.aerospike.graph.generator.emitter.tinkerpop.SourceGraph;
 import com.aerospike.graph.generator.encoder.Encoder;
+import com.aerospike.graph.generator.encoder.format.tinkerpop.GraphEncoder;
+import com.aerospike.graph.generator.encoder.format.tinkerpop.TraversalEncoder;
 import com.aerospike.graph.generator.output.Output;
 import com.aerospike.graph.generator.output.OutputWriter;
 import com.aerospike.graph.generator.runtime.CapturedError;
+import com.aerospike.graph.generator.util.ConfigurationBase;
 import com.aerospike.graph.generator.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
@@ -21,23 +27,20 @@ import java.util.stream.Stream;
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
 public class GraphOutput implements Output, OutputWriter {
-    private final Graph graph;
-    private final Encoder<Element> encoder;
+    private final GraphEncoder encoder;
     private final AtomicLong vertexMetric;
     private final AtomicLong edgeMetric;
 
-    public GraphOutput(final Graph graph, final Encoder<Element> encoder) {
-        this.graph = graph;
-        this.encoder = encoder;
+
+    public GraphOutput(final GraphEncoder encoder) {
+        this.encoder =  encoder;
         this.vertexMetric = new AtomicLong(0);
         this.edgeMetric = new AtomicLong(0);
     }
 
-//    public static SourceGraph open(Configuration config) {
-//        final SourceGraph.GraphProvider provider = (SourceGraph.GraphProvider)
-//                RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, SourceGraph.Config.Keys.GRAPH_PROVIDER), config);
-//        return new SourceGraph(provider.getGraph());
-//    }
+    public static GraphOutput open(Configuration config) {
+        return new GraphOutput((GraphEncoder) RuntimeUtil.loadEncoder(config));
+    }
 
     @Override
     public Stream<Optional<CapturedError>> writeVertexStream(final Stream<EmittedVertex> vertexStream) {
@@ -102,7 +105,7 @@ public class GraphOutput implements Output, OutputWriter {
     @Override
     public void close() {
         try {
-            graph.close();
+            encoder.close();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -110,6 +113,6 @@ public class GraphOutput implements Output, OutputWriter {
 
     @Override
     public void dropStorage() {
-        graph.traversal().V().drop().iterate();
+        encoder.getGraph().traversal().V().drop().iterate();
     }
 }

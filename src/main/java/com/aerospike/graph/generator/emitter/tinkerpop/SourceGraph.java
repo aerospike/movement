@@ -1,5 +1,6 @@
 package com.aerospike.graph.generator.emitter.tinkerpop;
 
+import com.aerospike.graph.generator.common.tinkerpop.GraphProvider;
 import com.aerospike.graph.generator.emitter.Emitable;
 import com.aerospike.graph.generator.emitter.EmittedEdge;
 import com.aerospike.graph.generator.emitter.EmittedVertex;
@@ -215,11 +216,4 @@ public class SourceGraph implements Emitter {
         }
     }
 
-    public interface GraphProvider {
-        Graph getGraph();
-
-        List<String> getAllPropertyKeysForVertexLabel(String label);
-
-        List<String> getAllPropertyKeysForEdgeLabel(String label);
-    }
 }

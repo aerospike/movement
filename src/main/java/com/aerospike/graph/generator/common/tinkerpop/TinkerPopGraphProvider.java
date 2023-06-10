@@ -1,6 +1,7 @@
-package com.aerospike.graph.generator.util;
+package com.aerospike.graph.generator.common.tinkerpop;
 
-import com.aerospike.graph.generator.emitter.tinkerpop.SourceGraph;
+import com.aerospike.graph.generator.util.ConfigurationBase;
+import com.aerospike.graph.generator.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
@@ -9,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class TinkerPopGraphProvider implements SourceGraph.GraphProvider {
+public class TinkerPopGraphProvider implements GraphProvider {
     public static final Config CONFIG = new Config();
     private Map<String, List<String>> vertexLabelCache = new ConcurrentHashMap<>();
     private Map<String, List<String>> edgeLabelCache = new ConcurrentHashMap<>();
@@ -24,9 +25,11 @@ public class TinkerPopGraphProvider implements SourceGraph.GraphProvider {
 
         public static class Keys {
             public static final String GRAPH_IMPL = "graph.provider.impl";
+            public static final String CACHE = "graph.provider.cache";
         }
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
+            put(Keys.CACHE, "true");
         }};
     }
 
@@ -35,10 +38,14 @@ public class TinkerPopGraphProvider implements SourceGraph.GraphProvider {
 
     public TinkerPopGraphProvider(Configuration config) {
         this.config = config;
-        this.graph = (Graph) RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_IMPL), config);
+        if(config.getBoolean(Config.Keys.CACHE)) {
+            this.graph = new CachedGraph((Graph) RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_IMPL), config));
+        } else {
+            this.graph = (Graph) RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_IMPL), config);
+        }
     }
 
-    public static SourceGraph.GraphProvider open(Configuration config) {
+    public static GraphProvider open(Configuration config) {
         return new TinkerPopGraphProvider(config);
     }
 
