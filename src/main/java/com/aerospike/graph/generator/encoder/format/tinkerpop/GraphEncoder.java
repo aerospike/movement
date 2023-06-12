@@ -26,8 +26,6 @@ import java.util.stream.Collectors;
 public class GraphEncoder extends Encoder<Element> {
     public static final Config CONFIG = new Config();
 
-
-
     public static class Config extends ConfigurationBase {
         @Override
         public Map<String, String> getDefaults() {
@@ -51,9 +49,14 @@ public class GraphEncoder extends Encoder<Element> {
     }
 
     public static GraphEncoder open(final Configuration config) {
-        final GraphProvider provider = (GraphProvider) RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_PROVIDER), config);
-        final Graph providerGraph = provider.getGraph();
-        return new GraphEncoder(providerGraph);
+        Object x = RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_PROVIDER), config);
+        if(Graph.class.isAssignableFrom(x.getClass())) {
+            return new GraphEncoder((Graph) x);
+        }else if (GraphProvider.class.isAssignableFrom(x.getClass())) {
+            return new GraphEncoder(((GraphProvider) x).getGraph());
+        }else{
+            throw new RuntimeException("GraphEncoder Could not open graph provider");
+        }
     }
 
     @Override
@@ -123,9 +126,11 @@ public class GraphEncoder extends Encoder<Element> {
     public String getExtension() {
         return "";
     }
+
     public Graph getGraph() {
         return graph;
     }
+
     @Override
     public void close() {
         try {

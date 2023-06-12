@@ -26,7 +26,7 @@ public class CachedGraph implements Graph {
         }
 
         public static class Keys {
-            public static final String GRAPH_IMPL = "graph.provider.impl";
+            public static final String GRAPH_PROVIDER_IMPL = "graph.provider.impl";
         }
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
@@ -34,9 +34,8 @@ public class CachedGraph implements Graph {
     }
 
     public static CachedGraph open(Configuration config) {
-        final GraphProvider provider = (GraphProvider)
-                RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_IMPL), config);
-        return new CachedGraph(provider.getGraph());
+        return new CachedGraph((Graph)
+                RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_PROVIDER_IMPL), config));
     }
 
 

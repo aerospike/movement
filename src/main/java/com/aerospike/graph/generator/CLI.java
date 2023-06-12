@@ -12,13 +12,11 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import static java.lang.Thread.sleep;
@@ -68,19 +66,20 @@ public class CLI {
     public static void run(Configuration config) {
         final StitchMemory stitchMemory = new StitchMemory("none");
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(stitchMemory, config);
-//        LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(config, stitchMemory, Optional.empty(), Optional.empty());
         final long startTime = System.currentTimeMillis();
+        final AtomicLong lastVertexCount = new AtomicLong(0);
+        final AtomicLong lastEdgeCount = new AtomicLong(0);
         final ForkJoinTask<Object> backgroundTicker = new ForkJoinPool(1).submit(() -> {
             while (true) {
                 final List<Long> outputVertexMetrics = runtime.getOutputVertexMetrics();
                 final List<Long> outputEdgeMetrics = runtime.getOutputEdgeMetrics();
-                outputTicker(outputVertexMetrics, outputEdgeMetrics, startTime);
+                outputTicker(outputVertexMetrics, outputEdgeMetrics, startTime, lastVertexCount, lastEdgeCount);
                 Thread.sleep(TimeUnit.SECONDS.toMillis(5));
             }
         });
         runtime.processVertexStream();
         runtime.processEdgeStream();
-        outputTicker(runtime.getOutputVertexMetrics(), runtime.getOutputEdgeMetrics(), startTime);
+        outputTicker(runtime.getOutputVertexMetrics(), runtime.getOutputEdgeMetrics(), startTime, lastVertexCount, lastEdgeCount);
         backgroundTicker.cancel(true);
         runtime.close();
         if (!config.containsKey("runtime.testMode") || !config.getBoolean("runtime.testMode"))
@@ -88,7 +87,11 @@ public class CLI {
     }
 
 
-    private static void outputTicker(List<Long> outputVertexMetrics, List<Long> outputEdgeMetrics, long startTime) {
+    private static void outputTicker(final List<Long> outputVertexMetrics,
+                                     final List<Long> outputEdgeMetrics,
+                                     final long startTime,
+                                     final AtomicLong lastVertexCount,
+                                     AtomicLong lastEdgeCount) {
         final Logger logger = LoggerFactory.getLogger("outputTicker");
         try {
             if (!(outputVertexMetrics.size() > 0 || outputEdgeMetrics.size() > 0)) {
@@ -101,11 +104,32 @@ public class CLI {
                 totalOutputVertices += outputVertexMetrics.get(i);
                 totalOutputEdges += outputEdgeMetrics.get(i);
             }
+            final long priorOutputVerticies = lastVertexCount.getAndSet(totalOutputVertices);
+            final long priorOutputEdges = lastEdgeCount.getAndSet(totalOutputEdges);
+            final long vertexTransferredSinceLastTick = totalOutputVertices - priorOutputVerticies;
+            final long edgeTransferredSinceLastTick = totalOutputEdges - priorOutputEdges;
+            final long vertexTransferredPerSecond = vertexTransferredSinceLastTick / 5;
+            final long edgeTransferredPerSecond = edgeTransferredSinceLastTick / 5;
             long totalOutputTime = System.currentTimeMillis() - startTime + 1;
             long elementsPerSecond = 0;
             if (totalOutputVertices + totalOutputEdges > 0)
                 elementsPerSecond = (totalOutputVertices + totalOutputEdges) / (1 + totalOutputTime / 1000);
-            System.out.printf("%,d vertices and %,d edges written to %s outputs at %,d elements per second%n", totalOutputVertices, totalOutputEdges, outputVertexMetrics.size(), elementsPerSecond);
+            System.out.printf("|%s|" +
+                            "%,d vertices and " +
+                            "%,d edges written to " +
+                            "%s outputs currently at " +
+                            "%,d vertex per second and " +
+                            "%,d edge per second averaging " +
+                            "%,d elements per second since " +
+                            "|%s|\n",
+                    new Date(System.currentTimeMillis()),
+                    totalOutputVertices,
+                    totalOutputEdges,
+                    outputVertexMetrics.size(),
+                    vertexTransferredPerSecond,
+                    edgeTransferredPerSecond,
+                    elementsPerSecond,
+                    new Date(startTime));
         } catch (Exception e) {
             e.printStackTrace();
         }

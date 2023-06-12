@@ -34,15 +34,20 @@ public class TinkerPopGraphProvider implements GraphProvider {
     }
 
     private final Configuration config;
-    private final Graph graph;
+    protected final Graph graph;
 
-    public TinkerPopGraphProvider(Configuration config) {
+    public TinkerPopGraphProvider(final Configuration config) {
         this.config = config;
-        if(config.getBoolean(Config.Keys.CACHE)) {
+        if (config.containsKey(Config.Keys.CACHE) && config.getBoolean(Config.Keys.CACHE)) {
             this.graph = new CachedGraph((Graph) RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_IMPL), config));
         } else {
             this.graph = (Graph) RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_IMPL), config);
         }
+    }
+
+    public TinkerPopGraphProvider(final Configuration config, final Graph graph) {
+        this.config = config;
+        this.graph = graph;
     }
 
     public static GraphProvider open(Configuration config) {

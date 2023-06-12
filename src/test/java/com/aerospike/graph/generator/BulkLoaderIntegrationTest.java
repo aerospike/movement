@@ -1,16 +1,16 @@
 package com.aerospike.graph.generator;
 
+import com.aerospike.graph.generator.common.tinkerpop.TinkerPopGraphProvider;
 import com.aerospike.graph.generator.emitter.Emitter;
 import com.aerospike.graph.generator.emitter.generated.Generator;
 import com.aerospike.graph.generator.emitter.generated.StitchMemory;
 import com.aerospike.graph.generator.emitter.generated.schema.Parser;
 import com.aerospike.graph.generator.emitter.generated.schema.def.VertexSchema;
 import com.aerospike.graph.generator.emitter.tinkerpop.SourceGraph;
-import com.aerospike.graph.generator.emitters.ClassicGraphProvider;
+import com.aerospike.graph.generator.emitters.ClassicGraph;
 import com.aerospike.graph.generator.encoder.format.csv.CSVEncoder;
 import com.aerospike.graph.generator.output.Output;
 import com.aerospike.graph.generator.output.file.DirectoryOutput;
-import com.aerospike.graph.generator.runtime.CapturedError;
 import com.aerospike.graph.generator.runtime.LocalParallelStreamRuntime;
 import com.aerospike.graph.generator.runtime.LocalSequentialStreamRuntime;
 import com.aerospike.graph.generator.util.ConfigurationBase;
@@ -32,8 +32,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static junit.framework.TestCase.assertEquals;
 
@@ -56,7 +54,8 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
             put(Generator.Config.Keys.ROOT_VERTEX_ID_END, 20L);
             put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, "/tmp/generate");
             put(ConfigurationBase.Keys.EMITTER, SourceGraph.class.getName());
-            put(SourceGraph.Config.Keys.GRAPH_PROVIDER, ClassicGraphProvider.class.getName());
+            put(SourceGraph.Config.Keys.GRAPH_PROVIDER, TinkerPopGraphProvider.class.getName());
+            put(TinkerPopGraphProvider.Config.Keys.GRAPH_IMPL, ClassicGraph.class.getName());
             put(DirectoryOutput.Config.Keys.ENCODER, CSVEncoder.class.getName());
             put(ConfigurationBase.Keys.OUTPUT, DirectoryOutput.class.getName());
             put(DirectoryOutput.Config.Keys.ENTRIES_PER_FILE, 100);

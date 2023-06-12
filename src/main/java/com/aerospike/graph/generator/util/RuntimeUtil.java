@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 
 public class RuntimeUtil {
     private static final Logger logger = LoggerFactory.getLogger(RuntimeUtil.class);
-    private static final String STATIC_OPEN_METHOD = "open";
+    public static final String STATIC_OPEN_METHOD = "open";
 
     public static Output loadOutput(final Configuration config) {
         logger.debug("Loading output");
@@ -36,7 +36,6 @@ public class RuntimeUtil {
     }
 
     public static Object openClassRef(final String className, final Configuration config) {
-
         try {
             final Class clazz = Class.forName(className);
             return clazz.getMethod(STATIC_OPEN_METHOD, Configuration.class).invoke(null, config);
@@ -44,7 +43,6 @@ public class RuntimeUtil {
             throw new RuntimeException("Error loading class: " + className, e);
         }
     }
-
 
     public static void invokeClassMain(final String className, Object[] args) {
         final Class clazz = loadClass(className);
