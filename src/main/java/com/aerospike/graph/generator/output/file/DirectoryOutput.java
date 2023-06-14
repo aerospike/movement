@@ -28,9 +28,9 @@ import java.util.stream.Stream;
  */
 public class DirectoryOutput implements Output {
     private static ConcurrentHashMap<String, Encoder> encoderCache = new ConcurrentHashMap<>();
-    public static Config CONFIG = new Config();
-    private final Configuration config;
 
+    private final Configuration config;
+    public static Config CONFIG = new Config();
     public static class Config extends ConfigurationBase {
         @Override
         public Map<String, String> getDefaults() {

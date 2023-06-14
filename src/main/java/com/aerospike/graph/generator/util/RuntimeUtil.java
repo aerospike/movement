@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.stream.Stream;
@@ -75,6 +76,14 @@ public class RuntimeUtil {
         return IteratorUtils.flatMap(input.iterator(), emitable ->
                 IteratorUtils.flatMap(emitable.emit(writer).iterator(),
                         emitable1 -> walk(emitable1.emit(writer), writer)));
+    }
+
+    public static Method getMethod(final Class instrumentedClass,final  String method) {
+        try {
+            return instrumentedClass.getMethod(method);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
 

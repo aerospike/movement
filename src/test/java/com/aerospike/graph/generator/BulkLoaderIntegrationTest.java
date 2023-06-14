@@ -12,7 +12,6 @@ import com.aerospike.graph.generator.encoder.format.csv.CSVEncoder;
 import com.aerospike.graph.generator.output.Output;
 import com.aerospike.graph.generator.output.file.DirectoryOutput;
 import com.aerospike.graph.generator.runtime.LocalParallelStreamRuntime;
-import com.aerospike.graph.generator.runtime.LocalSequentialStreamRuntime;
 import com.aerospike.graph.generator.util.ConfigurationBase;
 import com.aerospike.graph.generator.util.IOUtil;
 import com.aerospike.graph.generator.util.RuntimeUtil;
@@ -64,9 +63,7 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
 //        final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(stitchMemory, 6, config);
         final Output output = RuntimeUtil.loadOutput(config);
         final Emitter emitter = RuntimeUtil.loadEmitter(config);
-        final LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(config, stitchMemory,
-                Optional.of(output), Optional.of(emitter));
-
+        final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
         runtime.processVertexStream();
         runtime.processEdgeStream();
 
@@ -96,7 +93,7 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
             put(Generator.Config.Keys.SCHEMA_FILE, newGraphSchemaLocationRelativeToModule());
         }});
         final StitchMemory stitchMemory = new StitchMemory("none");
-        final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(stitchMemory, config);
+        final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
 
         runtime.processVertexStream();
         runtime.processEdgeStream();
@@ -138,8 +135,7 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
             put(ConfigurationBase.Keys.OUTPUT, DirectoryOutput.class.getName());
             put(DirectoryOutput.Config.Keys.ENTRIES_PER_FILE, 100000);
         }});
-        final StitchMemory stitchMemory = new StitchMemory("none");
-        final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(stitchMemory,  config);
+        final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
         final Output output = RuntimeUtil.loadOutput(config);
         final Emitter emitter = RuntimeUtil.loadEmitter(config);
 //        final LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(config, stitchMemory, Optional.of(output), Optional.of(emitter));

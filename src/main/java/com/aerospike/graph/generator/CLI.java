@@ -1,9 +1,7 @@
 package com.aerospike.graph.generator;
 
 import com.aerospike.graph.generator.emitter.generated.StitchMemory;
-import com.aerospike.graph.generator.runtime.CapturedError;
 import com.aerospike.graph.generator.runtime.LocalParallelStreamRuntime;
-import com.aerospike.graph.generator.runtime.LocalSequentialStreamRuntime;
 import com.aerospike.graph.generator.util.ConfigurationBase;
 import com.aerospike.graph.generator.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -17,7 +15,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
 
 import static java.lang.Thread.sleep;
 
@@ -64,8 +61,7 @@ public class CLI {
     }
 
     public static void run(Configuration config) {
-        final StitchMemory stitchMemory = new StitchMemory("none");
-        final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(stitchMemory, config);
+        final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
         final long startTime = System.currentTimeMillis();
         final AtomicLong lastVertexCount = new AtomicLong(0);
         final AtomicLong lastEdgeCount = new AtomicLong(0);

@@ -9,7 +9,7 @@ import com.aerospike.graph.generator.emitters.ClassicGraph;
 import com.aerospike.graph.generator.encoder.format.csv.CSVEncoder;
 import com.aerospike.graph.generator.output.Output;
 import com.aerospike.graph.generator.output.file.DirectoryOutput;
-import com.aerospike.graph.generator.runtime.LocalSequentialStreamRuntime;
+import com.aerospike.graph.generator.runtime.LocalParallelStreamRuntime;
 import com.aerospike.graph.generator.util.ConfigurationBase;
 import com.aerospike.graph.generator.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -26,7 +26,7 @@ public class RoundTripTest extends AbstractGeneratorTest {
 //        final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(stitchMemory, 6, config);
         final Output output = RuntimeUtil.loadOutput(config);
         final Emitter emitter = RuntimeUtil.loadEmitter(config);
-        final LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(config, stitchMemory, Optional.of(output), Optional.of(emitter));
+        final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
 
         runtime.processVertexStream();
         runtime.processEdgeStream();
