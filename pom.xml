@@ -19,7 +19,7 @@
         <slf4j.version>1.7.30</slf4j.version>
         <guava.version>31.1-jre</guava.version>
         <resilience4j.version>1.7.1</resilience4j.version>
-        <vertx.version>4.4.1</vertx.version>
+        <vertx.version>4.4.3</vertx.version>
         <prometheus.version>0.16.0</prometheus.version>
         <picocli.version>4.7.3</picocli.version>
         <snakeyaml.version>2.0</snakeyaml.version>
@@ -46,9 +46,24 @@
             <version>${guava.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-hazelcast</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-driver</artifactId>
             <version>${tinkerpop.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>1.14.5</version>
         </dependency>
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
@@ -69,6 +84,12 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>RELEASE</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

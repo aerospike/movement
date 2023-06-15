@@ -4,6 +4,7 @@ import com.aerospike.graph.generator.AbstractGeneratorTest;
 import com.aerospike.graph.generator.TestUtil;
 import com.aerospike.graph.generator.emitter.EmittedEdge;
 import com.aerospike.graph.generator.emitter.EmittedVertex;
+import com.aerospike.graph.generator.emitter.generated.GeneratedVertex;
 import com.aerospike.graph.generator.encoder.Encoder;
 import com.aerospike.graph.generator.encoder.format.csv.CSVEncoder;
 import com.aerospike.graph.generator.output.Output;
@@ -98,76 +99,91 @@ public class ParallelStreamRuntimeTest extends AbstractGeneratorTest {
             public Map<String, String> getDefaults() {
                 return DEFAULTS;
             }
+
             public static class Keys {
-                public static final String LOG_OUTPUT_DIR = "test.";
             }
+
             public static final Map<String, String> DEFAULTS = new HashMap<>() {{
                 put(DefaultErrorHandler.Config.Keys.LOG_OUTPUT_DIR, "/tmp/");
             }};
-            public boolean throwOn(Configuration config, final String fn){
+
+            public boolean throwOn(Configuration config, final String fn) {
                 return config.containsKey(fn) && config.getBoolean(fn);
             }
         }
 
 
         public static ErrorThrowingOutput open(Configuration config) {
-            final Encoder encoder =  RuntimeUtil.loadEncoder(config);
+            final Encoder encoder = RuntimeUtil.loadEncoder(config);
             final int entriesPerFile = Integer.valueOf(CONFIG.getOrDefault(config, DirectoryOutput.Config.Keys.ENTRIES_PER_FILE));
             final String outputDirectory = CONFIG.getOrDefault(config, DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY);
             return new ErrorThrowingOutput(Path.of(outputDirectory), entriesPerFile, encoder, config);
         }
+
         @Override
         public Stream<Optional<CapturedError>> writeVertexStream(Stream<EmittedVertex> vertexStream) {
-            return vertexStream.map(it -> {
-                return Optional.of(new CapturedError( new Exception("Test exception"), it.id()));
-            });
+            if (CONFIG.throwOn(config, "test.writeVertexStream.exceptionStream"))
+                return vertexStream.map(it -> {
+                    return Optional.of(new CapturedError(new Exception("Test exception"), it.id()));
+                });
+            return super.writeVertexStream(vertexStream);
         }
 
         @Override
         public Stream<Optional<CapturedError>> writeEdgeStream(Stream<EmittedEdge> edgeStream) {
-            return null;
+            if (CONFIG.throwOn(config, "test.writeEdgeStream.exceptionStream"))
+                return edgeStream.map(it -> {
+                    return Optional.of(new CapturedError(new Exception("Test exception"), new GeneratedVertex.GeneratedVertexId(-1)));
+                });
+            return super.writeEdgeStream(edgeStream);
         }
 
         @Override
         public OutputWriter vertexWriter(String label) {
-            if(CONFIG.throwOn(config, "test.vertexWriter.throw"))
+            if (CONFIG.throwOn(config, "test.vertexWriter.throw"))
                 throw new RuntimeException("vertexWriter exception");
             return super.vertexWriter(label);
         }
 
         @Override
         public OutputWriter edgeWriter(String label) {
-            if(CONFIG.throwOn(config, "test.edgeWriter.throw"))
+            if (CONFIG.throwOn(config, "test.edgeWriter.throw"))
                 throw new RuntimeException("edgeWriter exception");
             return super.edgeWriter(label);
         }
 
         @Override
         public Long getEdgeMetric() {
-            if(CONFIG.throwOn(config, "test.getEdgeMetric.throw"))
+            if (CONFIG.throwOn(config, "test.getEdgeMetric.throw"))
                 throw new RuntimeException("getEdgeMetric exception");
             return super.getEdgeMetric();
         }
 
         @Override
         public Long getVertexMetric() {
-            throw new RuntimeException("getVertexMetric exception");
+            if (CONFIG.throwOn(config, "test.getVertexMetric.throw"))
+                throw new RuntimeException("getVertexMetric exception");
+            return super.getVertexMetric();
         }
 
         @Override
         public void close() {
-            throw new RuntimeException("close exception");
+            if (CONFIG.throwOn(config, "test.close.throw"))
+                throw new RuntimeException("close exception");
+            super.close();
         }
 
         @Override
         public void dropStorage() {
-            throw new RuntimeException("dropStorage exception");
+            if (CONFIG.throwOn(config, "test.dropStorage.throw"))
+                throw new RuntimeException("dropStorage exception");
+            super.dropStorage();
         }
     }
 
     @Test
-    public void testErrorHandling(){
-        testCSVConfiguration.setProperty(ConfigurationBase.Keys.OUTPUT,ErrorThrowingOutput.class.getName());
+    public void testErrorHandling() {
+        testCSVConfiguration.setProperty(ConfigurationBase.Keys.OUTPUT, ErrorThrowingOutput.class.getName());
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(testCSVConfiguration);
         runtime.processVertexStream();
 

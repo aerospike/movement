@@ -1,6 +1,7 @@
 package com.aerospike.graph.generator.runtime;
 
 import com.aerospike.graph.generator.util.ConfigurationBase;
+import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.JoinConfig;
 import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.TcpIpConfig;
@@ -22,6 +23,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import static com.aerospike.graph.generator.runtime.DistributedStreamRuntime.Config.Keys.INTERFACES;
 import static java.lang.Runtime.getRuntime;
 
 /**
@@ -41,9 +43,13 @@ public class DistributedStreamRuntime implements Runtime {
     private final Iterator<List<Long>> edgeIterator;
 
     private final LocalParallelStreamRuntime subRuntime;
-    private final List<String> nodeList;
+    private final Optional<List<String>> nodeList;
     private AtomicBoolean isStarted = new AtomicBoolean(false);
     private AtomicBoolean coordinator = new AtomicBoolean(false);
+
+    public void close() {
+        vertx.close();
+    }
 
     public static class Config extends ConfigurationBase {
         @Override
@@ -67,13 +73,12 @@ public class DistributedStreamRuntime implements Runtime {
             public static final String DROP_OUTPUT = "runtime.dropOutput";
             public static final String OUTPUT_STARTUP_DELAY_MS = "runtime.outputStallTimeMs";
             public static final String MEMBERS_LIST = "runtime.distributed.members";
+            public static final String INTERFACES = "runtime.distributed.interfaces";
 
         }
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
-            put(LocalParallelStreamRuntime.Config.Keys.THREADS, String.valueOf(getRuntime().availableProcessors()));
-            put(LocalParallelStreamRuntime.Config.Keys.DROP_OUTPUT, "false");
-            put(LocalParallelStreamRuntime.Config.Keys.OUTPUT_STARTUP_DELAY_MS, "100");
+            put(INTERFACES, "127.0.0.1");
         }};
     }
 
@@ -82,19 +87,26 @@ public class DistributedStreamRuntime implements Runtime {
         this.vertx = vertex;
         this.config = config;
         this.subRuntime = (LocalParallelStreamRuntime) LocalParallelStreamRuntime.open(config);
-        this.nodeList = Arrays.stream(CONFIG.getOrDefault(config, Config.Keys.MEMBERS_LIST).split(","))
-                .collect(Collectors.toList());
+        this.nodeList = config.containsKey(Config.Keys.MEMBERS_LIST) ?
+                Optional.of(Arrays.stream(CONFIG.getOrDefault(config, Config.Keys.MEMBERS_LIST)
+                                .split(","))
+                        .collect(Collectors.toList())) :
+                Optional.empty();
         this.vertexIterator = new IteratorWithFeeder(vertx, Config.Keys.VERTEX);
         this.edgeIterator = new IteratorWithFeeder(vertx, Config.Keys.EDGE);
 
     }
 
     public static com.hazelcast.config.Config toHazelcastConfig(Configuration config) {
-        final TcpIpConfig tcpIpConfig = new TcpIpConfig()
-                .setMembers(Arrays.stream(CONFIG.getOrDefault(config, Config.Keys.MEMBERS_LIST).split(",")).collect(Collectors.toList()));
+        final TcpIpConfig tcpIpConfig = new TcpIpConfig();
+        if (config.containsKey(Config.Keys.MEMBERS_LIST))
+            tcpIpConfig.setMembers(Arrays.stream(CONFIG.getOrDefault(config, Config.Keys.MEMBERS_LIST).split(",")).collect(Collectors.toList()));
         final JoinConfig join = new JoinConfig().setTcpIpConfig(tcpIpConfig);
         final NetworkConfig net = new NetworkConfig()
                 .setPort(5701)
+                .setInterfaces(new InterfacesConfig()
+                        .setInterfaces(Arrays.stream(CONFIG.getOrDefault(config, INTERFACES)
+                                .split(",")).collect(Collectors.toList())))
                 .setPortAutoIncrement(true)
                 .setJoin(join);
         return new com.hazelcast.config.Config()
@@ -127,7 +139,7 @@ public class DistributedStreamRuntime implements Runtime {
         return completableFuture;
     }
 
-    private Future<?> start() {
+    public CompletableFuture<?> start() {
         Promise promise = Promise.promise();
         vertx.sharedData().getLock(Config.Keys.COORDINATOR, lock -> {
             if (lock.succeeded()) {
@@ -138,7 +150,7 @@ public class DistributedStreamRuntime implements Runtime {
                 startupProcedureAsWorker(promise);
             }
         });
-        return promise.future();
+        return convertToCompletableFuture(promise.future());
     }
 
     private void checkIn() {
@@ -192,7 +204,7 @@ public class DistributedStreamRuntime implements Runtime {
     }
 
     private void listenForStart(Handler<AsyncResult<?>> handler) {
-        vertx.eventBus().consumer(CONFIG.getOrDefault(config, Config.Keys.START_CHANNEL), msg -> {
+        vertx.eventBus().consumer(Config.Keys.START_CHANNEL, msg -> {
             if (msg.body().equals("start")) {
                 workerStart(handler);
             }
@@ -212,7 +224,7 @@ public class DistributedStreamRuntime implements Runtime {
                     if (ar.failed()) {
                         handleError(ar.cause());
                     } else {
-                        if (ar.result() == nodeList.size()) {
+                        if (ar.result() == (nodeList.isPresent() ? nodeList.get().size() : 1)) {
                             coordinatorBroadcastStart();
                         } else {
                             listenForStart(handler);
