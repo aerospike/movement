@@ -53,6 +53,7 @@ public class DefaultErrorHandler {
 
     public void handle(final Throwable t) {
         System.err.println("Error: " + t.getMessage());
+        t.printStackTrace();
         writeLine(t.getMessage());
         writeLine(getStackTrace(t));
     }

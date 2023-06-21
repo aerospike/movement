@@ -113,11 +113,7 @@ public class LocalParallelStreamRuntime implements Runtime {
                         final DefaultErrorHandler errorHandler = outputProducerPair.getKey().getValue();
                         final Stream<EmittedVertex> vertexIterator = outputProducerPair.getValue();
                         vertexIterator.iterator().forEachRemaining(generatedVertex -> {
-                            try {
-                                IteratorUtils.iterate(RuntimeUtil.walk(generatedVertex.emit(output), output));
-                            } catch (Exception e) {
-                                errorHandler.handle(e);
-                            }
+                            IteratorUtils.iterate(RuntimeUtil.walk(generatedVertex.emit(output), output));
                         });
                     })).get();
         } catch (Exception e) {

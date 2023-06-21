@@ -2,6 +2,7 @@ package com.aerospike.graph.generator.emitter.generated;
 
 import com.aerospike.graph.generator.emitter.Emitable;
 import com.aerospike.graph.generator.emitter.EmittedVertex;
+import com.aerospike.graph.generator.emitter.generated.schema.def.OutEdgeSpec;
 import com.aerospike.graph.generator.output.Output;
 import com.aerospike.graph.generator.output.OutputWriter;
 import com.aerospike.graph.generator.emitter.generated.schema.def.EdgeSchema;
@@ -11,6 +12,7 @@ import com.aerospike.graph.generator.structure.Util;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -106,17 +108,31 @@ public class GeneratedVertex implements Emitable, EmittedVertex {
     }
 
     public Stream<Emitable> paths() {
-        return IteratorUtils.stream(new Paths(this, context.vertexSchema.outEdges.stream()
-                .flatMap(outEdgeSpec -> {
-                    EdgeSchema edgeSchema = Util.getSchemaFromEdgeName(context.graphSchema, outEdgeSpec.name);
-                    return IteratorUtils.stream(
-                            new EmittedEdgeIterator(
-                                    edgeSchema,
-                                    context.graphSchema,
-                                    outEdgeSpec.likelihood,
-                                    outEdgeSpec.chancesToCreate));
-                }).filter(it -> it.isPresent()).map(it -> it.get())
-                .flatMap(edgeGenerator -> edgeGenerator.walk(this.id, context.idSupplier))));
+        List<OutEdgeSpec> outEdges = context.vertexSchema.outEdges;
+        try {
+            return IteratorUtils.stream(new Paths(this, outEdges.stream()
+                    .flatMap(outEdgeSpec -> {
+                        final EdgeSchema edgeSchema;
+                        final Double likelihood;
+                        final Integer chancesToCreate;
+                        try {
+                            edgeSchema = Util.getSchemaFromEdgeName(context.graphSchema, outEdgeSpec.name);
+                            likelihood = outEdgeSpec.likelihood;
+                            chancesToCreate = outEdgeSpec.chancesToCreate;
+                        } catch (NullPointerException e) {
+                            throw new RuntimeException(e);
+                        }
+                        return IteratorUtils.stream(
+                                new EmittedEdgeIterator(
+                                        edgeSchema,
+                                        context.graphSchema,
+                                        likelihood,
+                                        chancesToCreate));
+                    }).filter(it -> it.isPresent()).map(it -> it.get())
+                    .flatMap(edgeGenerator -> edgeGenerator.walk(this.id, context.idSupplier))));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

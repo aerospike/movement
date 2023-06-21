@@ -75,10 +75,17 @@ public class RuntimeUtil {
     public static Iterator<Emitable> walk(Stream<Emitable> input, Output writer) {
         return IteratorUtils.flatMap(input.iterator(), emitable ->
                 IteratorUtils.flatMap(emitable.emit(writer).iterator(),
-                        emitable1 -> walk(emitable1.emit(writer), writer)));
+                        emitable1 -> {
+                            try {
+                                return walk(emitable1.emit(writer), writer);
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        })
+        );
     }
 
-    public static Method getMethod(final Class instrumentedClass,final  String method) {
+    public static Method getMethod(final Class instrumentedClass, final String method) {
         try {
             return instrumentedClass.getMethod(method);
         } catch (NoSuchMethodException e) {

@@ -34,7 +34,7 @@ public abstract class AbstractGeneratorTest {
     }
 
     public String testGeneratorPropertiesLocationRelativeToProject() {
-        return "conf/generator-sample.properties";
+        return "release/conf/neustar_test.properties";
     }
 
     public String testGeneratorTraversalPropertiesLocationRelativeToProject() {
