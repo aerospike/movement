@@ -1,5 +1,6 @@
 package com.aerospike.graph.move.runtime.local;
 
+import com.aerospike.graph.move.emitter.EmittedElement;
 import com.aerospike.graph.move.emitter.EmittedVertex;
 import com.aerospike.graph.move.emitter.Emitter;
 import com.aerospike.graph.move.emitter.generator.Generator;
@@ -29,14 +30,13 @@ import static java.lang.Runtime.getRuntime;
  */
 public class LocalParallelStreamRuntime implements Runtime {
     public static Config CONFIG = new Config();
-    private final long rootVertexIdStart;
-    private final long rootVertexIdEnd;
+    private static final String id = UUID.randomUUID().toString();
 
     // 1 per JVM
     private static AtomicReference<LocalParallelStreamRuntime> INSTANCE = new AtomicReference<LocalParallelStreamRuntime>();
 
     public static Runtime getInstance(Configuration config) {
-        if(INSTANCE.get() == null) {
+        if (INSTANCE.get() == null) {
             INSTANCE.set(new LocalParallelStreamRuntime(config));
         }
     }
@@ -69,8 +69,7 @@ public class LocalParallelStreamRuntime implements Runtime {
     public LocalParallelStreamRuntime(final Configuration config) {
         this.config = config;
         this.customThreadPool = new ForkJoinPool(Integer.parseInt(CONFIG.getOrDefault(config, Config.Keys.THREADS)));
-        this.rootVertexIdStart = Long.parseLong(Generator.CONFIG.getOrDefault(config, Generator.Config.Keys.ROOT_VERTEX_ID_START));
-        this.rootVertexIdEnd = Long.parseLong(Generator.CONFIG.getOrDefault(config, Generator.Config.Keys.ROOT_VERTEX_ID_END));
+
     }
 
     public static Runtime open(Configuration config) {
@@ -83,12 +82,17 @@ public class LocalParallelStreamRuntime implements Runtime {
 
     @Override
     public void initialPhase() {
-        final Iterator<List<Long>> idSupplier = new SyncronizedBatchIterator<>(
-                LongStream.range(rootVertexIdEnd + 1, Long.MAX_VALUE).iterator(), 1000);
+        final Iterator<List<?>> idSupplier = ((Iterator<List<?>>) new SyncronizedBatchIterator<>(
+                ((Iterator<List<?>>) EmittedElement.getIterator(EmittedVertex.class, this), 1000);
         processVertexStream(idSupplier);
     }
 
-    public void processVertexStream(Iterator<List<Long>> idSupplier) {
+    public void processCompletionPhase(Iterator<List<?>> idSupplier) {
+
+    }
+
+
+    public void processVertexStream(Iterator<List<?>> idSupplier) {
         final int threads = customThreadPool.getParallelism();
         final long rootVertexIdRange = rootVertexIdEnd - rootVertexIdStart;
         final long rootVertexIdRangePerThread = rootVertexIdRange / threads;
@@ -106,7 +110,7 @@ public class LocalParallelStreamRuntime implements Runtime {
                             final long endId = startId + rootVertexIdRangePerThread;
                             final DefaultErrorHandler errorHandler = new DefaultErrorHandler(config, String.valueOf(threadNumber));
                             return new AbstractMap.SimpleEntry<>(new AbstractMap.SimpleEntry<>(output, errorHandler), emitter
-                                    .withIdSupplier(new BatchedIterator<>(idSupplier))
+                                    .withIdSupplier((Iterator<List<?>>) new BatchedIterator(idSupplier))
                                     .phaseOneStream(startId, endId));
                         }
                 ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -156,7 +160,7 @@ public class LocalParallelStreamRuntime implements Runtime {
     }
 
 
-    public void processEdgeStream(Iterator<List<Long>> idSupplier) {
+    public void processEdgeStream(Iterator<List<?>> idSupplier) {
         completionPhase();
     }
 
@@ -169,8 +173,64 @@ public class LocalParallelStreamRuntime implements Runtime {
         return sb.toString();
     }
 
-    private class StreamProcessor<? extends >
 
+    private static class StreamProcessor<X> {
+        private static final AtomicReference<StreamProcessor<X>> INSTANCE = new AtomicReference<>();
 
+        public StreamProcessor(Configuration config) {
+        }
 
+        public static StreamProcessor getInstance(final Configuration config) {
+            if (INSTANCE.get() == null) {
+                INSTANCE.set(new StreamProcessor(config));
+            }
+            return INSTANCE.get();
+        }
+
+        public void processStream(final Class<? extends EmittedElement> streamType,
+                                  Stream<? extends EmittedElement> stream,
+                                  final ForkJoinPool customThreadPool,
+                                  final Map<Long, Output> outputMap,
+                                  final Runtime runtime,
+                                  final Configuration config) {
+            final int threads = customThreadPool.getParallelism();
+
+            Map<Map.Entry<Output, DefaultErrorHandler>, Stream<EmittedVertex>> vertexIterators =
+                    IntStream.range(0, threads).mapToObj(threadNumber -> {
+                                try {
+                                    Thread.sleep(Long.parseLong(CONFIG.getOrDefault(config, Config.Keys.OUTPUT_STARTUP_DELAY_MS)));
+                                } catch (InterruptedException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                final Emitter emitter = RuntimeUtil.loadEmitter(config);
+                                final Output output = RuntimeUtil.loadOutput(config);
+                                outputMap.put((long) threadNumber, output);
+
+                                final DefaultErrorHandler errorHandler = new DefaultErrorHandler(config, String.valueOf(threadNumber));
+                                return new AbstractMap.SimpleEntry<>(new AbstractMap.SimpleEntry<>(output, errorHandler), emitter
+                                        .withIdSupplier(new BatchedIterator(EmittedElement.getIterator(streamType, runtime)))
+                                        .phaseOneStream());
+                            }
+                    ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            if (Boolean.parseBoolean(CONFIG.getOrDefault(config, Config.Keys.DROP_OUTPUT))) {
+                RuntimeUtil.loadOutput(config).dropStorage();
+            }
+            try {
+                customThreadPool.submit(
+                        () -> vertexIterators.entrySet().stream().parallel().forEach(outputProducerPair -> {
+                            final Output output = outputProducerPair.getKey().getKey();
+                            final DefaultErrorHandler errorHandler = outputProducerPair.getKey().getValue();
+                            final Stream<EmittedVertex> vertexIterator = outputProducerPair.getValue();
+                            vertexIterator.iterator().forEachRemaining(generatedVertex -> {
+                                IteratorUtils.iterate(RuntimeUtil.walk(generatedVertex.emit(output), output));
+                            });
+                        })).get();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 }
+
+
+

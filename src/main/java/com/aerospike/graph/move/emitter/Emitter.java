@@ -11,11 +11,17 @@ import java.util.stream.Stream;
  */
 public interface Emitter {
     Stream<EmittedVertex> phaseOneStream();
+
     Stream<EmittedVertex> phaseOneStream(long startId, long endId);
+
     Stream<EmittedEdge> phaseTwoStream();
-    Emitter withIdSupplier(Iterator<Long> idSupplier);
+
+    Emitter withIdSupplier(Iterator<List<?>> idSupplier);
+
     void close();
+
     List<String> getAllPropertyKeysForVertexLabel(String label);
+
     List<String> getAllPropertyKeysForEdgeLabel(String label);
     // For testing.
 }

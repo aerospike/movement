@@ -79,8 +79,8 @@ public class SourceGraph implements Emitter {
     }
 
     @Override
-    public Emitter withIdSupplier(final Iterator<Long> idSupplier) {
-        return this;
+    public Emitter withIdSupplier(Iterator<List<?>> idSupplier) {
+        return null;
     }
 
     @Override

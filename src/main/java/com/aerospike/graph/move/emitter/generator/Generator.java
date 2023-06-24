@@ -40,6 +40,10 @@ public class Generator implements Emitter {
             public static final String ID_PROVIDER_END = "emitter.idProviderMax";
             public static final String SCHEMA_FILE = "emitter.schemaFile";
             public static final String ROOT_VERTEX_LABEL = "emitter.rootVertexLabel";
+
+
+
+
         }
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
@@ -50,13 +54,13 @@ public class Generator implements Emitter {
     }
 
 
-    private static final VertexSchema rootVertexSchema;
+    private final VertexSchema rootVertexSchema;
     private final GraphSchema graphSchema;
     private Iterator<Long> idSupplier;
 
-    private Generator(final VertexSchema rootVertexSchema, final GraphSchema schema, final Configuration config) {
-        this.rootVertexSchema = rootVertexSchema;
-        this.graphSchema = schema;
+    private Generator( final Configuration config) {
+        this.rootVertexSchema = getRootVertexSchema(config);
+        this.graphSchema = getGraphSchema(config);
         this.rootVertexIdStart = Long.valueOf(CONFIG.getOrDefault(config, Config.Keys.ROOT_VERTEX_ID_START));
         this.rootVertexIdEnd = Long.valueOf(CONFIG.getOrDefault(config, Config.Keys.ROOT_VERTEX_ID_END));
         this.idSupplier = LongStream.range(rootVertexIdEnd + 1, Long.MAX_VALUE).iterator();
@@ -67,9 +71,7 @@ public class Generator implements Emitter {
     }
 
     public static Generator open(Configuration config) {
-        rootVertexSchema = getRootVertexSchema(config);
-
-        return new Generator(rootVertexSchema, getRootVertexSchema(config), config);
+        return new Generator( config);
     }
 
     @Override
@@ -96,10 +98,10 @@ public class Generator implements Emitter {
     }
 
     @Override
-    public Emitter withIdSupplier(final Iterator<Long> idSupplier) {
-        this.idSupplier = idSupplier;
-        return this;
+    public Emitter withIdSupplier(Iterator<List<?>> idSupplier) {
+        return this.idSupplier = idSupplier;
     }
+
 
     @Override
     public void close() {
@@ -127,14 +129,10 @@ public class Generator implements Emitter {
     }
     public static GraphSchema getGraphSchema(Configuration config) {
         final String schemaFileLocation = CONFIG.getOrDefault(config, Config.Keys.SCHEMA_FILE);
-
         return SchemaParser.parse(Path.of(schemaFileLocation));
     }
     public static VertexSchema getRootVertexSchema(Configuration config) {
-        final String schemaFileLocation = CONFIG.getOrDefault(config, Config.Keys.SCHEMA_FILE);
-
-        final GraphSchema schema = SchemaParser.parse(Path.of(schemaFileLocation));
-
+        final GraphSchema schema = getGraphSchema(config);
         return schema.vertexTypes.stream()
                 .filter(v -> v.label.equals(schema.entrypointVertexType))
                 .findFirst().orElseThrow(() -> new RuntimeException("Could not find root vertex type"));    }

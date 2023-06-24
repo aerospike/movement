@@ -37,8 +37,8 @@ public class DistributedStreamRuntime implements Runtime {
     public static DistributedStreamRuntime.Config CONFIG = new DistributedStreamRuntime.Config();
     private final Vertx vertx;
     private final Configuration config;
-    private final Iterator<List<Long>> vertexIterator;
-    private final Iterator<List<Long>> edgeIterator;
+    private final Iterator<List<?>> vertexIterator;
+    private final Iterator<List<?>> edgeIterator;
 
     private final LocalParallelStreamRuntime subRuntime;
     private final Optional<List<String>> nodeList;
@@ -267,7 +267,7 @@ public class DistributedStreamRuntime implements Runtime {
         subRuntime.processEdgeStream(edgeIterator);
     }
 
-    private class IteratorWithFeeder implements Iterator<List<Long>> {
+    private class IteratorWithFeeder implements Iterator<List<?>> {
         final BlockingQueue<List<Long>> feeder = new LinkedBlockingQueue<>();
         private final Vertx vertx;
         private final String idType;

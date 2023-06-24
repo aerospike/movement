@@ -4,12 +4,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class BatchedIterator<T> implements Iterator<T> {
-    private final Iterator<List<T>> upstreamIterator;
-    private Iterator<T> bufferedIterator;
-    private List<T> buffer;
+public class BatchedIterator implements Iterator<List<?>> {
+    private final Iterator<List<?>> upstreamIterator;
+    private Iterator<?> bufferedIterator;
+    private List<?> buffer;
 
-    public BatchedIterator(Iterator<List<T>> iterator) {
+    public BatchedIterator(Iterator<List<?>> iterator) {
         this.upstreamIterator = iterator;
         fillBuffer();
     }
@@ -31,9 +31,9 @@ public class BatchedIterator<T> implements Iterator<T> {
     }
 
     @Override
-    public T next() {
+    public List<?> next() {
         if (hasNext()) {
-            return bufferedIterator.next();
+            return (List<Object>) bufferedIterator.next();
         } else {
             throw new NoSuchElementException();
         }

@@ -1,9 +1,13 @@
 package com.aerospike.graph.move.emitter.loader;
 
+import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedVertex;
 import com.aerospike.graph.move.emitter.Emitter;
+import com.aerospike.graph.move.emitter.generator.GeneratedVertex;
 import com.aerospike.graph.move.encoding.format.csv.CSVEncoder;
+import com.aerospike.graph.move.output.Output;
+import com.aerospike.graph.move.structure.EmittedId;
 import com.aerospike.graph.move.util.ConfigurationBase;
 import org.apache.commons.configuration2.Configuration;
 
@@ -11,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -84,12 +89,11 @@ public class CSVImporter implements Emitter {
         }
     }
 
-
-
     @Override
-    public Emitter withIdSupplier(final Iterator<Long> idSupplier) {
+    public Emitter withIdSupplier(Iterator<List<?>> idSupplier) {
         return null;
     }
+
 
     @Override
     public void close() {
@@ -98,15 +102,36 @@ public class CSVImporter implements Emitter {
 
     @Override
     public List<String> getAllPropertyKeysForVertexLabel(final String label) {
-        return getHeader();
+        return readHeaderFromFileByType(vertexPath, label).stream()
+                .filter(x -> !x.startsWith("~"))
+                .collect(Collectors.toList());
+    }
+
+    private List<String> readHeaderFromFileByType(String basePath, String label) {
+        try {
+            return Files.walk(Path.of(basePath + "/" + label))
+                    .filter(Files::isRegularFile)
+                    .map(path -> {
+                        try {
+                            return Files.lines(path).findFirst().get();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .findFirst()
+                    .map(header -> Arrays.asList(header.split(",")))
+                    .orElseThrow(() -> new RuntimeException("No header found for label " + label));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public List<String> getAllPropertyKeysForEdgeLabel(final String label) {
-        return null;
+        return readHeaderFromFileByType(edgePath, label).stream()
+                .filter(x -> !x.startsWith("~"))
+                .collect(Collectors.toList());
     }
-
-
 
 
     public class CSVVertex implements EmittedVertex {
@@ -137,6 +162,7 @@ public class CSVImporter implements Emitter {
             writer.vertexWriter(label()).writeVertex(this);
             return Stream.empty();
         }
+
 
         @Override
         public Stream<Emitable> stream() {
