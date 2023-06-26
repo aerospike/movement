@@ -10,9 +10,27 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class MovementIteratorUtils {
-    public static Iterator<Long> longIterator(Iterator<Object> idSupplier) {
+    public static <A, B> Iterator<Map.Entry<A, B>> zip(Stream<? extends A> streamA, Stream<? extends B> streamB) {
+        Iterator<? extends A> iteratorA = streamA.iterator();
+        Iterator<? extends B> iteratorB = streamB.iterator();
+        return new Iterator<>() {
+            @Override
+            public boolean hasNext() {
+                return iteratorA.hasNext() && iteratorB.hasNext();
+            }
+
+            @Override
+            public Map.Entry<A, B> next() {
+                return new AbstractMap.SimpleEntry<>(iteratorA.next(), iteratorB.next());
+            }
+        };
+    }
+
+    public static Iterator<Object> wrap(Iterator<?> idSupplier) {
         return new IteratorWrap<>(idSupplier);
     }
 
@@ -29,12 +47,12 @@ public class MovementIteratorUtils {
 
         @Override
         public boolean hasNext() {
-            return false;
+            return wrappedIterator.hasNext();
         }
 
         @Override
         public T next() {
-            throw ErrorUtil.unimplemented();
+            return wrappedIterator.next();
         }
     }
 
@@ -119,9 +137,10 @@ public class MovementIteratorUtils {
     }
 
     public static class SyncronizedBatchIterator implements Iterator<List<Object>> {
-        public static SyncronizedBatchIterator create(Iterator<Object> iterator, int batchSize) {
+        public static Iterator<List<Object>> create(Iterator<Object> iterator, int batchSize) {
             return new SyncronizedBatchIterator(new BatchIterator(iterator, batchSize));
         }
+
         private final BatchIterator iterator;
 
         private SyncronizedBatchIterator(final BatchIterator iterator) {

@@ -1,5 +1,6 @@
 package com.aerospike.graph.move.encoding;
 
+import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedElement;
 import com.aerospike.graph.move.emitter.EmittedVertex;
@@ -13,7 +14,7 @@ public interface Decoder<O> {
     static void init(final int value, final Configuration config) {
     }
 
-    EmittedElement decodeElement(O encodedEdge);
+    Emitable decodeElement(O encodedElement, String label, Runtime.PHASE phase);
 
     O decodeElementMetadata(EmittedElement element);
 

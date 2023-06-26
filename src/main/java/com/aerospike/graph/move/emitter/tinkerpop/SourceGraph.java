@@ -3,6 +3,7 @@ package com.aerospike.graph.move.emitter.tinkerpop;
 import com.aerospike.graph.move.common.tinkerpop.GraphProvider;
 import com.aerospike.graph.move.emitter.*;
 import com.aerospike.graph.move.output.Output;
+import com.aerospike.graph.move.runtime.Runtime;
 import com.aerospike.graph.move.structure.EmittedId;
 import com.aerospike.graph.move.structure.EmittedIdImpl;
 import com.aerospike.graph.move.config.ConfigurationBase;
@@ -10,21 +11,19 @@ import com.aerospike.graph.move.util.ErrorUtil;
 import com.aerospike.graph.move.util.MovementIteratorUtils;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
-public class SourceGraph implements Emitter {
+public class SourceGraph extends Emitter.PhasedEmitter {
     public static final Config CONFIG = new Config();
     private final Optional<Iterator<Object>> idSupplier;
     private final String batchSize;
@@ -68,47 +67,46 @@ public class SourceGraph implements Emitter {
         this.batchSize = CONFIG.getOrDefault(config, Config.Keys.BATCH_SIZE);
     }
 
+
+    public Stream<Emitable> stream(Stream<Object> inputStream, Runtime.PHASE phase) {
+        return stream(inputStream.iterator(), phase);
+    }
+
     @Override
-    public Stream<Emitable> phaseOneStream() {
-        if (!idSupplier.isPresent())
-            return IteratorUtils.stream(graph.vertices()).map(TinkerPopVertex::new);
-        return IteratorUtils.stream(MovementIteratorUtils.BatchIterator.create(idSupplier.get(), 1000))
-                .flatMap(idBatch -> {
-                    Object[] ids = idBatch.stream().toArray();
-                    return IteratorUtils.stream(graph.vertices(ids)).map(TinkerPopVertex::new);
+    public Stream<Emitable> stream(Iterator<Object> iterator, Runtime.PHASE phase) {
+        return IteratorUtils.stream(iterator)
+                .flatMap(object -> {
+                    Optional.ofNullable(object).orElseThrow(() -> new RuntimeException("Null object"));
+                    if(List.class.isAssignableFrom(object.getClass())) {
+                        return IteratorUtils.stream(graph.vertices(((List<Object>)object).toArray())).map(TinkerPopVertex::new);
+                    }else if (Vertex.class.isAssignableFrom(object.getClass())){
+                        return Stream.of(new TinkerPopVertex((Vertex)object));
+                    }else if (Edge.class.isAssignableFrom(object.getClass())){
+                        return Stream.of(new TinkerPopEdge((Edge)object));
+                    }else if (phase.equals(Runtime.PHASE.ONE)){
+                        return IteratorUtils.stream(graph.vertices(object)).map(TinkerPopVertex::new);
+                    }else if (phase.equals(Runtime.PHASE.TWO)){
+                        return IteratorUtils.stream(graph.edges(object)).map(TinkerPopEdge::new);
+                    }else {
+                        throw new RuntimeException("Unknown object type " + object.getClass().getName());
+                    }
                 });
     }
 
+
     @Override
-    public Stream<Emitable> phaseOneStream(final long startId, final long endId) {
-        Object[] ids = LongStream.range(startId, endId).boxed().toArray();
-        return IteratorUtils.stream(graph.vertices(ids)).map(TinkerPopVertex::new);
+    public Stream<Emitable> stream(Runtime.PHASE phase) {
+        return stream(IteratorUtils.stream(getDriverForPhase(phase)).flatMap(it -> it.stream()), phase);
     }
 
     @Override
-    public Stream<Emitable> phaseTwoStream() {
-        return IteratorUtils.stream(graph.edges()).map(TinkerPopEdge::new);
-    }
-
-    @Override
-    public Stream<Emitable> phaseTwoStream(long startId, long endId) {
-        throw ErrorUtil.unimplemented();
-    }
-
-    @Override
-    public Iterator<Object> phaseOneIterator() {
-        return IteratorUtils.of(phaseOneStream());
-    }
-
-    @Override
-    public Iterator<Object> phaseTwoIterator() {
-        return IteratorUtils.of(phaseTwoStream());
-    }
-
-    @Override
-    public Emitter withIdSupplier(Iterator<Object> idSupplier) {
-        //@todo ignored
-        return this;
+    public Iterator<List<Object>> getDriverForPhase(Runtime.PHASE phase) {
+        if (phase.equals(Runtime.PHASE.ONE)) {
+            return getOrCreateDriverIterator(phase, (x) -> IteratorUtils.map(graph.vertices(), v -> v.id()));
+        } else if (phase.equals(Runtime.PHASE.TWO)) {
+            return getOrCreateDriverIterator(phase, (x) -> IteratorUtils.map(graph.edges(), e -> e.id()));
+        }
+        throw new IllegalStateException("Unknown phase " + phase);
     }
 
     @Override
@@ -120,7 +118,6 @@ public class SourceGraph implements Emitter {
         }
     }
 
-    @Override
     public List<String> getAllPropertyKeysForVertexLabel(final String label) {
         if (graphProvider.isPresent()) {
             return graphProvider.get().getAllPropertyKeysForVertexLabel(label);
@@ -132,7 +129,6 @@ public class SourceGraph implements Emitter {
                 .toList();
     }
 
-    @Override
     public List<String> getAllPropertyKeysForEdgeLabel(final String label) {
         if (graphProvider.isPresent()) {
             return graphProvider.get().getAllPropertyKeysForEdgeLabel(label);

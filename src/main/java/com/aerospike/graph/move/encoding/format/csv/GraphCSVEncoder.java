@@ -3,6 +3,7 @@ package com.aerospike.graph.move.encoding.format.csv;
 import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedElement;
 import com.aerospike.graph.move.emitter.EmittedVertex;
+import com.aerospike.graph.move.emitter.Emitter;
 import com.aerospike.graph.move.emitter.generator.Generator;
 import com.aerospike.graph.move.emitter.generator.schema.SchemaParser;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
@@ -10,7 +11,9 @@ import com.aerospike.graph.move.encoding.Decoder;
 import com.aerospike.graph.move.encoding.Encoder;
 import com.aerospike.graph.move.emitter.generator.schema.def.EdgeSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
+import com.aerospike.graph.move.runtime.Runtime;
 import com.aerospike.graph.move.util.ErrorUtil;
+import com.aerospike.graph.move.util.RuntimeUtil;
 import com.aerospike.graph.move.util.StructureUtil;
 import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.util.EncoderUtil;
@@ -27,12 +30,12 @@ import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 
 
-
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class GraphCSV implements Encoder<String>, Decoder<String> {
+public class GraphCSVEncoder implements Encoder<String> {
     public static final Generator.Config CONFIG = new Generator.Config();
+    private final Emitter emitter;
 
     public static class Config extends ConfigurationBase {
 
@@ -53,21 +56,20 @@ public class GraphCSV implements Encoder<String>, Decoder<String> {
 
     private final Optional<GraphSchema> optionalSchema;
 
-    private GraphCSV(final GraphSchema schema) {
-        this.optionalSchema = Optional.of(schema);
+    private GraphCSVEncoder(final Optional<GraphSchema> schema, Configuration config) {
+        this.optionalSchema = schema;
+        this.config = config;
+        this.emitter = RuntimeUtil.loadEmitter(config);
     }
 
-    private GraphCSV() {
-        this.optionalSchema = Optional.empty();
-    }
-
-    public static GraphCSV open(final Configuration config) {
+    final Configuration config;
+    public static GraphCSVEncoder open(final Configuration config) {
         if (config.containsKey(Generator.Config.Keys.SCHEMA_FILE)) {
             final String schemaFileLocation = CONFIG.getOrDefault(config, Generator.Config.Keys.SCHEMA_FILE);
             final GraphSchema schema = SchemaParser.parse(Path.of(schemaFileLocation));
-            return new GraphCSV(schema);
+            return new GraphCSVEncoder(Optional.of(schema), config);
         }
-        return new GraphCSV();
+        return new GraphCSVEncoder(Optional.empty(),config);
     }
 
     public VertexSchema vertexSchemaFromLabel(final String label) {
@@ -127,7 +129,8 @@ public class GraphCSV implements Encoder<String>, Decoder<String> {
 
 
     public static String toCsvLine(final List<String> fields) {
-        return fields.stream().reduce((a, b) -> a + "," + b).get();
+        Optional<String> x = fields.stream().reduce((a, b) -> a + "," + b);
+        return x.get();
     }
 
     @Override
@@ -142,7 +145,6 @@ public class GraphCSV implements Encoder<String>, Decoder<String> {
     }
 
 
-
     @Override
     public String encodeVertex(final EmittedVertex vertex) {
         return toCsvLine(toCsvFields(vertex));
@@ -150,7 +152,7 @@ public class GraphCSV implements Encoder<String>, Decoder<String> {
 
     @Override
     public String encodeVertexMetadata(final EmittedVertex vertex) {
-        return toCsvLine(new ArrayList<>(getVertexHeaderFields(vertex)));
+        return toCsvLine(emitter.getAllPropertyKeysForVertexLabel(vertex.label()));
     }
 
     @Override
@@ -181,20 +183,6 @@ public class GraphCSV implements Encoder<String>, Decoder<String> {
     }
 
 
-    @Override
-    public EmittedElement decodeElement(String encodedEdge) {
-        throw ErrorUtil.unimplemented();
-    }
-
-    @Override
-    public String decodeElementMetadata(EmittedElement element) {
-        throw ErrorUtil.unimplemented();
-    }
-
-    @Override
-    public String decodeElementMetadata(String label) {
-        throw ErrorUtil.unimplemented();
-    }
 
     public String getExtension() {
         return "csv";
@@ -205,62 +193,4 @@ public class GraphCSV implements Encoder<String>, Decoder<String> {
 
     }
 
-    @Override
-    public boolean skipEntry(String line) {
-        return line.startsWith("~");
-    }
-
-    public static class CSVLine {
-        private final List<Object> line;
-        private final List<String> header;
-
-        public CSVLine(String line, String headerLine) {
-            final List<String> header = parseHeader(headerLine);
-            this.line = parseLine(header, line);
-            this.header = header;
-        }
-
-        private static List<String> parseHeader(final String header) {
-            final StringTokenizer st = new StringTokenizer(header, ",");
-            final List<String> keys = new ArrayList<>();
-            while (st.hasMoreTokens()) {
-                keys.add(st.nextToken());
-            }
-            return keys;
-        }
-
-        enum CSVField {
-            EMPTY
-        }
-
-        private List<Object> parseLine(List<String> header, String line) {
-            StringTokenizer st = new StringTokenizer(line, ",", true);
-            List<Object> results = new ArrayList<>();
-            for (long i = 0; i < header.size(); i++) {
-                String token = st.nextToken();
-                if (token.equals(",")) {
-                    // empty field
-                    results.add(CSVField.EMPTY);
-                } else {
-                    results.add(token);
-                    if (st.hasMoreTokens() && !Objects.equals(st.nextToken(), ",")) {
-                        throw new RuntimeException("Expected comma after field");
-                    }
-                }
-            }
-            return results;
-        }
-
-        public Object getEntry(String key) {
-            try {
-                return line.get(header.indexOf(key));
-            } catch (IndexOutOfBoundsException e) {
-                throw new RuntimeException("Key not found: " + key);
-            }
-        }
-
-        public List<String> propertyNames() {
-            return header.stream().filter(k -> !k.startsWith("~")).collect(Collectors.toList());
-        }
-    }
 }

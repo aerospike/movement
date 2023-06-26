@@ -40,24 +40,6 @@ public class TraversalOutput implements Output, OutputWriter {
         return new TraversalOutput(RuntimeUtil.loadEncoder(config));
     }
 
-    @Override
-    public Stream<Optional<CapturedError>> writeVertexStream(final Stream<EmittedVertex> vertexStream) {
-        return vertexStream.map(it -> {
-            Optional<CapturedError> result;
-            try {
-                this.writeVertex(it);
-                result = Optional.empty();
-            } catch (Exception e) {
-                result = Optional.of(new CapturedError(e, new EmittedIdImpl(it.id().getId())));
-            }
-            return result;
-        });
-    }
-
-    @Override
-    public Stream<Optional<CapturedError>> writeEdgeStream(final Stream<EmittedEdge> edgeStream) {
-        throw ErrorUtil.unimplemented();
-    }
 
     @Override
     public OutputWriter vertexWriter(final String label) {

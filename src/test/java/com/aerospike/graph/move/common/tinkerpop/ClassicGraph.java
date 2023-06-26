@@ -1,4 +1,4 @@
-package com.aerospike.graph.move.emitters;
+package com.aerospike.graph.move.common.tinkerpop;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -7,7 +7,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 public class ClassicGraph {
 
 
-    static Graph crewGraph = TinkerFactory.createClassic();
+    static Graph classicGraph = TinkerFactory.createClassic();
     private final Configuration config;
 
     public ClassicGraph(final Configuration config) {
@@ -16,7 +16,7 @@ public class ClassicGraph {
 
 
     public static Graph open(final Configuration config) {
-        return crewGraph;
+        return classicGraph;
     }
 
 }

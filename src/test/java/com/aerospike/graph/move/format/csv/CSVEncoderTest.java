@@ -2,12 +2,14 @@ package com.aerospike.graph.move.format.csv;
 
 import com.aerospike.graph.move.AbstractGeneratorTest;
 import com.aerospike.graph.move.TestUtil;
+import com.aerospike.graph.move.config.ConfigurationBase;
+import com.aerospike.graph.move.emitter.NullEmitter;
 import com.aerospike.graph.move.emitter.generator.GeneratedVertex;
 import com.aerospike.graph.move.emitter.generator.VertexContext;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
 import com.aerospike.graph.move.encoding.Encoder;
-import com.aerospike.graph.move.encoding.format.csv.GraphCSV;
+import com.aerospike.graph.move.encoding.format.csv.GraphCSVEncoder;
 import com.aerospike.graph.move.output.file.SplitFileLineOutput;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -30,8 +32,9 @@ public class CSVEncoderTest extends AbstractGeneratorTest {
     @Test
     public void testWriteCSVLine() throws IOException {
         final Path tempPath = TestUtil.createTempDirectory();
-        final Encoder<String> encoder = GraphCSV.open(new MapConfiguration(new HashMap<>() {{
-            put(GraphCSV.Config.Keys.SCHEMA_FILE, testGraphSchemaLocationRelativeToModule());
+        final Encoder<String> encoder = GraphCSVEncoder.open(new MapConfiguration(new HashMap<>() {{
+            put(GraphCSVEncoder.Config.Keys.SCHEMA_FILE, testGraphSchemaLocationRelativeToModule());
+            put(ConfigurationBase.Keys.EMITTER, NullEmitter.class.getName());
         }}));
         Configuration config = RuntimeUtil.loadConfiguration(testGraphSchemaLocationRelativeToModule());
         final String metadata = encoder.encodeVertexMetadata(testVertexSchema().label);

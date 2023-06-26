@@ -1,14 +1,13 @@
 package com.aerospike.graph.move;
 
+import com.aerospike.graph.move.common.tinkerpop.ClassicGraph;
 import com.aerospike.graph.move.common.tinkerpop.instrumentation.TinkerPopGraphProvider;
 import com.aerospike.graph.move.emitter.Emitter;
 import com.aerospike.graph.move.emitter.generator.Generator;
-import com.aerospike.graph.move.emitter.generator.StitchMemory;
 import com.aerospike.graph.move.emitter.generator.schema.SchemaParser;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
 import com.aerospike.graph.move.emitter.tinkerpop.SourceGraph;
-import com.aerospike.graph.move.emitters.ClassicGraph;
-import com.aerospike.graph.move.encoding.format.csv.GraphCSV;
+import com.aerospike.graph.move.encoding.format.csv.GraphCSVEncoder;
 import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.output.file.DirectoryOutput;
 import com.aerospike.graph.move.runtime.local.LocalParallelStreamRuntime;
@@ -54,14 +53,11 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
             put(ConfigurationBase.Keys.EMITTER, SourceGraph.class.getName());
             put(SourceGraph.Config.Keys.GRAPH_PROVIDER, TinkerPopGraphProvider.class.getName());
             put(TinkerPopGraphProvider.Config.Keys.GRAPH_IMPL, ClassicGraph.class.getName());
-            put(DirectoryOutput.Config.Keys.ENCODER, GraphCSV.class.getName());
+            put(DirectoryOutput.Config.Keys.ENCODER, GraphCSVEncoder.class.getName());
             put(ConfigurationBase.Keys.OUTPUT, DirectoryOutput.class.getName());
             put(DirectoryOutput.Config.Keys.ENTRIES_PER_FILE, 100);
         }});
-        final StitchMemory stitchMemory = new StitchMemory("none");
-//        final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(stitchMemory, 6, config);
         final Output output = RuntimeUtil.loadOutput(config);
-        final Emitter emitter = RuntimeUtil.loadEmitter(config);
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
         runtime.initialPhase();
         runtime.completionPhase();
@@ -86,12 +82,11 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
             put(Generator.Config.Keys.ROOT_VERTEX_ID_END, 20L);
             put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, "/tmp/generate");
             put(ConfigurationBase.Keys.EMITTER, Generator.class.getName());
-            put(DirectoryOutput.Config.Keys.ENCODER, GraphCSV.class.getName());
+            put(DirectoryOutput.Config.Keys.ENCODER, GraphCSVEncoder.class.getName());
             put(ConfigurationBase.Keys.OUTPUT, DirectoryOutput.class.getName());
             put(DirectoryOutput.Config.Keys.ENTRIES_PER_FILE, 1000);
             put(Generator.Config.Keys.SCHEMA_FILE, newGraphSchemaLocationRelativeToModule());
         }});
-        final StitchMemory stitchMemory = new StitchMemory("none");
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
 
         runtime.initialPhase();
@@ -130,7 +125,7 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
             put(Generator.Config.Keys.ROOT_VERTEX_ID_END, 200000L); // 100M
             put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, "/tmp/generate");
             put(ConfigurationBase.Keys.EMITTER, Generator.class.getName());
-            put(DirectoryOutput.Config.Keys.ENCODER, GraphCSV.class.getName());
+            put(DirectoryOutput.Config.Keys.ENCODER, GraphCSVEncoder.class.getName());
             put(ConfigurationBase.Keys.OUTPUT, DirectoryOutput.class.getName());
             put(DirectoryOutput.Config.Keys.ENTRIES_PER_FILE, 100000);
         }});

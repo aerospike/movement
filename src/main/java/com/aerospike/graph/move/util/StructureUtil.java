@@ -44,7 +44,8 @@ public class StructureUtil {
     }
 
 
-    public static EdgeSchema getStitchSchema(GraphSchema schema) {
+    public static EdgeSchema getStitchSchema(GraphSchema schema, String labelA, String labelB) {
+        //@todo lookup from schema
         return getSchemaFromEdgeName(schema, schema.stitchType);
     }
 }

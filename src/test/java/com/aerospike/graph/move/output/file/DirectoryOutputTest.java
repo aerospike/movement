@@ -25,18 +25,15 @@ import static org.junit.Assert.assertTrue;
 public class DirectoryOutputTest extends AbstractGeneratorTest {
     @Test
     public void testFileSplitting() throws IOException {
-
         final TestUtil.TestToStringEncoder encoder = new TestUtil.TestToStringEncoder();
-
         final DirectoryOutput dirOut = new DirectoryOutput(TestUtil.createTempDirectory(), 2, encoder, emptyConfiguration());
         final Path root = dirOut.getRootPath();
         final List<Long> ids = List.of(1L, 2L);
         final VertexContext vertexContext = new VertexContext(testGraphSchema(), testVertexSchema(), ids.iterator());
-        final Stream<EmittedVertex> emittedStream = ids.stream().map(it -> (EmittedVertex) new GeneratedVertex(it, vertexContext));
-        final Stream<Optional<CapturedError>> errors = dirOut.writeVertexStream(emittedStream);
-
-        errors.filter(Optional::isPresent).map(Optional::get)
-                .forEach(System.out::println);
+        ids.stream()
+                .map(it -> (EmittedVertex) new GeneratedVertex(it, vertexContext))
+                .forEach(it -> dirOut.vertexWriter(it.label())
+                        .writeVertex(it));
         final List<Path> filesWritten = Files.walk(root).filter(it -> !Files.isDirectory(it)).collect(Collectors.toList());
         System.out.println("Files written: " + filesWritten);
         assertEquals(1, filesWritten.size());

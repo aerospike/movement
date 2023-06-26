@@ -5,7 +5,7 @@ import com.aerospike.graph.move.common.tinkerpop.instrumentation.TinkerPopGraphP
 import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.generator.GeneratedVertex;
 import com.aerospike.graph.move.emitter.generator.Generator;
-import com.aerospike.graph.move.emitter.generator.StitchMemory;
+import com.aerospike.graph.move.emitter.generator.StitchProcess;
 import com.aerospike.graph.move.emitter.generator.VertexContext;
 import com.aerospike.graph.move.emitter.generator.schema.def.EdgeSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
@@ -115,7 +115,6 @@ public class TestTinkerPopFormat extends AbstractGeneratorTest {
             put(FireflyConfigurationKeys.FIREFLY_DATA_MODEL, "packed");
         }});
         System.out.println(configurationToPropertiesFormat(config));
-        final StitchMemory stitchMemory = new StitchMemory("none");
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
         final Graph fireflyGraph = (Graph) RuntimeUtil.openClassRef(FIREFLY_GRAPH_CLASS, config);
         fireflyGraph.traversal().V().drop().iterate();

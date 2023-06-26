@@ -4,6 +4,9 @@ import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedVertex;
 import com.aerospike.graph.move.encoding.Encoder;
 import com.aerospike.graph.move.util.IOUtil;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -108,5 +111,6 @@ public class TestUtil {
             public static final String ACCOUNT = "Account";
         }
     }
+
 }
 

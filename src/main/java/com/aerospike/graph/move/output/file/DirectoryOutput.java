@@ -1,13 +1,9 @@
 package com.aerospike.graph.move.output.file;
 
-import com.aerospike.graph.move.emitter.EmittedEdge;
-import com.aerospike.graph.move.emitter.EmittedVertex;
 import com.aerospike.graph.move.encoding.Encoder;
-import com.aerospike.graph.move.encoding.format.csv.GraphCSV;
+import com.aerospike.graph.move.encoding.format.csv.GraphCSVEncoder;
 import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.output.OutputWriter;
-import com.aerospike.graph.move.structure.EmittedIdImpl;
-import com.aerospike.graph.move.util.CapturedError;
 import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.util.IOUtil;
 import com.aerospike.graph.move.util.RuntimeUtil;
@@ -18,10 +14,8 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
 
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
@@ -41,13 +35,17 @@ public class DirectoryOutput implements Output {
             public static final String ENTRIES_PER_FILE = "output.entriesPerFile";
             public static final String ENCODER = "encoder";
             public static final String OUTPUT_DIRECTORY = "output.directory";
+            public static final String VERTEX_OUTPUT_DIRECTORY = "output.vertexDirectory";
+            public static final String EDGE_OUTPUT_DIRECTORY = "output.edgeDirectory";
             public static final String BUFFER_SIZE_KB = "output.bufferSizeKB";
         }
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
             put(Keys.ENTRIES_PER_FILE, "1000");
-            put(Keys.ENCODER, GraphCSV.class.getName());
+            put(Keys.ENCODER, GraphCSVEncoder.class.getName());
             put(Keys.OUTPUT_DIRECTORY, "/tmp/generate");
+            put(Keys.VERTEX_OUTPUT_DIRECTORY, "/tmp/generate/vertices");
+            put(Keys.EDGE_OUTPUT_DIRECTORY, "/tmp/generate/edges");
             put(Keys.BUFFER_SIZE_KB, "4096");
         }};
     }
@@ -92,31 +90,6 @@ public class DirectoryOutput implements Output {
 
     private int WRITES_BEFORE_FLUSH = 10;
 
-    @Override
-    public Stream<Optional<CapturedError>> writeVertexStream(final Stream<EmittedVertex> vertexStream) {
-        return vertexStream.map(generatedVertex -> {
-            Optional<CapturedError> result = Optional.empty();
-            try {
-                vertexWriter(generatedVertex.label()).writeVertex(generatedVertex);
-            } catch (Exception e) {
-                result = Optional.of(new CapturedError(e, new EmittedIdImpl(generatedVertex.id().getId())));
-            }
-            return result;
-        });
-    }
-
-    @Override
-    public Stream<Optional<CapturedError>> writeEdgeStream(final Stream<EmittedEdge> edgeStream) {
-        return edgeStream.map(generatedEdge -> {
-            Optional<CapturedError> result = Optional.empty();
-            try {
-                edgeWriter(generatedEdge.label()).writeEdge(generatedEdge);
-            } catch (Exception e) {
-                result = Optional.of(new CapturedError(e, new EmittedIdImpl(generatedEdge.fromId().getId())));
-            }
-            return result;
-        });
-    }
 
 
     @Override

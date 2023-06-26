@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="original-aerospike-graph-bulk-loader-0.7.0-SNAPSHOT">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../firefly/aerospike-graph-bulk-loader/target/original-aerospike-graph-bulk-loader-0.7.0-SNAPSHOT.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

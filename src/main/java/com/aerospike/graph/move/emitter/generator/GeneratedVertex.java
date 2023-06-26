@@ -85,27 +85,6 @@ public class GeneratedVertex implements Emitable, EmittedVertex {
         return paths();
     }
 
-    public Stream<EdgeGenerator> postProcess(Stream<GeneratedVertex> otherNodes, OutputWriter output, StitchMemory stitchMemory) {
-        //in this context otherNodes are root nodes
-        return otherNodes.flatMap(
-                otherRoot ->
-                        this.stitch(otherRoot, output, stitchMemory));
-    }
-
-    private Stream<EdgeGenerator> stitch(GeneratedVertex otherRoot, OutputWriter output, StitchMemory memory) {
-        if (StructureUtil.coinFlip(context.graphSchema.stitchWeight)) {
-            //@todo suppost stitching on an inType and an outType, ie person owned car
-            final Object pointA = memory.outV(otherRoot, context.graphSchema.stitchType).iterator().next().id;
-            final Object pointB = memory.outV(this, context.graphSchema.stitchType).iterator().next().id;
-
-            //TODO: we should have n chances of stitching and return each edge created
-            final EdgeGenerator.GeneratedEdge x =
-                    new EdgeGenerator(StructureUtil.getStitchSchema(context.graphSchema), context.graphSchema)
-                            .emit(output, (Long) pointA, (Long) pointB);
-            return Stream.of(x);
-        }
-        return Stream.empty();
-    }
 
     public Stream<Emitable> paths() {
         List<OutEdgeSpec> outEdges = context.vertexSchema.outEdges;

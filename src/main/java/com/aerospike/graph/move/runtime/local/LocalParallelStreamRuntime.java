@@ -86,7 +86,10 @@ public class LocalParallelStreamRuntime implements Runtime {
     public void initialPhase() {
         // Id iterator drives the process, it may be bounded to a specific purpose, return unordered or sequential ids, or be unbounded
         // If it is unbounded, it simply drives the stream and the emitter impl it is driving should end the process when finished.
-        initialPhase(RuntimeUtil.loadEmitter(config).phaseOneIterator());
+        Emitter emitter = RuntimeUtil.loadEmitter(config);
+        Iterator<List<Object>> i = emitter.getDriverForPhase(PHASE.ONE);
+        List<List<Object>> x = IteratorUtils.list(i);
+        initialPhase(IteratorUtils.stream(x.iterator()).flatMap(List::stream).iterator());
     }
 
 
@@ -97,7 +100,9 @@ public class LocalParallelStreamRuntime implements Runtime {
 
     @Override
     public void completionPhase() {
-        completionPhase(RuntimeUtil.loadEmitter(config).phaseTwoIterator());
+        Emitter e = RuntimeUtil.loadEmitter(config);
+        Iterator<List<Object>> x = e.getDriverForPhase(PHASE.TWO);
+        completionPhase(IteratorUtils.flatMap(x, IteratorUtils::asIterator));
     }
 
 
@@ -124,11 +129,6 @@ public class LocalParallelStreamRuntime implements Runtime {
         throw ErrorUtil.unimplemented();
     }
 
-
-    public void processEdgeStream(Iterator<List<Object>> idSupplier) {
-        //@todo
-        completionPhase();
-    }
 
     @Override
     public String toString() {
@@ -174,10 +174,7 @@ public class LocalParallelStreamRuntime implements Runtime {
         }).collect(Collectors.toList()).stream().map(emitterOutputPair -> {
             final Emitter emitter = emitterOutputPair.getKey();
             final Output output = emitterOutputPair.getValue();
-            final Stream<Emitable> elementStream = phase.equals(Runtime.PHASE.ONE) ?
-                    emitter.withIdSupplier(idSupplier).phaseOneStream() :
-                    emitter.withIdSupplier(idSupplier).phaseTwoStream();
-            return new AbstractMap.SimpleEntry<>(elementStream, output);
+            return new AbstractMap.SimpleEntry<>(emitter.stream(idSupplier, phase), output);
         }).collect(Collectors.toList());
     }
 
@@ -205,8 +202,8 @@ public class LocalParallelStreamRuntime implements Runtime {
 
         try {
             runtime.submit(customThreadPool,
-                    ParallelStreamProcessor.create(
-                            runtime.createAndSetupEmitterToOutputConnections(idSupplier, phase)));
+                    ParallelStreamProcessor
+                            .create(runtime.createAndSetupEmitterToOutputConnections(idSupplier, phase), config));
         } catch (Exception e) {
             runtime.errorHandler.handle(e);
         }
@@ -214,14 +211,16 @@ public class LocalParallelStreamRuntime implements Runtime {
 
     public static class ParallelStreamProcessor implements Runnable {
         private final List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs;
+        private final Configuration config;
 
-        private ParallelStreamProcessor(List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs) {
+        private ParallelStreamProcessor(List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs, Configuration config) {
             this.initializedStreamOutputPairs = initializedStreamOutputPairs;
+            this.config = config;
 
         }
 
-        public static ParallelStreamProcessor create(final List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs) {
-            return new ParallelStreamProcessor(initializedStreamOutputPairs);
+        public static ParallelStreamProcessor create(final List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs, final Configuration config) {
+            return new ParallelStreamProcessor(initializedStreamOutputPairs, config);
         }
 
 
@@ -231,7 +230,13 @@ public class LocalParallelStreamRuntime implements Runtime {
             initializedStreamOutputPairs.stream().parallel().forEach(emitterStreamOutputPair -> {
                 final Stream<Emitable> elementStream = emitterStreamOutputPair.getKey();
                 final Output output = emitterStreamOutputPair.getValue();
-                LocalParallelStreamRuntime.driveIndividualThreadSync(elementStream, output);
+                DefaultErrorHandler errorHandler = new DefaultErrorHandler(config, String.format("%s:%d", LocalParallelStreamRuntime.class.getName(), Thread.currentThread().getId()));
+                try {
+                    LocalParallelStreamRuntime.driveIndividualThreadSync(elementStream, output);
+                } catch (Exception e) {
+                    errorHandler.handle(e);
+                    throw e;
+                }
             });
         }
     }

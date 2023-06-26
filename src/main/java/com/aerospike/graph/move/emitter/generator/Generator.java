@@ -5,10 +5,11 @@ import com.aerospike.graph.move.emitter.generator.schema.SchemaParser;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
 import com.aerospike.graph.move.config.ConfigurationBase;
+import com.aerospike.graph.move.runtime.Runtime;
 import com.aerospike.graph.move.util.ErrorUtil;
 import com.aerospike.graph.move.util.MovementIteratorUtils;
-import org.apache.commons.collections.IteratorUtils;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -23,7 +24,8 @@ import java.util.stream.Stream;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class Generator implements Emitter {
+public class Generator extends Emitter.PhasedEmitter {
+
     // Configuration first.
     public static class Config extends ConfigurationBase {
         @Override
@@ -37,6 +39,7 @@ public class Generator implements Emitter {
             public static final String ID_PROVIDER_END = "emitter.idProviderMax";
             public static final String SCHEMA_FILE = "emitter.schemaFile";
             public static final String ROOT_VERTEX_LABEL = "emitter.rootVertexLabel";
+            public static final String CHANCE_TO_JOIN = "emitter.chanceToJoin";
         }
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
@@ -47,6 +50,7 @@ public class Generator implements Emitter {
     }
 
     public static final Config CONFIG = new Config();
+    private final Configuration config;
 
     //Static variables second.
     //...
@@ -63,6 +67,7 @@ public class Generator implements Emitter {
 
     //Constructor fifth.
     private Generator(final Configuration config) {
+        this.config = config;
         this.rootVertexSchema = getRootVertexSchema(config);
         this.graphSchema = getGraphSchema(config);
         this.rootVertexIdStart = Long.valueOf(CONFIG.getOrDefault(config, Config.Keys.ROOT_VERTEX_ID_START));
@@ -77,47 +82,41 @@ public class Generator implements Emitter {
 
     //Implementation seventh.
     @Override
-    public Stream<Emitable> phaseOneStream() {
-        return phaseOneStream(rootVertexIdStart, rootVertexIdEnd);
+    public Stream<Emitable> stream(Runtime.PHASE phase) {
+        return stream(IteratorUtils.flatMap(getDriverForPhase(phase), List::iterator), phase);
     }
 
     @Override
-    public Stream<Emitable> phaseOneStream(final long startId, final long endId) {
-        return LongStream
-                .range(startId, endId)
-                .mapToObj(rootVertexId ->
-                        new GeneratedVertex(true, rootVertexId,
-                                new VertexContext(graphSchema, rootVertexSchema, MovementIteratorUtils.wrapToLong(idSupplier))));
+    public Stream<Emitable> stream(Iterator<Object> iterator, Runtime.PHASE phase) {
+        return IteratorUtils.stream(iterator)
+                .flatMap(rootVertexId -> {
+                    if (phase == Runtime.PHASE.ONE)
+                        return Stream.of(new GeneratedVertex(true, (Long) rootVertexId, new VertexContext(graphSchema, rootVertexSchema, MovementIteratorUtils.wrapToLong(idSupplier))));
+                    return Stream.empty();
+                });
     }
 
     @Override
-    public Stream<Emitable> phaseTwoStream() {
-        //@todo join subgraphs
-        throw ErrorUtil.unimplemented();
+    public Iterator<List<Object>> getDriverForPhase(Runtime.PHASE phase) {
+        if (phase.equals(Runtime.PHASE.ONE)) {
+            if (phaseOneStarted.compareAndSet(false, true)) {
+                return getOrCreateDriverIterator(phase,
+                        (x) -> MovementIteratorUtils.wrap(LongStream.range(rootVertexIdStart, rootVertexIdEnd).iterator()));
+            }
+            return phaseOneIterator;
+        } else if (phase.equals(Runtime.PHASE.TWO)) {
+            if (phaseTwoStarted.compareAndSet(false, true)) {
+                phaseTwoIterator = getOrCreateDriverIterator(phase,
+                        (x) -> StitchProcess.idIterator(config));
+            }
+            return phaseTwoIterator;
+        }
+        throw new IllegalStateException("Unknown phase " + phase);
     }
 
-    @Override
-    public Stream<Emitable> phaseTwoStream(long startId, long endId) {
-        throw ErrorUtil.unimplemented();
-    }
 
-    @Override
-    public Iterator<Object> phaseOneIterator() {
-        return idSupplier;
-    }
+    //Public methods eighth.
 
-    @Override
-    public Iterator<Object> phaseTwoIterator() {
-        return IteratorUtils.emptyIterator();
-    }
-
-    @Override
-    public Emitter withIdSupplier(Iterator<Object> idSupplier) {
-        this.idSupplier = idSupplier;
-        return this;
-    }
-
-    @Override
     public List<String> getAllPropertyKeysForVertexLabel(final String label) {
         return graphSchema.vertexTypes.stream()
                 .filter(it -> Objects.equals(it.label, label))
@@ -127,7 +126,6 @@ public class Generator implements Emitter {
                 .collect(Collectors.toList());
     }
 
-    @Override
     public List<String> getAllPropertyKeysForEdgeLabel(final String label) {
         return graphSchema.edgeTypes.stream()
                 .filter(it -> Objects.equals(it.label, label))
@@ -137,7 +135,6 @@ public class Generator implements Emitter {
                 .collect(Collectors.toList());
     }
 
-    //Public methods eighth.
     public static GraphSchema getGraphSchema(final Configuration config) {
         final String schemaFileLocation = CONFIG.getOrDefault(config, Config.Keys.SCHEMA_FILE);
         return SchemaParser.parse(Path.of(schemaFileLocation));

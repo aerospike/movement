@@ -49,11 +49,11 @@ public class GraphEncoder implements Encoder<Element> {
 
     public static GraphEncoder open(final Configuration config) {
         Object x = RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_PROVIDER), config);
-        if(Graph.class.isAssignableFrom(x.getClass())) {
+        if (Graph.class.isAssignableFrom(x.getClass())) {
             return new GraphEncoder((Graph) x);
-        }else if (GraphProvider.class.isAssignableFrom(x.getClass())) {
+        } else if (GraphProvider.class.isAssignableFrom(x.getClass())) {
             return new GraphEncoder(((GraphProvider) x).getGraph());
-        }else{
+        } else {
             throw new RuntimeException("GraphEncoder Could not open graph provider");
         }
     }
@@ -71,7 +71,11 @@ public class GraphEncoder implements Encoder<Element> {
         }).collect(Collectors.toList());
         final Vertex inV = graph.vertices(edge.toId().getId()).next();
         final Vertex outV = graph.vertices(edge.fromId().getId()).next();
-        return outV.addEdge(EncoderUtil.getFieldFromEdge(edge, "~label"), inV, args.toArray());
+        try {
+            return outV.addEdge(EncoderUtil.getFieldFromEdge(edge, "~label"), inV, args.toArray());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

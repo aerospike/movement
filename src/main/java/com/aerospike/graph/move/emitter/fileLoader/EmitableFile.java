@@ -1,17 +1,17 @@
 package com.aerospike.graph.move.emitter.fileLoader;
 
 import com.aerospike.graph.move.emitter.Emitable;
-import com.aerospike.graph.move.emitter.EmittedVertex;
 import com.aerospike.graph.move.encoding.Decoder;
-import com.aerospike.graph.move.encoding.format.csv.GraphCSV;
 import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.runtime.Runtime;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -30,32 +30,29 @@ public class EmitableFile implements Emitable {
         this.decoder = RuntimeUtil.loadDecoder(config);
     }
 
-    public static EmitableFile from(final Path path,
-                                    final Runtime.PHASE phase,
-                                    final String label,
-                                    final Configuration config) {
+    public static Emitable from(final Path path,
+                                final Runtime.PHASE phase,
+                                final String label,
+                                final Configuration config) {
         return new EmitableFile(path, phase, label, config);
     }
 
     @Override
     public Stream<Emitable> emit(Output output) {
-        if (!emitted.getAndSet(true)) {
-            if (phase.equals(Runtime.PHASE.ONE)) {
-                output.vertexWriter(label).writeVertex(this);
-            } else {
-                output.edgeWriter(label).writeEdge(this);
-            }
-        }
-        output.vertexWriter(label).writeVertex(this);
-        return stream();
+        return stream().flatMap(ele -> ele.emit(output));
     }
 
     @Override
     public Stream<Emitable> stream() {
         try {
-            return Files.lines(path)
+            Iterator<String> i = Files.lines(path).iterator();
+            String header = i.next();
+
+            return IteratorUtils.stream(i)
                     .filter(line -> !decoder.skipEntry(line))
-                    .map(decoder::decodeElement);
+                    .map(it -> {
+                        return decoder.decodeElement(it, header, phase);
+                    });
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -1,7 +1,7 @@
 package com.aerospike.graph.move.config;
 
 import com.aerospike.graph.move.emitter.generator.Generator;
-import com.aerospike.graph.move.encoding.format.csv.GraphCSV;
+import com.aerospike.graph.move.encoding.format.csv.GraphCSVEncoder;
 import com.aerospike.graph.move.encoding.format.tinkerpop.TraversalEncoder;
 import com.aerospike.graph.move.output.file.DirectoryOutput;
 import com.aerospike.graph.move.output.tinkerpop.TraversalOutput;
@@ -33,7 +33,7 @@ public abstract class ConfigurationBase {
             put(Generator.Config.Keys.SCHEMA_FILE, schemaLocation);
             put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, outputDirectory);
             put(ConfigurationBase.Keys.EMITTER, Generator.class.getName());
-            put(DirectoryOutput.Config.Keys.ENCODER, GraphCSV.class.getName());
+            put(DirectoryOutput.Config.Keys.ENCODER, GraphCSVEncoder.class.getName());
             put(ConfigurationBase.Keys.OUTPUT, DirectoryOutput.class.getName());
             put(DirectoryOutput.Config.Keys.ENTRIES_PER_FILE, 100);
         }});

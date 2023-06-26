@@ -270,12 +270,12 @@ public class DistributedStreamRuntime implements Runtime {
     @Override
     public void completionPhase() {
         ((MovementIteratorUtils.IteratorWithFeeder) edgeIterator).start();
-        subRuntime.processEdgeStream(edgeIterator);
+        completionPhase(IteratorUtils.stream(edgeIterator).flatMap(Collection::stream).iterator());
     }
 
     @Override
     public void completionPhase(Iterator<Object> iterator) {
-
+        subRuntime.completionPhase(iterator);
     }
 
     @Override
