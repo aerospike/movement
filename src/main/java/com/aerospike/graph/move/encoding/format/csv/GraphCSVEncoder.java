@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  */
 public class GraphCSVEncoder implements Encoder<String> {
     public static final Generator.Config CONFIG = new Generator.Config();
-    private final Emitter emitter;
+
 
     public static class Config extends ConfigurationBase {
 
@@ -53,77 +53,31 @@ public class GraphCSVEncoder implements Encoder<String> {
         }};
     }
 
-
-    private final Optional<GraphSchema> optionalSchema;
-
-    private GraphCSVEncoder(final Optional<GraphSchema> schema, Configuration config) {
-        this.optionalSchema = schema;
+    private GraphCSVEncoder(Configuration config) {
         this.config = config;
-        this.emitter = RuntimeUtil.loadEmitter(config);
     }
 
     final Configuration config;
+
     public static GraphCSVEncoder open(final Configuration config) {
-        if (config.containsKey(Generator.Config.Keys.SCHEMA_FILE)) {
-            final String schemaFileLocation = CONFIG.getOrDefault(config, Generator.Config.Keys.SCHEMA_FILE);
-            final GraphSchema schema = SchemaParser.parse(Path.of(schemaFileLocation));
-            return new GraphCSVEncoder(Optional.of(schema), config);
-        }
-        return new GraphCSVEncoder(Optional.empty(),config);
+        return new GraphCSVEncoder(config);
     }
 
-    public VertexSchema vertexSchemaFromLabel(final String label) {
-        if (!optionalSchema.isPresent())
-            throw new RuntimeException("No schema present");
-        final GraphSchema schema = optionalSchema.get();
-        final Optional<VertexSchema> hasSchema = schema.vertexTypes.stream().filter(v -> v.label.equals(label)).findFirst();
-        if (!hasSchema.isPresent())
-            throw new RuntimeException("No schema found for label: " + label);
-        return hasSchema.get();
-    }
 
-    public EdgeSchema edgeSchemaFromLabel(final String label) {
-        if (!optionalSchema.isPresent())
-            throw new RuntimeException("No schema present");
-        final GraphSchema schema = optionalSchema.get();
-        final Optional<EdgeSchema> hasSchema = schema.edgeTypes.stream().filter(v -> v.label.equals(label)).findFirst();
-        if (!hasSchema.isPresent())
-            throw new RuntimeException("No schema found for label: " + label);
-        return schema.edgeTypes.stream().filter(v -> v.label.equals(label)).findFirst().get();
-    }
-
-    //@todo multi-properties
-    public static List<String> getVertexHeaderFields(final EmittedVertex vertex) {
+    public List<String> getVertexHeaderFields(final String label) {
         List<String> fields = new ArrayList<>();
         fields.add("~id");
         fields.add("~label");
-        fields.addAll(vertex.propertyNames().distinct().sorted().collect(Collectors.toList()));
+        ((Emitter) RuntimeUtil.lookup(Emitter.class)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
         return fields;
     }
 
-    public static List<String> getVertexHeaderFields(final VertexSchema vertexSchema) {
-        List<String> fields = new ArrayList<>();
-        fields.add("~id");
-        fields.add("~label");
-        vertexSchema.properties.stream().map(p -> p.name).sorted().forEach(fields::add);
-        return fields;
-    }
-
-    public static List<String> getEdgeHeaderFields(final EmittedEdge edge) {
+    public List<String> getEdgeHeaderFields(final String label) {
         List<String> fields = new ArrayList<>();
         fields.add("~label");
         fields.add("~from");
         fields.add("~to");
-        fields.addAll(edge.propertyNames().distinct().sorted().collect(Collectors.toList()));
-        return fields;
-    }
-
-    public static List<String> getEdgeHeaderFields(final EdgeSchema edgeSchema) {
-        List<String> fields = new ArrayList<>();
-        fields.add("~label");
-        fields.add("~from");
-        fields.add("~to");
-        edgeSchema.properties.forEach(p -> fields.add(p.name));
+        ((Emitter) RuntimeUtil.lookup(Emitter.class)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
         return fields;
     }
 
@@ -139,7 +93,7 @@ public class GraphCSVEncoder implements Encoder<String> {
     }
 
     private List<String> toCsvFields(final EmittedEdge edge) {
-        return getEdgeHeaderFields(edge).stream()
+        return getEdgeHeaderFields(edge.label()).stream()
                 .map(f -> EncoderUtil.getFieldFromEdge(edge, f))
                 .collect(Collectors.toList());
     }
@@ -152,36 +106,30 @@ public class GraphCSVEncoder implements Encoder<String> {
 
     @Override
     public String encodeVertexMetadata(final EmittedVertex vertex) {
-        return toCsvLine(emitter.getAllPropertyKeysForVertexLabel(vertex.label()));
+        return toCsvLine(getVertexHeaderFields(vertex.label()));
     }
 
     @Override
     public String encodeVertexMetadata(final String label) {
-        if (!optionalSchema.isPresent())
-            throw new RuntimeException("No schema present");
-        final GraphSchema schema = optionalSchema.get();
-        return toCsvLine(new ArrayList<>(getVertexHeaderFields(StructureUtil.getSchemaFromVertexLabel(schema, label))));
+
+        return toCsvLine(new ArrayList<>(getVertexHeaderFields(label)));
     }
 
     @Override
     public String encodeEdgeMetadata(final String label) {
-        if (!optionalSchema.isPresent())
-            throw new RuntimeException("No schema present");
-        final GraphSchema schema = optionalSchema.get();
-        return toCsvLine(new ArrayList<>(getEdgeHeaderFields(StructureUtil.getSchemaFromEdgeLabel(schema, label))));
+        return toCsvLine(new ArrayList<>(getEdgeHeaderFields(label)));
     }
 
     @Override
     public String encodeEdgeMetadata(final EmittedEdge edge) {
-        return toCsvLine(new ArrayList<>(getEdgeHeaderFields(edge)));
+        return toCsvLine(new ArrayList<>(getEdgeHeaderFields(edge.label())));
     }
 
     private List<String> toCsvFields(final EmittedVertex vertex) {
-        return getVertexHeaderFields(vertex).stream()
+        return getVertexHeaderFields(vertex.label()).stream()
                 .map(f -> String.valueOf(vertex.propertyValue(f).orElse("")))
                 .collect(Collectors.toList());
     }
-
 
 
     public String getExtension() {

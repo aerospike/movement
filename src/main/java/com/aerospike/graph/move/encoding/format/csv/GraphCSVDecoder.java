@@ -49,12 +49,10 @@ public class GraphCSVDecoder implements Decoder<String> {
 
     final Configuration config;
 
-    private final Emitter emitter;
 
 
     private GraphCSVDecoder(Configuration config) {
         this.config = config;
-        this.emitter = RuntimeUtil.loadEmitter(config);
     }
 
     public static GraphCSVDecoder open(final Configuration config) {
@@ -66,7 +64,7 @@ public class GraphCSVDecoder implements Decoder<String> {
         List<String> fields = new ArrayList<>();
         fields.add("~id");
         fields.add("~label");
-        fields.addAll(emitter.getAllPropertyKeysForVertexLabel(label));
+        ((Emitter) RuntimeUtil.lookup(Emitter.class)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
         return fields;
     }
 
@@ -76,7 +74,7 @@ public class GraphCSVDecoder implements Decoder<String> {
         fields.add("~label");
         fields.add("~from");
         fields.add("~to");
-        fields.addAll(emitter.getAllPropertyKeysForEdgeLabel(label));
+        ((Emitter) RuntimeUtil.lookup(Emitter.class)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
         return fields;
     }
 

@@ -24,7 +24,8 @@ public class CSVVertex implements EmittedVertex {
 
     @Override
     public Optional<Object> propertyValue(final String name) {
-        return Optional.of(line.getEntry(name));
+        final Object x = line.getEntry(name);
+        return x.equals(CSVLine.CSVField.EMPTY) ? Optional.empty() : Optional.of(line.getEntry(name));
     }
 
     @Override

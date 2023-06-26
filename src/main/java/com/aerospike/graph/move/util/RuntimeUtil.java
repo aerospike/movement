@@ -16,27 +16,36 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
-import java.util.Iterator;
-import java.util.Properties;
+import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 
 public class RuntimeUtil {
     private static final Logger logger = LoggerFactory.getLogger(RuntimeUtil.class);
     public static final String STATIC_OPEN_METHOD = "open";
+    final static List<Output> outputs = Collections.synchronizedList(new ArrayList<>());
+    final static List<Emitter> emitters = Collections.synchronizedList(new ArrayList<>());
+    final static List<Encoder> encoders = Collections.synchronizedList(new ArrayList<>());
 
     public static Output loadOutput(final Configuration config) {
         logger.debug("Loading output");
-        return (Output) openClassRef(config.getString(ConfigurationBase.Keys.OUTPUT), config);
+        Output x = (Output) openClassRef(config.getString(ConfigurationBase.Keys.OUTPUT), config);
+        outputs.add(x);
+        return x;
     }
 
     public static Encoder loadEncoder(final Configuration config) {
         logger.debug("Loading encoder");
-        return (Encoder) openClassRef(config.getString(ConfigurationBase.Keys.ENCODER), config);
+        Encoder x = (Encoder) openClassRef(config.getString(ConfigurationBase.Keys.ENCODER), config);
+        encoders.add(x);
+        return x;
     }
 
     public static Emitter loadEmitter(final Configuration config) {
         logger.debug("Loading emitter");
-        return (Emitter) openClassRef(config.getString(ConfigurationBase.Keys.EMITTER), config);
+        Emitter x = (Emitter) openClassRef(config.getString(ConfigurationBase.Keys.EMITTER), config);
+        emitters.add(x);
+        return x;
     }
 
 
@@ -101,6 +110,17 @@ public class RuntimeUtil {
     public static Decoder<String> loadDecoder(final Configuration config) {
         logger.debug("Loading decoder");
         return (Decoder<String>) openClassRef(config.getString(ConfigurationBase.Keys.DECODER), config);
+    }
+
+    public static Object lookup(Class targetClass) {
+        if (Output.class.isAssignableFrom(targetClass))
+            return outputs.iterator().next();
+        if (Emitter.class.isAssignableFrom(targetClass))
+            return emitters.iterator().next();
+        if (Encoder.class.isAssignableFrom(targetClass))
+            return encoders.iterator().next();
+        else
+            throw new RuntimeException("Cannot find class: " + targetClass.getName());
     }
 }
 

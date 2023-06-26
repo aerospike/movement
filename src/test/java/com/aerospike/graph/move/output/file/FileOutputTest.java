@@ -2,6 +2,7 @@ package com.aerospike.graph.move.output.file;
 
 import com.aerospike.graph.move.AbstractGeneratorTest;
 import com.aerospike.graph.move.TestUtil;
+import com.aerospike.graph.move.emitter.NullEmitter;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -44,7 +45,7 @@ public class FileOutputTest extends AbstractGeneratorTest {
         final int bufferSize = 6;
         final Path tempPath = TestUtil.createTempDirectory();
         final TestUtil.TestToStringEncoder encoder = new TestUtil.TestToStringEncoder();
-        final SplitFileLineOutput fo = new SplitFileLineOutput("test", tempPath, bufferSize + 1, encoder, 20, emptyConfiguration());
+        final SplitFileLineOutput fo = new SplitFileLineOutput("test",  tempPath, bufferSize + 1, encoder, 20, emptyConfiguration());
         final String testHeader = "testHeader";
         final String testString = "test";
         // Write test to buffer.
@@ -84,7 +85,7 @@ public class FileOutputTest extends AbstractGeneratorTest {
     public void testClose() throws IOException {
         final Path tempPath = TestUtil.createTempDirectory();
         final TestUtil.TestToStringEncoder encoder = new TestUtil.TestToStringEncoder();
-        final SplitFileLineOutput fo = new SplitFileLineOutput("test", tempPath, 1024, encoder, 20, emptyConfiguration());
+        final SplitFileLineOutput fo = new SplitFileLineOutput("test",  tempPath, 1024, encoder, 20, emptyConfiguration());
         fo.write("test", "");
         final Path outputFile = Path.of(fo.getCurrentFile());
         fo.close();

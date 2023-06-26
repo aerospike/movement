@@ -3,6 +3,7 @@ package com.aerospike.graph.move.output.file;
 import com.aerospike.graph.move.AbstractGeneratorTest;
 import com.aerospike.graph.move.TestUtil;
 import com.aerospike.graph.move.emitter.EmittedVertex;
+import com.aerospike.graph.move.emitter.NullEmitter;
 import com.aerospike.graph.move.emitter.generator.GeneratedVertex;
 import com.aerospike.graph.move.emitter.generator.VertexContext;
 import com.aerospike.graph.move.util.CapturedError;

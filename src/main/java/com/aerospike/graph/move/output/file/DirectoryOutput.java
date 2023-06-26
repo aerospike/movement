@@ -1,5 +1,6 @@
 package com.aerospike.graph.move.output.file;
 
+import com.aerospike.graph.move.emitter.Emitter;
 import com.aerospike.graph.move.encoding.Encoder;
 import com.aerospike.graph.move.encoding.format.csv.GraphCSVEncoder;
 import com.aerospike.graph.move.output.Output;
@@ -25,6 +26,7 @@ public class DirectoryOutput implements Output {
 
     private final Configuration config;
     public static Config CONFIG = new Config();
+
     public static class Config extends ConfigurationBase {
         @Override
         public Map<String, String> getDefaults() {
@@ -70,7 +72,7 @@ public class DirectoryOutput implements Output {
         return path;
     }
 
-    public DirectoryOutput(final Path root, final int entriesPerFile, final Encoder<String> encoder, final Configuration config) {
+    protected DirectoryOutput(final Path root, final int entriesPerFile, final Encoder<String> encoder, final Configuration config) {
         this.encoder = encoder;
         this.entriesPerFile = entriesPerFile;
         this.root = root;
@@ -83,6 +85,7 @@ public class DirectoryOutput implements Output {
 
     public static DirectoryOutput open(Configuration config) {
         final Encoder encoder = (Encoder) encoderCache.computeIfAbsent(CONFIG.getOrDefault(config, Config.Keys.ENCODER), key -> (Encoder) RuntimeUtil.loadEncoder(config));
+        final Emitter emitter = (Emitter) RuntimeUtil.loadEmitter(config);
         final int entriesPerFile = Integer.valueOf(CONFIG.getOrDefault(config, Config.Keys.ENTRIES_PER_FILE));
         final String outputDirectory = CONFIG.getOrDefault(config, Config.Keys.OUTPUT_DIRECTORY);
         return new DirectoryOutput(Path.of(outputDirectory), entriesPerFile, encoder, config);

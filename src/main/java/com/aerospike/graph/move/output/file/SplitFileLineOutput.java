@@ -3,6 +3,7 @@ package com.aerospike.graph.move.output.file;
 import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedVertex;
+import com.aerospike.graph.move.emitter.Emitter;
 import com.aerospike.graph.move.encoding.Encoder;
 import com.aerospike.graph.move.output.OutputWriter;
 import org.apache.commons.configuration2.Configuration;
@@ -42,7 +43,7 @@ public class SplitFileLineOutput implements OutputWriter {
      */
     final int bufferSize; // 8M
 
-    public SplitFileLineOutput(final String name,
+    public SplitFileLineOutput(final String label,
                                final Path basePath,
                                final int writesBeforeFlush,
                                final Encoder<String> encoder,
@@ -50,7 +51,7 @@ public class SplitFileLineOutput implements OutputWriter {
                                final AtomicLong metric,
                                final Configuration config) {
         this.config = config;
-        this.name = name;
+        this.name = label;
         this.basePath = basePath;
         this.maxLines = maxLines;
         this.encoder = encoder;
@@ -60,13 +61,13 @@ public class SplitFileLineOutput implements OutputWriter {
         this.bufferSize = Integer.parseInt(DirectoryOutput.CONFIG.getOrDefault(config, DirectoryOutput.Config.Keys.BUFFER_SIZE_KB)) * 1024;
     }
 
-    public SplitFileLineOutput(final String name,
+    public SplitFileLineOutput(final String label,
                                final Path basePath,
                                final int writesBeforeFlush,
                                final Encoder<String> encoder,
                                final long maxLines,
                                final Configuration config) {
-        this(name, basePath, writesBeforeFlush, encoder, maxLines, new AtomicLong(0), config);
+        this(label, basePath, writesBeforeFlush, encoder, maxLines, new AtomicLong(0), config);
     }
 
     public AtomicLong getMetric() {

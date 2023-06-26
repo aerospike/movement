@@ -8,6 +8,7 @@ import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.emitter.fileLoader.DirectoryLoader;
 import com.aerospike.graph.move.emitter.generator.Generator;
 import com.aerospike.graph.move.emitter.tinkerpop.SourceGraph;
+import com.aerospike.graph.move.encoding.format.csv.GraphCSVDecoder;
 import com.aerospike.graph.move.encoding.format.csv.GraphCSVEncoder;
 import com.aerospike.graph.move.encoding.format.tinkerpop.GraphEncoder;
 import com.aerospike.graph.move.output.file.DirectoryOutput;
@@ -24,6 +25,7 @@ import org.junit.Test;
 
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Set;
 
 import static com.aerospike.graph.move.util.IOUtil.recursiveDelete;
 import static junit.framework.TestCase.assertEquals;
@@ -51,7 +53,7 @@ public class CSVDecoderTest extends AbstractGeneratorTest {
             put(ConfigurationBase.Keys.EMITTER, DirectoryLoader.class.getName());
             put(DirectoryLoader.Config.Keys.VERTEX_FILE_PATH, DirectoryOutput.CONFIG.getDefaults().get(DirectoryOutput.Config.Keys.VERTEX_OUTPUT_DIRECTORY));
             put(DirectoryLoader.Config.Keys.EDGE_FILE_PATH, DirectoryOutput.CONFIG.getDefaults().get(DirectoryOutput.Config.Keys.EDGE_OUTPUT_DIRECTORY));
-            put(ConfigurationBase.Keys.DECODER, GraphCSVEncoder.class.getName());
+            put(ConfigurationBase.Keys.DECODER, GraphCSVDecoder.class.getName());
 
             put(ConfigurationBase.Keys.ENCODER, GraphEncoder.class.getName());
             put(GraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraph.class.getName());
@@ -86,7 +88,9 @@ public class CSVDecoderTest extends AbstractGeneratorTest {
         classicGraph.vertices().forEachRemaining(v -> {
             Long longId = ((Integer)v.id()).longValue();
             assertEquals(v.label(), loadedGraph.vertices(longId).next().label());
-            assertEquals(v.keys().size(), loadedGraph.vertices(longId).next().keys().size());
+            Set<String> a = v.keys();
+            Set<String> b = loadedGraph.vertices(longId).next().keys();
+            assertEquals(a.size(), b.size());
             v.keys().forEach(k -> {
                 assertEquals(v.value(k).toString(), loadedGraph.vertices(longId).next().value(k).toString());
             });
