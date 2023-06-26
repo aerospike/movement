@@ -1,7 +1,7 @@
 package com.aerospike.graph.move.format.tinkerpop;
 
 import com.aerospike.graph.move.AbstractGeneratorTest;
-import com.aerospike.graph.move.common.tinkerpop.TinkerPopGraphProvider;
+import com.aerospike.graph.move.common.tinkerpop.instrumentation.TinkerPopGraphProvider;
 import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.generator.GeneratedVertex;
 import com.aerospike.graph.move.emitter.generator.Generator;
@@ -18,7 +18,7 @@ import com.aerospike.graph.move.output.OutputWriter;
 import com.aerospike.graph.move.output.file.DirectoryOutput;
 import com.aerospike.graph.move.output.tinkerpop.GraphOutput;
 import com.aerospike.graph.move.runtime.local.LocalParallelStreamRuntime;
-import com.aerospike.graph.move.util.ConfigurationBase;
+import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import junit.framework.TestCase;
 import org.apache.commons.configuration2.Configuration;
@@ -37,7 +37,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.LongStream;
 
-import static com.aerospike.graph.move.util.ConfigurationBase.configurationToPropertiesFormat;
+import static com.aerospike.graph.move.config.ConfigurationBase.configurationToPropertiesFormat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 

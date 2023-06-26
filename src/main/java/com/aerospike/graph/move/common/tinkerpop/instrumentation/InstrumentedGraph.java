@@ -1,12 +1,17 @@
-package com.aerospike.graph.move.common.tinkerpop;
+package com.aerospike.graph.move.common.tinkerpop.instrumentation;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+
 public abstract class InstrumentedGraph implements Graph {
     final Graph graph;
+
+    final ConcurrentHashMap<String, List<InstrumentedGraphHandler>> handlers = new ConcurrentHashMap<>();
 
     public InstrumentedGraph(final Graph wrappedGraph) {
         this.graph = wrappedGraph;
@@ -42,4 +47,6 @@ public abstract class InstrumentedGraph implements Graph {
         return graph.configuration();
     }
 
+    private class InstrumentedGraphHandler {
+    }
 }

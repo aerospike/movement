@@ -7,7 +7,7 @@ import com.aerospike.graph.move.emitter.generator.VertexContext;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
 import com.aerospike.graph.move.encoding.Encoder;
-import com.aerospike.graph.move.encoding.format.csv.CSVEncoder;
+import com.aerospike.graph.move.encoding.format.csv.GraphCSV;
 import com.aerospike.graph.move.output.file.SplitFileLineOutput;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -30,8 +30,8 @@ public class CSVEncoderTest extends AbstractGeneratorTest {
     @Test
     public void testWriteCSVLine() throws IOException {
         final Path tempPath = TestUtil.createTempDirectory();
-        final Encoder<String> encoder = CSVEncoder.open(new MapConfiguration(new HashMap<>() {{
-            put(CSVEncoder.Config.Keys.SCHEMA_FILE, testGraphSchemaLocationRelativeToModule());
+        final Encoder<String> encoder = GraphCSV.open(new MapConfiguration(new HashMap<>() {{
+            put(GraphCSV.Config.Keys.SCHEMA_FILE, testGraphSchemaLocationRelativeToModule());
         }}));
         Configuration config = RuntimeUtil.loadConfiguration(testGraphSchemaLocationRelativeToModule());
         final String metadata = encoder.encodeVertexMetadata(testVertexSchema().label);

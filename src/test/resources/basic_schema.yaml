@@ -10,7 +10,7 @@ edgeTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
   - name: Activated
@@ -22,7 +22,7 @@ edgeTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
 
@@ -38,7 +38,7 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
   - name: Device
@@ -49,23 +49,23 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.FormattedRandomUSAddress
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.FormattedRandomUSAddress
           args: {}
       - name: zip
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.FormattedRandomUSZip
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.FormattedRandomUSZip
           args: {}
       - name: ssn
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.FormattedRandomSSN
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.FormattedRandomSSN
           args: {}
       - name: phone
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.FormattedRandomUSPhone
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.FormattedRandomUSPhone
           args: {}

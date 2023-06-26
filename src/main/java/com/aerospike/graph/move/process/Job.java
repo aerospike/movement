@@ -5,6 +5,7 @@ import com.aerospike.graph.move.process.operations.Export;
 import com.aerospike.graph.move.process.operations.Generate;
 import com.aerospike.graph.move.process.operations.Load;
 import com.aerospike.graph.move.process.operations.Migrate;
+import com.aerospike.graph.move.util.ErrorUtil;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 
@@ -66,7 +67,7 @@ public abstract class Job {
 
     //Run blocking, return metadata from completed or failed run.
     public Map<String, Object> runSync() {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
 

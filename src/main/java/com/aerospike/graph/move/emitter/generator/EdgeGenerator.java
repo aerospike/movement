@@ -7,9 +7,9 @@ import com.aerospike.graph.move.output.OutputWriter;
 import com.aerospike.graph.move.emitter.generator.schema.def.EdgeSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
-import com.aerospike.graph.move.process.ValueGenerator;
 import com.aerospike.graph.move.structure.EmittedId;
-import com.aerospike.graph.move.structure.Util;
+import com.aerospike.graph.move.structure.EmittedIdImpl;
+import com.aerospike.graph.move.util.StructureUtil;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -79,12 +79,12 @@ public class EdgeGenerator {
 
         @Override
         public EmittedId fromId() {
-            return new GeneratedVertex.GeneratedVertexId(outV);
+            return new EmittedIdImpl(outV);
         }
 
         @Override
         public EmittedId toId() {
-            return new GeneratedVertex.GeneratedVertexId(inV);
+            return new EmittedIdImpl(inV);
         }
 
         @Override
@@ -126,7 +126,7 @@ public class EdgeGenerator {
 
 
         public Stream<Emitable> next() {
-            final VertexSchema vertexSchema = Util.getSchemaFromVertexName(graphSchema, edgeSchema.inVertex);
+            final VertexSchema vertexSchema = StructureUtil.getSchemaFromVertexName(graphSchema, edgeSchema.inVertex);
             if (!idSupplier.hasNext())
                 return Stream.empty();
             Long nextId;

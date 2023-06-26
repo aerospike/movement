@@ -1,12 +1,12 @@
 package com.aerospike.graph.move;
 
+import com.aerospike.graph.move.util.ErrorUtil;
 import org.apache.tinkerpop.gremlin.structure.*;
 
 import java.lang.reflect.Method;
 import java.util.*;
 
-public class VirtualPlugin {
-
+public class Plugin {
     public interface API {
         default String[] getAPIMethodNames() {
             return Arrays
@@ -15,8 +15,6 @@ public class VirtualPlugin {
                     .filter(it -> !it.equals("getAPIMethodNames"))
                     .toArray(String[]::new);
         }
-
-
         //Returns id
         String run();
 
@@ -25,16 +23,34 @@ public class VirtualPlugin {
         void stop();
 
         Map<String, Object> getStatus();
-
     }
 
     public static Object open(final Graph graph) {
-        return Plugin.INSTANCE;
+        return PluginImpl.INSTANCE;
     }
 
 
-    private static class Plugin implements API {
-        private static final Plugin INSTANCE = new Plugin();
+    private static class PluginImpl implements API {
+        private static final PluginImpl INSTANCE = new PluginImpl();
 
+        @Override
+        public String run() {
+            throw ErrorUtil.unimplemented();
+        }
+
+        @Override
+        public boolean isRunning() {
+            return false;
+        }
+
+        @Override
+        public void stop() {
+
+        }
+
+        @Override
+        public Map<String, Object> getStatus() {
+            throw ErrorUtil.unimplemented();
+        }
     }
 }

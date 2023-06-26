@@ -1,5 +1,6 @@
 package com.aerospike.graph.move.output;
 
+import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedVertex;
 
@@ -9,8 +10,8 @@ import com.aerospike.graph.move.emitter.EmittedVertex;
 public interface OutputWriter {
 
     //Write an element to the output. Format must be compatible with T
-    void writeEdge(EmittedEdge edge);
-    void writeVertex(EmittedVertex vertex);
+    void writeEdge(Emitable edge);
+    void writeVertex(Emitable vertex);
 
     //Initialize output. Write header, etc.
     void init();

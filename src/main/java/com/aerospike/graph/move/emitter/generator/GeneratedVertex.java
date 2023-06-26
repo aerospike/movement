@@ -6,9 +6,9 @@ import com.aerospike.graph.move.emitter.generator.schema.def.OutEdgeSpec;
 import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.output.OutputWriter;
 import com.aerospike.graph.move.emitter.generator.schema.def.EdgeSchema;
-import com.aerospike.graph.move.process.ValueGenerator;
 import com.aerospike.graph.move.structure.EmittedId;
-import com.aerospike.graph.move.structure.Util;
+import com.aerospike.graph.move.structure.EmittedIdImpl;
+import com.aerospike.graph.move.util.StructureUtil;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.Iterator;
@@ -46,7 +46,7 @@ public class GeneratedVertex implements Emitable, EmittedVertex {
     }
 
     public EmittedId id() {
-        return new GeneratedVertexId(this.id);
+        return new EmittedIdImpl(this.id);
     }
 
     public GeneratedVertex(final long id, final VertexContext vertexContext) {
@@ -93,14 +93,14 @@ public class GeneratedVertex implements Emitable, EmittedVertex {
     }
 
     private Stream<EdgeGenerator> stitch(GeneratedVertex otherRoot, OutputWriter output, StitchMemory memory) {
-        if (Util.coinFlip(context.graphSchema.stitchWeight)) {
+        if (StructureUtil.coinFlip(context.graphSchema.stitchWeight)) {
             //@todo suppost stitching on an inType and an outType, ie person owned car
             final Object pointA = memory.outV(otherRoot, context.graphSchema.stitchType).iterator().next().id;
             final Object pointB = memory.outV(this, context.graphSchema.stitchType).iterator().next().id;
 
             //TODO: we should have n chances of stitching and return each edge created
             final EdgeGenerator.GeneratedEdge x =
-                    new EdgeGenerator(Util.getStitchSchema(context.graphSchema), context.graphSchema)
+                    new EdgeGenerator(StructureUtil.getStitchSchema(context.graphSchema), context.graphSchema)
                             .emit(output, (Long) pointA, (Long) pointB);
             return Stream.of(x);
         }
@@ -116,7 +116,7 @@ public class GeneratedVertex implements Emitable, EmittedVertex {
                         final Double likelihood;
                         final Integer chancesToCreate;
                         try {
-                            edgeSchema = Util.getSchemaFromEdgeName(context.graphSchema, outEdgeSpec.name);
+                            edgeSchema = StructureUtil.getSchemaFromEdgeName(context.graphSchema, outEdgeSpec.name);
                             likelihood = outEdgeSpec.likelihood;
                             chancesToCreate = outEdgeSpec.chancesToCreate;
                         } catch (NullPointerException e) {
@@ -153,19 +153,6 @@ public class GeneratedVertex implements Emitable, EmittedVertex {
         @Override
         public Emitable next() {
             return iterator.next();
-        }
-    }
-
-    public static class GeneratedVertexId implements EmittedId {
-        private final Object id;
-
-        public GeneratedVertexId(final Object id) {
-            this.id = id;
-        }
-
-        @Override
-        public Object getId() {
-            return id;
         }
     }
 

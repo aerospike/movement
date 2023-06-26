@@ -1,12 +1,14 @@
 package com.aerospike.graph.move.output.tinkerpop;
 
+import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedVertex;
-import com.aerospike.graph.move.emitter.generator.GeneratedVertex;
 import com.aerospike.graph.move.encoding.format.tinkerpop.GraphEncoder;
 import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.output.OutputWriter;
+import com.aerospike.graph.move.structure.EmittedIdImpl;
 import com.aerospike.graph.move.util.CapturedError;
+import com.aerospike.graph.move.util.ErrorUtil;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 
@@ -24,7 +26,7 @@ public class GraphOutput implements Output, OutputWriter {
 
 
     public GraphOutput(final GraphEncoder encoder) {
-        this.encoder =  encoder;
+        this.encoder = encoder;
         this.vertexMetric = new AtomicLong(0);
         this.edgeMetric = new AtomicLong(0);
     }
@@ -40,7 +42,7 @@ public class GraphOutput implements Output, OutputWriter {
             try {
                 this.writeVertex(it);
             } catch (Exception e) {
-                result = Optional.of(new CapturedError(e, new GeneratedVertex.GeneratedVertexId(it.id().getId())));
+                result = Optional.of(new CapturedError(e, new EmittedIdImpl(it.id().getId())));
             }
             result = Optional.empty();
             return result;
@@ -49,7 +51,7 @@ public class GraphOutput implements Output, OutputWriter {
 
     @Override
     public Stream<Optional<CapturedError>> writeEdgeStream(final Stream<EmittedEdge> edgeStream) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
@@ -73,14 +75,14 @@ public class GraphOutput implements Output, OutputWriter {
     }
 
     @Override
-    public void writeEdge(final EmittedEdge edge) {
-        encoder.encodeEdge(edge);
+    public void writeEdge(final Emitable edge) {
+        encoder.encodeEdge((EmittedEdge) edge);
         edgeMetric.addAndGet(1);
     }
 
     @Override
-    public void writeVertex(final EmittedVertex vertex) {
-        encoder.encodeVertex(vertex);
+    public void writeVertex(final Emitable vertex) {
+        encoder.encodeVertex((EmittedVertex) vertex);
         vertexMetric.addAndGet(1);
     }
 

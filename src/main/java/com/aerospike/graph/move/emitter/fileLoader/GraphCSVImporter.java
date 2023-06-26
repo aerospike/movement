@@ -1,14 +1,13 @@
-package com.aerospike.graph.move.emitter.loader;
+package com.aerospike.graph.move.emitter.fileLoader;
 
-import com.aerospike.graph.move.emitter.Emitable;
-import com.aerospike.graph.move.emitter.EmittedEdge;
-import com.aerospike.graph.move.emitter.EmittedVertex;
-import com.aerospike.graph.move.emitter.Emitter;
-import com.aerospike.graph.move.emitter.generator.GeneratedVertex;
-import com.aerospike.graph.move.encoding.format.csv.CSVEncoder;
+import com.aerospike.graph.move.emitter.*;
+import com.aerospike.graph.move.encoding.format.csv.GraphCSV;
 import com.aerospike.graph.move.output.Output;
+import com.aerospike.graph.move.runtime.Runtime;
 import com.aerospike.graph.move.structure.EmittedId;
-import com.aerospike.graph.move.util.ConfigurationBase;
+import com.aerospike.graph.move.structure.EmittedIdImpl;
+import com.aerospike.graph.move.config.ConfigurationBase;
+import com.aerospike.graph.move.util.ErrorUtil;
 import org.apache.commons.configuration2.Configuration;
 
 import java.io.IOException;
@@ -19,11 +18,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
-public class CSVImporter implements Emitter {
+public class GraphCSVImporter implements Emitter {
 
-    public static final CSVImporter.Config CONFIG = new CSVImporter.Config();
-    private final String vertexPath;
-    private final String edgePath;
+    private final Configuration config;
 
     public static class Config extends ConfigurationBase {
         @Override
@@ -39,38 +36,43 @@ public class CSVImporter implements Emitter {
         public static final Map<String, String> DEFAULTS = new HashMap<>();
     }
 
-    public CSVImporter(Configuration config) {
+    public static final GraphCSVImporter.Config CONFIG = new GraphCSVImporter.Config();
+
+
+    private final String vertexPath;
+    private final String edgePath;
+
+    public GraphCSVImporter(Configuration config) {
+        this.config = config;
         this.vertexPath = CONFIG.getOrDefault(config, Config.Keys.VERTEX_FILE_PATH);
         this.edgePath = CONFIG.getOrDefault(config, Config.Keys.EDGE_FILE_PATH);
     }
 
     @Override
-    public Stream<EmittedVertex> phaseOneStream() {
+    public Stream<Emitable> phaseOneStream() {
         try (Stream<Path> paths = Files.walk(Path.of(vertexPath))) {
-            return paths.filter(Files::isRegularFile)
-                    .flatMap(path -> {
-                        try {
-                            final String header = Files.lines(path).findFirst().get();
-                            return Files.lines(path)
-                                    .filter(line -> !line.startsWith("~"))
-                                    .map(line -> new CSVEncoder.CSVLine(line, header))
-                                    .map(line -> (EmittedVertex) new CSVVertex(line));
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+            return paths
+                    .filter(Files::isRegularFile)
+                    .flatMap(path -> EmitableFile.from(path,
+                            Runtime.PHASE.ONE,
+                            labelFromPath(path),
+                            config).stream());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    @Override
-    public Stream<EmittedVertex> phaseOneStream(final long startId, final long endId) {
-        throw new RuntimeException("unimplemented");
+    private String labelFromPath(final Path path) {
+        return path.getParent().getFileName().toString();
     }
 
     @Override
-    public Stream<EmittedEdge> phaseTwoStream() {
+    public Stream<Emitable> phaseOneStream(final long startId, final long endId) {
+        throw ErrorUtil.unimplemented();
+    }
+
+    @Override
+    public Stream<Emitable> phaseTwoStream() {
         try (Stream<Path> paths = Files.walk(Path.of(edgePath))) {
             return paths.filter(Files::isRegularFile)
                     .flatMap(path -> {
@@ -78,7 +80,7 @@ public class CSVImporter implements Emitter {
                             final String header = Files.lines(path).findFirst().get();
                             return Files.lines(path)
                                     .filter(line -> !line.startsWith("~"))
-                                    .map(line -> new CSVEncoder.CSVLine(line, header))
+                                    .map(line -> new GraphCSV.CSVLine(line, header))
                                     .map(line -> (EmittedEdge) new CSVEdge(line));
                         } catch (IOException e) {
                             throw new RuntimeException(e);
@@ -90,8 +92,23 @@ public class CSVImporter implements Emitter {
     }
 
     @Override
-    public Emitter withIdSupplier(Iterator<List<?>> idSupplier) {
-        return null;
+    public Stream<Emitable> phaseTwoStream(long startId, long endId) {
+        throw ErrorUtil.unimplemented();
+    }
+
+    @Override
+    public Iterator<Object> phaseOneIterator() {
+        throw ErrorUtil.unimplemented();
+    }
+
+    @Override
+    public Iterator<Object> phaseTwoIterator() {
+        throw ErrorUtil.unimplemented();
+    }
+
+    @Override
+    public Emitter withIdSupplier(Iterator<Object> idSupplier) {
+        throw ErrorUtil.unimplemented();
     }
 
 
@@ -136,9 +153,9 @@ public class CSVImporter implements Emitter {
 
     public class CSVVertex implements EmittedVertex {
 
-        private final CSVEncoder.CSVLine line;
+        private final GraphCSV.CSVLine line;
 
-        public CSVVertex(CSVEncoder.CSVLine line) {
+        public CSVVertex(GraphCSV.CSVLine line) {
             this.line = line;
         }
 
@@ -171,26 +188,26 @@ public class CSVImporter implements Emitter {
 
         @Override
         public EmittedId id() {
-            return new GeneratedVertex.GeneratedVertexId(Long.valueOf((String) line.getEntry("~id")));
+            return new EmittedIdImpl(Long.valueOf((String) line.getEntry("~id")));
         }
     }
 
     public class CSVEdge implements EmittedEdge {
 
-        private final CSVEncoder.CSVLine line;
+        private final GraphCSV.CSVLine line;
 
-        public CSVEdge(CSVEncoder.CSVLine line) {
+        public CSVEdge(GraphCSV.CSVLine line) {
             this.line = line;
         }
 
         @Override
         public EmittedId fromId() {
-            return new GeneratedVertex.GeneratedVertexId(Long.valueOf((String) line.getEntry("~from")));
+            return new EmittedIdImpl(Long.valueOf((String) line.getEntry("~from")));
         }
 
         @Override
         public EmittedId toId() {
-            return new GeneratedVertex.GeneratedVertexId(Long.valueOf((String) line.getEntry("~to")));
+            return new EmittedIdImpl(Long.valueOf((String) line.getEntry("~to")));
         }
 
         @Override

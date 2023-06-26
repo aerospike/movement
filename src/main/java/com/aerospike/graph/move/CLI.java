@@ -1,7 +1,7 @@
 package com.aerospike.graph.move;
 
 import com.aerospike.graph.move.runtime.local.LocalParallelStreamRuntime;
-import com.aerospike.graph.move.util.ConfigurationBase;
+import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.util.IOUtil;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -36,6 +36,7 @@ public class CLI {
             System.out.println(ConfigurationBase.configurationToPropertiesFormat(config));
             return;
         }
+
         if (cli.configPath == null) {
             System.err.println("Error: No configuration file specified.");
             CommandLine.usage(new GeneratorCLI(), System.out);

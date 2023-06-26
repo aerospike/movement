@@ -1,5 +1,6 @@
-package com.aerospike.graph.move;
+package com.aerospike.graph.move.common.tinkerpop;
 
+import com.aerospike.graph.move.util.ErrorUtil;
 import org.apache.tinkerpop.gremlin.structure.*;
 
 import java.util.Collections;
@@ -7,13 +8,13 @@ import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class VirtualVertexPlugin {
+public class Virtual {
     public static Vertex open(final Graph graph) {
         return SystemVertex.getInstance(graph);
     }
 
 
-    private static class JobVertex extends VirtualVertexPlugin.VirtualVertex {
+    private static class JobVertex extends Virtual.VirtualVertex {
 
         private final String id;
 
@@ -24,7 +25,7 @@ public class VirtualVertexPlugin {
 
         @Override
         public Edge addEdge(String label, Vertex inVertex, Object... keyValues) {
-            return null;
+            throw ErrorUtil.unimplemented();
         }
 
         @Override
@@ -39,7 +40,7 @@ public class VirtualVertexPlugin {
 
         @Override
         public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
-            return null;
+            throw ErrorUtil.unimplemented();
         }
 
         @Override
@@ -57,7 +58,7 @@ public class VirtualVertexPlugin {
 
         }
     }
-    private static class SystemVertex extends VirtualVertexPlugin.VirtualVertex {
+    private static class SystemVertex extends Virtual.VirtualVertex {
         private static final AtomicReference<SystemVertex> INSTANCE = new AtomicReference<>();
 
         private SystemVertex(Graph graph) {
@@ -72,21 +73,21 @@ public class VirtualVertexPlugin {
                 throw new UnsupportedOperationException("cannot add vertex of type" + inVertex.label());
             if (!validateKeyValues(inVertex, keyValues))
                 throw new UnsupportedOperationException("keys or value types unsupported for vertex of type " + inVertex.label());
-            return null;
+            throw ErrorUtil.unimplemented();
         }
         @Override
         public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
-            return null;
+            throw ErrorUtil.unimplemented();
         }
 
         @Override
         public Iterator<Vertex> vertices(Direction direction, String... edgeLabels) {
-            return null;
+            throw ErrorUtil.unimplemented();
         }
 
         @Override
         public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
-            return null;
+            throw ErrorUtil.unimplemented();
         }
 
         @Override
@@ -122,7 +123,7 @@ public class VirtualVertexPlugin {
 
         @Override
         public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value, Object... keyValues) {
-            return null;
+            throw ErrorUtil.unimplemented();
         }
 
 

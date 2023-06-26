@@ -46,7 +46,7 @@ public class TestUtil {
         }
     }
 
-    public static class TestToStringEncoder extends Encoder<String> {
+    public static class TestToStringEncoder implements Encoder<String> {
 
         @Override
         public String encodeEdge(final EmittedEdge edge) {

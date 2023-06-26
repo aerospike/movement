@@ -1,6 +1,8 @@
-package com.aerospike.graph.move.common.tinkerpop;
+package com.aerospike.graph.move.common.tinkerpop.instrumentation;
 
 
+import com.aerospike.graph.move.common.tinkerpop.instrumentation.InstrumentedGraph;
+import com.aerospike.graph.move.util.ErrorUtil;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -18,17 +20,17 @@ public class ThrottledGraph extends InstrumentedGraph {
 
     @Override
     public Vertex addVertex(Object... keyValues) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public Iterator<Vertex> vertices(Object... vertexIds) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public Iterator<Edge> edges(Object... edgeIds) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
 

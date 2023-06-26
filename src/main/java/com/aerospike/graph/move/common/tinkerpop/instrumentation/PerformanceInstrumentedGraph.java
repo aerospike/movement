@@ -1,5 +1,6 @@
-package com.aerospike.graph.move.common.tinkerpop;
+package com.aerospike.graph.move.common.tinkerpop.instrumentation;
 
+import com.aerospike.graph.move.common.tinkerpop.instrumentation.InstrumentedGraph;
 import com.aerospike.graph.move.runtime.local.JVMGlobalRuntimeMetrics;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;

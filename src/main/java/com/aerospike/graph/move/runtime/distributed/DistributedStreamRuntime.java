@@ -1,8 +1,10 @@
 package com.aerospike.graph.move.runtime.distributed;
 
+import com.aerospike.graph.move.process.Job;
 import com.aerospike.graph.move.runtime.local.LocalParallelStreamRuntime;
 import com.aerospike.graph.move.runtime.Runtime;
-import com.aerospike.graph.move.util.ConfigurationBase;
+import com.aerospike.graph.move.config.ConfigurationBase;
+import com.aerospike.graph.move.util.MovementIteratorUtils;
 import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.JoinConfig;
 import com.hazelcast.config.NetworkConfig;
@@ -14,11 +16,10 @@ import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -37,8 +38,8 @@ public class DistributedStreamRuntime implements Runtime {
     public static DistributedStreamRuntime.Config CONFIG = new DistributedStreamRuntime.Config();
     private final Vertx vertx;
     private final Configuration config;
-    private final Iterator<List<?>> vertexIterator;
-    private final Iterator<List<?>> edgeIterator;
+    private final Iterator<List<Object>> vertexIterator;
+    private final Iterator<List<Object>> edgeIterator;
 
     private final LocalParallelStreamRuntime subRuntime;
     private final Optional<List<String>> nodeList;
@@ -64,7 +65,7 @@ public class DistributedStreamRuntime implements Runtime {
             private static final String START_CHANNEL = "startChannel";
             private static final String STOP_CHANNEL = "stopChannel";
             private static final String COORDINATOR = "coordinator";
-            private static final String ID_CHANNEL = "idChannel";
+            public static final String ID_CHANNEL = "idChannel";
 
 
             public static final String THREADS = "runtime.threads";
@@ -90,8 +91,8 @@ public class DistributedStreamRuntime implements Runtime {
                                 .split(","))
                         .collect(Collectors.toList())) :
                 Optional.empty();
-        this.vertexIterator = new IteratorWithFeeder(vertx, Config.Keys.VERTEX);
-        this.edgeIterator = new IteratorWithFeeder(vertx, Config.Keys.EDGE);
+        this.vertexIterator = new MovementIteratorUtils.IteratorWithFeeder(this, vertx, Config.Keys.VERTEX);
+        this.edgeIterator = new MovementIteratorUtils.IteratorWithFeeder(this, vertx, Config.Keys.EDGE);
 
     }
 
@@ -171,7 +172,7 @@ public class DistributedStreamRuntime implements Runtime {
         isStarted.set(true);
     }
 
-    private void handleError(Throwable cause) {
+    public void handleError(Throwable cause) {
         cause.printStackTrace();
     }
 
@@ -179,7 +180,7 @@ public class DistributedStreamRuntime implements Runtime {
         return vertx.eventBus().request(Config.Keys.ID_CHANNEL, new JsonObject().put("name", name));
     }
 
-    private Optional<List<Long>> parseIdBatch(Message<Object> message) {
+    public Optional<List<Long>> parseIdBatch(Message<Object> message) {
         if (message.body() instanceof List) {
             return Optional.of((List<Long>) message.body());
         } else {
@@ -256,64 +257,30 @@ public class DistributedStreamRuntime implements Runtime {
 
     @Override
     public void initialPhase() {
-        ((IteratorWithFeeder) vertexIterator).start();
-        subRuntime.processVertexStream(vertexIterator);
+        ((MovementIteratorUtils.IteratorWithFeeder) vertexIterator).start();
+        subRuntime.initialPhase(IteratorUtils.stream(vertexIterator).flatMap(Collection::stream).iterator());
+    }
+
+    @Override
+    public void initialPhase(Iterator<Object> iterator) {
+
     }
 
 
     @Override
     public void completionPhase() {
-        ((IteratorWithFeeder) edgeIterator).start();
+        ((MovementIteratorUtils.IteratorWithFeeder) edgeIterator).start();
         subRuntime.processEdgeStream(edgeIterator);
     }
 
-    private class IteratorWithFeeder implements Iterator<List<?>> {
-        final BlockingQueue<List<Long>> feeder = new LinkedBlockingQueue<>();
-        private final Vertx vertx;
-        private final String idType;
-        final AtomicBoolean isStarted = new AtomicBoolean(false);
+    @Override
+    public void completionPhase(Iterator<Object> iterator) {
 
-        public IteratorWithFeeder(final Vertx vertx, final String idType) {
-            this.vertx = vertx;
-            this.idType = idType;
-        }
-
-        public void start() {
-            if (!isStarted.compareAndSet(false, true)) {
-                vertx.setPeriodic(1000, id -> {
-                    int fillSize = 3;
-                    if (feeder.isEmpty() || feeder.size() < fillSize) {
-                        vertx.eventBus().request(Config.Keys.ID_CHANNEL, new JsonObject().put("type", idType), ar -> {
-                            if (ar.succeeded()) {
-                                Optional<List<Long>> batch = parseIdBatch(ar.result());
-                                if (batch.isPresent()) {
-                                    feed(batch.get());
-                                }
-                            } else {
-                                handleError(ar.cause());
-                            }
-                        });
-                    }
-                });
-            }
-        }
-
-        public void feed(List<Long> buffer) {
-            feeder.add(buffer);
-        }
-
-        @Override
-        public boolean hasNext() {
-            return !feeder.isEmpty();
-        }
-
-        @Override
-        public List<Long> next() {
-            try {
-                return feeder.take();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
+
+    @Override
+    public Optional<String> submitJob(Job job) {
+        return Optional.empty();
+    }
+
 }

@@ -1,6 +1,6 @@
-package com.aerospike.graph.move.common.tinkerpop;
+package com.aerospike.graph.move.common.tinkerpop.instrumentation;
 
-import com.aerospike.graph.move.util.ConfigurationBase;
+import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;

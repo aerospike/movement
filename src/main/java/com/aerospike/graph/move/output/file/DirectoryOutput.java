@@ -2,13 +2,13 @@ package com.aerospike.graph.move.output.file;
 
 import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedVertex;
-import com.aerospike.graph.move.emitter.generator.GeneratedVertex;
 import com.aerospike.graph.move.encoding.Encoder;
-import com.aerospike.graph.move.encoding.format.csv.CSVEncoder;
+import com.aerospike.graph.move.encoding.format.csv.GraphCSV;
 import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.output.OutputWriter;
+import com.aerospike.graph.move.structure.EmittedIdImpl;
 import com.aerospike.graph.move.util.CapturedError;
-import com.aerospike.graph.move.util.ConfigurationBase;
+import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.util.IOUtil;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -46,7 +46,7 @@ public class DirectoryOutput implements Output {
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
             put(Keys.ENTRIES_PER_FILE, "1000");
-            put(Keys.ENCODER, CSVEncoder.class.getName());
+            put(Keys.ENCODER, GraphCSV.class.getName());
             put(Keys.OUTPUT_DIRECTORY, "/tmp/generate");
             put(Keys.BUFFER_SIZE_KB, "4096");
         }};
@@ -99,7 +99,7 @@ public class DirectoryOutput implements Output {
             try {
                 vertexWriter(generatedVertex.label()).writeVertex(generatedVertex);
             } catch (Exception e) {
-                result = Optional.of(new CapturedError(e, new GeneratedVertex.GeneratedVertexId(generatedVertex.id().getId())));
+                result = Optional.of(new CapturedError(e, new EmittedIdImpl(generatedVertex.id().getId())));
             }
             return result;
         });
@@ -112,7 +112,7 @@ public class DirectoryOutput implements Output {
             try {
                 edgeWriter(generatedEdge.label()).writeEdge(generatedEdge);
             } catch (Exception e) {
-                result = Optional.of(new CapturedError(e, new GeneratedVertex.GeneratedVertexId(generatedEdge.fromId().getId())));
+                result = Optional.of(new CapturedError(e, new EmittedIdImpl(generatedEdge.fromId().getId())));
             }
             return result;
         });

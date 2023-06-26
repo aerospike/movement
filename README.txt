@@ -1,3 +1,11 @@
+Movement is a parallel stream processing system for moving data from an Emitter to an Output via an Encoder.
+
+Movement implements:
+  A graph data generator based on a user provided schema
+  A system for pumping data from one graph to another (migration)
+  A graph data exporter
+  A graph data importer
+
 $ mvn clean package
 $ time java -cp target/graph-generator-1.0.0-SNAPSHOT.jar com.aerospike.graph.generator.CLI -c conf/generator-sample.properties
 Aerospike Graph Data Generator.

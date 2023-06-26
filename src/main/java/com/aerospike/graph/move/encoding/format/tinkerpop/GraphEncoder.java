@@ -1,12 +1,13 @@
 package com.aerospike.graph.move.encoding.format.tinkerpop;
 
 import com.aerospike.graph.move.common.tinkerpop.GraphProvider;
-import com.aerospike.graph.move.common.tinkerpop.TinkerPopGraphProvider;
+import com.aerospike.graph.move.common.tinkerpop.instrumentation.TinkerPopGraphProvider;
 import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedVertex;
 import com.aerospike.graph.move.encoding.Encoder;
-import com.aerospike.graph.move.util.ConfigurationBase;
+import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.util.EncoderUtil;
+import com.aerospike.graph.move.util.ErrorUtil;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class GraphEncoder extends Encoder<Element> {
+public class GraphEncoder implements Encoder<Element> {
     public static final Config CONFIG = new Config();
 
     public static class Config extends ConfigurationBase {
@@ -102,22 +103,22 @@ public class GraphEncoder extends Encoder<Element> {
 
     @Override
     public Element encodeVertexMetadata(final EmittedVertex vertex) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public Element encodeEdgeMetadata(final EmittedEdge edge) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public Element encodeVertexMetadata(final String label) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public Element encodeEdgeMetadata(final String label) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override

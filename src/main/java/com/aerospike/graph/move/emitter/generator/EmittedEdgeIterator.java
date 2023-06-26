@@ -2,7 +2,7 @@ package com.aerospike.graph.move.emitter.generator;
 
 import com.aerospike.graph.move.emitter.generator.schema.def.EdgeSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
-import com.aerospike.graph.move.structure.Util;
+import com.aerospike.graph.move.util.StructureUtil;
 
 import java.util.Iterator;
 import java.util.Optional;
@@ -34,7 +34,7 @@ public class EmittedEdgeIterator implements Iterator<Optional<EdgeGenerator>> {
     @Override
     public Optional<EdgeGenerator> next() {
         flips++;
-        if (Util.coinFlip(likelyhood))
+        if (StructureUtil.coinFlip(likelyhood))
             return Optional.of(new EdgeGenerator(edgeSchema, graphSchema));
         return Optional.empty();
     }

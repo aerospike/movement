@@ -20,7 +20,7 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
   - name: DigitalEntity
@@ -37,21 +37,21 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomDigitSequence
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomDigitSequence
           args:
             digits: 12
       - name: make
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
       - name: model
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
   - name: ContactMedium
@@ -62,7 +62,7 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomDigitSequence
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomDigitSequence
           args:
             digits: 12
   - name: Individual
@@ -85,7 +85,7 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
   - name: Household
@@ -99,7 +99,7 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
   - name: IPAddress
@@ -110,7 +110,7 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomDigitSequence
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomDigitSequence
           args:
             digits: 12
   - name: Cookie
@@ -121,7 +121,7 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomDigitSequence
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomDigitSequence
           args:
             digits: 12
 
@@ -135,7 +135,7 @@ edgeTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomDigitSequence
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomDigitSequence
           args:
             digits: 10
   - name: HasContactMedium
@@ -168,7 +168,7 @@ edgeTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomDigitSequence
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomDigitSequence
           args:
             digits: 12
 
@@ -191,6 +191,6 @@ edgeTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10

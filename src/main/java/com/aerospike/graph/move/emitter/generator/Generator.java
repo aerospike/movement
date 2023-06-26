@@ -1,12 +1,13 @@
 package com.aerospike.graph.move.emitter.generator;
 
-import com.aerospike.graph.move.emitter.EmittedEdge;
-import com.aerospike.graph.move.emitter.EmittedVertex;
-import com.aerospike.graph.move.emitter.Emitter;
+import com.aerospike.graph.move.emitter.*;
 import com.aerospike.graph.move.emitter.generator.schema.SchemaParser;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
-import com.aerospike.graph.move.util.ConfigurationBase;
+import com.aerospike.graph.move.config.ConfigurationBase;
+import com.aerospike.graph.move.util.ErrorUtil;
+import com.aerospike.graph.move.util.MovementIteratorUtils;
+import org.apache.commons.collections.IteratorUtils;
 import org.apache.commons.configuration2.Configuration;
 
 import java.nio.file.Path;
@@ -18,16 +19,12 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
-//@todo root vertices can have in edges
 
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
 public class Generator implements Emitter {
-    private final Long rootVertexIdStart;
-    private final Long rootVertexIdEnd;
-    public static final Config CONFIG = new Config();
-
+    // Configuration first.
     public static class Config extends ConfigurationBase {
         @Override
         public Map<String, String> getDefaults() {
@@ -40,10 +37,6 @@ public class Generator implements Emitter {
             public static final String ID_PROVIDER_END = "emitter.idProviderMax";
             public static final String SCHEMA_FILE = "emitter.schemaFile";
             public static final String ROOT_VERTEX_LABEL = "emitter.rootVertexLabel";
-
-
-
-
         }
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
@@ -53,59 +46,75 @@ public class Generator implements Emitter {
         }};
     }
 
+    public static final Config CONFIG = new Config();
 
+    //Static variables second.
+    //...
+
+    //Final class variables third
+
+    private final Long rootVertexIdStart;
+    private final Long rootVertexIdEnd;
     private final VertexSchema rootVertexSchema;
     private final GraphSchema graphSchema;
-    private Iterator<Long> idSupplier;
 
-    private Generator( final Configuration config) {
+    //Mutable variables fourth.
+    private Iterator<Object> idSupplier;
+
+    //Constructor fifth.
+    private Generator(final Configuration config) {
         this.rootVertexSchema = getRootVertexSchema(config);
         this.graphSchema = getGraphSchema(config);
         this.rootVertexIdStart = Long.valueOf(CONFIG.getOrDefault(config, Config.Keys.ROOT_VERTEX_ID_START));
         this.rootVertexIdEnd = Long.valueOf(CONFIG.getOrDefault(config, Config.Keys.ROOT_VERTEX_ID_END));
-        this.idSupplier = LongStream.range(rootVertexIdEnd + 1, Long.MAX_VALUE).iterator();
+        this.idSupplier = MovementIteratorUtils.PrimitiveIteratorWrap.wrap(LongStream.range(rootVertexIdEnd + 1, Long.MAX_VALUE));
     }
 
-    public VertexSchema getRootVertexSchema() {
-        return rootVertexSchema;
+    //Open, create or getInstance methods sixth.
+    public static Generator open(final Configuration config) {
+        return new Generator(config);
     }
 
-    public static Generator open(Configuration config) {
-        return new Generator( config);
+    //Implementation seventh.
+    @Override
+    public Stream<Emitable> phaseOneStream() {
+        return phaseOneStream(rootVertexIdStart, rootVertexIdEnd);
     }
 
     @Override
-    public Stream<EmittedVertex> phaseOneStream() {
-        return LongStream
-                .range(rootVertexIdStart, rootVertexIdEnd)
-                .mapToObj(rootVertexId ->
-                        (EmittedVertex) new GeneratedVertex(true, rootVertexId,
-                                new VertexContext(graphSchema, rootVertexSchema, idSupplier)));
-    }
-
-    @Override
-    public Stream<EmittedVertex> phaseOneStream(final long startId, final long endId) {
+    public Stream<Emitable> phaseOneStream(final long startId, final long endId) {
         return LongStream
                 .range(startId, endId)
                 .mapToObj(rootVertexId ->
-                        (EmittedVertex) new GeneratedVertex(true, rootVertexId,
-                                new VertexContext(graphSchema, rootVertexSchema, idSupplier)));
+                        new GeneratedVertex(true, rootVertexId,
+                                new VertexContext(graphSchema, rootVertexSchema, MovementIteratorUtils.wrapToLong(idSupplier))));
     }
 
     @Override
-    public Stream<EmittedEdge> phaseTwoStream() {
-        return Stream.empty();
+    public Stream<Emitable> phaseTwoStream() {
+        //@todo join subgraphs
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
-    public Emitter withIdSupplier(Iterator<List<?>> idSupplier) {
-        return this.idSupplier = idSupplier;
+    public Stream<Emitable> phaseTwoStream(long startId, long endId) {
+        throw ErrorUtil.unimplemented();
     }
 
+    @Override
+    public Iterator<Object> phaseOneIterator() {
+        return idSupplier;
+    }
 
     @Override
-    public void close() {
+    public Iterator<Object> phaseTwoIterator() {
+        return IteratorUtils.emptyIterator();
+    }
 
+    @Override
+    public Emitter withIdSupplier(Iterator<Object> idSupplier) {
+        this.idSupplier = idSupplier;
+        return this;
     }
 
     @Override
@@ -127,14 +136,36 @@ public class Generator implements Emitter {
                 .map(it -> it.name)
                 .collect(Collectors.toList());
     }
-    public static GraphSchema getGraphSchema(Configuration config) {
+
+    //Public methods eighth.
+    public static GraphSchema getGraphSchema(final Configuration config) {
         final String schemaFileLocation = CONFIG.getOrDefault(config, Config.Keys.SCHEMA_FILE);
         return SchemaParser.parse(Path.of(schemaFileLocation));
     }
-    public static VertexSchema getRootVertexSchema(Configuration config) {
+
+    public static VertexSchema getRootVertexSchema(final Configuration config) {
         final GraphSchema schema = getGraphSchema(config);
         return schema.vertexTypes.stream()
                 .filter(v -> v.label.equals(schema.entrypointVertexType))
-                .findFirst().orElseThrow(() -> new RuntimeException("Could not find root vertex type"));    }
+                .findFirst().orElseThrow(() -> new RuntimeException("Could not find root vertex type"));
+    }
+    //Private methods ninth.
+    //...
+
+    //Inner classes tenth.
+    //...
+
+    //toString eleventh.
+    @Override
+    public String toString() {
+        return this.getClass().getName();
+
+    }
+
+    //Close methods twelfth.
+    @Override
+    public void close() {
+
+    }
 
 }

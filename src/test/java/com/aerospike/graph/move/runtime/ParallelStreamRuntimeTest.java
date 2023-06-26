@@ -2,14 +2,15 @@ package com.aerospike.graph.move.runtime;
 
 import com.aerospike.graph.move.AbstractGeneratorTest;
 import com.aerospike.graph.move.TestUtil;
+import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedVertex;
-import com.aerospike.graph.move.emitter.generator.GeneratedVertex;
 import com.aerospike.graph.move.encoding.Encoder;
-import com.aerospike.graph.move.encoding.format.csv.CSVEncoder;
+import com.aerospike.graph.move.encoding.format.csv.GraphCSV;
 import com.aerospike.graph.move.output.OutputWriter;
 import com.aerospike.graph.move.output.file.DirectoryOutput;
 import com.aerospike.graph.move.runtime.local.LocalParallelStreamRuntime;
+import com.aerospike.graph.move.structure.EmittedIdImpl;
 import com.aerospike.graph.move.util.*;
 import org.apache.commons.configuration2.Configuration;
 import org.junit.Before;
@@ -42,7 +43,7 @@ public class ParallelStreamRuntimeTest extends AbstractGeneratorTest {
         final long startTime = System.currentTimeMillis();
 
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(testCSVConfiguration);
-        final Encoder<String> encoder = CSVEncoder.open(testCSVConfiguration);
+        final Encoder<String> encoder = GraphCSV.open(testCSVConfiguration);
         runtime.initialPhase();
         final long stopTime = System.currentTimeMillis();
         runtime.close();
@@ -131,7 +132,7 @@ public class ParallelStreamRuntimeTest extends AbstractGeneratorTest {
         public Stream<Optional<CapturedError>> writeEdgeStream(Stream<EmittedEdge> edgeStream) {
             if (CONFIG.throwOn(config, "test.writeEdgeStream.exceptionStream"))
                 return edgeStream.map(it -> {
-                    return Optional.of(new CapturedError(new Exception("Test exception"), new GeneratedVertex.GeneratedVertexId(-1)));
+                    return Optional.of(new CapturedError(new Exception("Test exception"), new EmittedIdImpl(-1)));
                 });
             return super.writeEdgeStream(edgeStream);
         }

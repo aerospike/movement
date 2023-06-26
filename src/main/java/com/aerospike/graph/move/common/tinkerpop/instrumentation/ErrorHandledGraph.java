@@ -1,7 +1,8 @@
-package com.aerospike.graph.move.common.tinkerpop;
+package com.aerospike.graph.move.common.tinkerpop.instrumentation;
 
 
 import com.aerospike.graph.move.runtime.local.JVMGlobalRuntimeMetrics;
+import com.aerospike.graph.move.util.ErrorUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -69,7 +70,7 @@ public class ErrorHandledGraph extends InstrumentedGraph {
     }
 
     private String addVertexContextToObjects(Map<Object, Object> context) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     private static class RetryCounter {
@@ -91,7 +92,7 @@ public class ErrorHandledGraph extends InstrumentedGraph {
             RetryCounter counter = (RetryCounter) keyValues[0];
             counter.increment();
             if (counter.getCount() > 3) {
-                return null;
+                throw new RuntimeException("Too many retries");
             }
         }
         final Object[] keyValuesWithoutFirstElement = new Object[keyValues.length - 1];
@@ -127,7 +128,7 @@ public class ErrorHandledGraph extends InstrumentedGraph {
                         RetryCounter counter = (RetryCounter) counterHeadOrigArgsTail.getKey();
                         counter.increment();
                         if (counter.getCount() > 3) {
-                            return null;
+                            throw ErrorUtil.unimplemented();
                         }
                         return graph.vertices(counterHeadOrigArgsTail.getValue());
                     }

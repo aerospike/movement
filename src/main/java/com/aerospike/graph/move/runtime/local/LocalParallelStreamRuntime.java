@@ -1,26 +1,23 @@
 package com.aerospike.graph.move.runtime.local;
 
-import com.aerospike.graph.move.emitter.EmittedElement;
-import com.aerospike.graph.move.emitter.EmittedVertex;
+import com.aerospike.graph.move.config.ConfigurationBase;
+import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.Emitter;
-import com.aerospike.graph.move.emitter.generator.Generator;
+import com.aerospike.graph.move.encoding.Decoder;
+import com.aerospike.graph.move.encoding.Encoder;
 import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.process.Job;
-import com.aerospike.graph.move.util.DefaultErrorHandler;
 import com.aerospike.graph.move.runtime.Runtime;
-import com.aerospike.graph.move.util.BatchedIterator;
-import com.aerospike.graph.move.util.ConfigurationBase;
-import com.aerospike.graph.move.util.RuntimeUtil;
-import com.aerospike.graph.move.util.SyncronizedBatchIterator;
+import com.aerospike.graph.move.util.*;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static java.lang.Runtime.getRuntime;
@@ -34,11 +31,13 @@ public class LocalParallelStreamRuntime implements Runtime {
 
     // 1 per JVM
     private static AtomicReference<LocalParallelStreamRuntime> INSTANCE = new AtomicReference<LocalParallelStreamRuntime>();
+    private final DefaultErrorHandler errorHandler;
 
     public static Runtime getInstance(Configuration config) {
         if (INSTANCE.get() == null) {
             INSTANCE.set(new LocalParallelStreamRuntime(config));
         }
+        return INSTANCE.get();
     }
 
     public static class Config extends ConfigurationBase {
@@ -69,68 +68,38 @@ public class LocalParallelStreamRuntime implements Runtime {
     public LocalParallelStreamRuntime(final Configuration config) {
         this.config = config;
         this.customThreadPool = new ForkJoinPool(Integer.parseInt(CONFIG.getOrDefault(config, Config.Keys.THREADS)));
-
+        this.errorHandler = new DefaultErrorHandler(config, id);
     }
 
     public static Runtime open(Configuration config) {
         return new LocalParallelStreamRuntime(config);
     }
 
-    private void handleError(Exception e) {
-        System.err.println(e);
+
+    //Distributed runtime uses this to provide specific elements to load for this JVM
+    @Override
+    public void initialPhase(final Iterator<Object> idSupplier) {
+        processStream(Runtime.PHASE.ONE, idSupplier, customThreadPool, this, config);
     }
 
     @Override
     public void initialPhase() {
-        final Iterator<List<?>> idSupplier = ((Iterator<List<?>>) new SyncronizedBatchIterator<>(
-                ((Iterator<List<?>>) EmittedElement.getIterator(EmittedVertex.class, this), 1000);
-        processVertexStream(idSupplier);
-    }
-
-    public void processCompletionPhase(Iterator<List<?>> idSupplier) {
-
+        // Id iterator drives the process, it may be bounded to a specific purpose, return unordered or sequential ids, or be unbounded
+        // If it is unbounded, it simply drives the stream and the emitter impl it is driving should end the process when finished.
+        initialPhase(RuntimeUtil.loadEmitter(config).phaseOneIterator());
     }
 
 
-    public void processVertexStream(Iterator<List<?>> idSupplier) {
-        final int threads = customThreadPool.getParallelism();
-        final long rootVertexIdRange = rootVertexIdEnd - rootVertexIdStart;
-        final long rootVertexIdRangePerThread = rootVertexIdRange / threads;
-        Map<Map.Entry<Output, DefaultErrorHandler>, Stream<EmittedVertex>> vertexIterators =
-                IntStream.range(0, threads).mapToObj(threadNumber -> {
-                            try {
-                                Thread.sleep(Long.parseLong(CONFIG.getOrDefault(config, Config.Keys.OUTPUT_STARTUP_DELAY_MS)));
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
-                            }
-                            final Emitter emitter = RuntimeUtil.loadEmitter(config);
-                            final Output output = RuntimeUtil.loadOutput(config);
-                            outputMap.put((long) threadNumber, output);
-                            final long startId = rootVertexIdStart + (threadNumber * rootVertexIdRangePerThread);
-                            final long endId = startId + rootVertexIdRangePerThread;
-                            final DefaultErrorHandler errorHandler = new DefaultErrorHandler(config, String.valueOf(threadNumber));
-                            return new AbstractMap.SimpleEntry<>(new AbstractMap.SimpleEntry<>(output, errorHandler), emitter
-                                    .withIdSupplier((Iterator<List<?>>) new BatchedIterator(idSupplier))
-                                    .phaseOneStream(startId, endId));
-                        }
-                ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        if (Boolean.parseBoolean(CONFIG.getOrDefault(config, Config.Keys.DROP_OUTPUT))) {
-            RuntimeUtil.loadOutput(config).dropStorage();
-        }
-        try {
-            customThreadPool.submit(
-                    () -> vertexIterators.entrySet().stream().parallel().forEach(outputProducerPair -> {
-                        final Output output = outputProducerPair.getKey().getKey();
-                        final DefaultErrorHandler errorHandler = outputProducerPair.getKey().getValue();
-                        final Stream<EmittedVertex> vertexIterator = outputProducerPair.getValue();
-                        vertexIterator.iterator().forEachRemaining(generatedVertex -> {
-                            IteratorUtils.iterate(RuntimeUtil.walk(generatedVertex.emit(output), output));
-                        });
-                    })).get();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @Override
+    public void completionPhase(Iterator<Object> idSupplier) {
+        processStream(Runtime.PHASE.TWO, idSupplier, customThreadPool, this, config);
     }
+
+    @Override
+    public void completionPhase() {
+        completionPhase(RuntimeUtil.loadEmitter(config).phaseTwoIterator());
+    }
+
 
     public void close() {
         outputMap.values().forEach(Output::close);
@@ -149,18 +118,15 @@ public class LocalParallelStreamRuntime implements Runtime {
 
     }
 
-    @Override
-    public void completionPhase() {
-        return;
-    }
 
     @Override
     public Optional<String> submitJob(Job job) {
-        return Runtime.getLocalRuntime(config).submitJob(job);
+        throw ErrorUtil.unimplemented();
     }
 
 
-    public void processEdgeStream(Iterator<List<?>> idSupplier) {
+    public void processEdgeStream(Iterator<List<Object>> idSupplier) {
+        //@todo
         completionPhase();
     }
 
@@ -173,63 +139,103 @@ public class LocalParallelStreamRuntime implements Runtime {
         return sb.toString();
     }
 
+    private enum DelayType {
+        IO_THREAD_INIT
+    }
 
-    private static class StreamProcessor<X> {
-        private static final AtomicReference<StreamProcessor<X>> INSTANCE = new AtomicReference<>();
-
-        public StreamProcessor(Configuration config) {
-        }
-
-        public static StreamProcessor getInstance(final Configuration config) {
-            if (INSTANCE.get() == null) {
-                INSTANCE.set(new StreamProcessor(config));
-            }
-            return INSTANCE.get();
-        }
-
-        public void processStream(final Class<? extends EmittedElement> streamType,
-                                  Stream<? extends EmittedElement> stream,
-                                  final ForkJoinPool customThreadPool,
-                                  final Map<Long, Output> outputMap,
-                                  final Runtime runtime,
-                                  final Configuration config) {
-            final int threads = customThreadPool.getParallelism();
-
-            Map<Map.Entry<Output, DefaultErrorHandler>, Stream<EmittedVertex>> vertexIterators =
-                    IntStream.range(0, threads).mapToObj(threadNumber -> {
-                                try {
-                                    Thread.sleep(Long.parseLong(CONFIG.getOrDefault(config, Config.Keys.OUTPUT_STARTUP_DELAY_MS)));
-                                } catch (InterruptedException e) {
-                                    throw new RuntimeException(e);
-                                }
-                                final Emitter emitter = RuntimeUtil.loadEmitter(config);
-                                final Output output = RuntimeUtil.loadOutput(config);
-                                outputMap.put((long) threadNumber, output);
-
-                                final DefaultErrorHandler errorHandler = new DefaultErrorHandler(config, String.valueOf(threadNumber));
-                                return new AbstractMap.SimpleEntry<>(new AbstractMap.SimpleEntry<>(output, errorHandler), emitter
-                                        .withIdSupplier(new BatchedIterator(EmittedElement.getIterator(streamType, runtime)))
-                                        .phaseOneStream());
-                            }
-                    ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-            if (Boolean.parseBoolean(CONFIG.getOrDefault(config, Config.Keys.DROP_OUTPUT))) {
-                RuntimeUtil.loadOutput(config).dropStorage();
-            }
-            try {
-                customThreadPool.submit(
-                        () -> vertexIterators.entrySet().stream().parallel().forEach(outputProducerPair -> {
-                            final Output output = outputProducerPair.getKey().getKey();
-                            final DefaultErrorHandler errorHandler = outputProducerPair.getKey().getValue();
-                            final Stream<EmittedVertex> vertexIterator = outputProducerPair.getValue();
-                            vertexIterator.iterator().forEachRemaining(generatedVertex -> {
-                                IteratorUtils.iterate(RuntimeUtil.walk(generatedVertex.emit(output), output));
-                            });
-                        })).get();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+    private void delay(final DelayType type) {
+        switch (type) {
+            case IO_THREAD_INIT:
+                try {
+                    Thread.sleep(Long.parseLong(CONFIG.getOrDefault(config, Config.Keys.OUTPUT_STARTUP_DELAY_MS)));
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                break;
         }
     }
+
+    private Object submit(final ForkJoinPool pool, final Runnable task) throws ExecutionException, InterruptedException {
+        return pool.submit(task).get();
+    }
+
+    private Map.Entry<Emitter, Output> createNewEmitterOutputPair(final int id) {
+        final Emitter emitter = RuntimeUtil.loadEmitter(config);
+        final Output output = RuntimeUtil.loadOutput(config);
+        outputMap.put((long) id, output);
+        return new AbstractMap.SimpleEntry<>(emitter, output);
+    }
+
+    private List<Map.Entry<Stream<Emitable>, Output>> createAndSetupEmitterToOutputConnections(final Iterator<Object> idSupplier, final PHASE phase) {
+
+        return IntStream.range(0, customThreadPool.getParallelism()).mapToObj(threadNumber -> {
+            delay(DelayType.IO_THREAD_INIT);
+            return createNewEmitterOutputPair(threadNumber);
+        }).collect(Collectors.toList()).stream().map(emitterOutputPair -> {
+            final Emitter emitter = emitterOutputPair.getKey();
+            final Output output = emitterOutputPair.getValue();
+            final Stream<Emitable> elementStream = phase.equals(Runtime.PHASE.ONE) ?
+                    emitter.withIdSupplier(idSupplier).phaseOneStream() :
+                    emitter.withIdSupplier(idSupplier).phaseTwoStream();
+            return new AbstractMap.SimpleEntry<>(elementStream, output);
+        }).collect(Collectors.toList());
+    }
+
+    private static void processEmitable(Emitable emitable, Output output) {
+        IteratorUtils.iterate(RuntimeUtil.walk(emitable.emit(output), output));
+    }
+
+    static void driveIndividualThreadSync(final Stream<Emitable> input, final Output output) {
+        input.iterator().forEachRemaining(emitable -> {
+            processEmitable(emitable, output);
+        });
+    }
+
+    private static void processStream(final PHASE phase,
+                                      final Iterator<Object> idSupplier,
+                                      final ForkJoinPool customThreadPool,
+                                      final LocalParallelStreamRuntime runtime,
+                                      final Configuration config) {
+
+
+        Output.init(phase.value(), config);
+        Emitter.init(phase.value(), config);
+        Encoder.init(phase.value(), config);
+        Decoder.init(phase.value(), config);
+
+        try {
+            runtime.submit(customThreadPool,
+                    ParallelStreamProcessor.create(
+                            runtime.createAndSetupEmitterToOutputConnections(idSupplier, phase)));
+        } catch (Exception e) {
+            runtime.errorHandler.handle(e);
+        }
+    }
+
+    public static class ParallelStreamProcessor implements Runnable {
+        private final List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs;
+
+        private ParallelStreamProcessor(List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs) {
+            this.initializedStreamOutputPairs = initializedStreamOutputPairs;
+
+        }
+
+        public static ParallelStreamProcessor create(final List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs) {
+            return new ParallelStreamProcessor(initializedStreamOutputPairs);
+        }
+
+
+        //Make your elementIterators size equal to your threadpool size
+        @Override
+        public void run() {
+            initializedStreamOutputPairs.stream().parallel().forEach(emitterStreamOutputPair -> {
+                final Stream<Emitable> elementStream = emitterStreamOutputPair.getKey();
+                final Output output = emitterStreamOutputPair.getValue();
+                LocalParallelStreamRuntime.driveIndividualThreadSync(elementStream, output);
+            });
+        }
+    }
+
 }
 
 

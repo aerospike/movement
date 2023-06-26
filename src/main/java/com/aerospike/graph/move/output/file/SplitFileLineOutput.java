@@ -1,5 +1,6 @@
 package com.aerospike.graph.move.output.file;
 
+import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedVertex;
 import com.aerospike.graph.move.encoding.Encoder;
@@ -139,13 +140,13 @@ public class SplitFileLineOutput implements OutputWriter {
     }
 
     @Override
-    public void writeEdge(final EmittedEdge edge) {
-        writeEdgeLine(edge);
+    public void writeEdge(final Emitable edge) {
+        writeEdgeLine((EmittedEdge) edge);
     }
 
     @Override
-    public void writeVertex(final EmittedVertex vertex) {
-        writeVertexLine(vertex);
+    public void writeVertex(final Emitable vertex) {
+        writeVertexLine((EmittedVertex) vertex);
     }
 
 

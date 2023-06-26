@@ -10,7 +10,7 @@ edgeTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
   Owns:
@@ -30,7 +30,7 @@ edgeTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
 
@@ -48,7 +48,7 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
   Household:
@@ -58,28 +58,28 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
       city:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
       state:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
             length: 10
       zip:
         type: Java.lang.Integer
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomDigitSequence
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomDigitSequence
           args:
             digits: 5
   Person:
@@ -99,35 +99,35 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
           length: 10
       lastName:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
           length: 10
       ssn:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomDigitSequence
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomDigitSequence
           args:
           digits: 9
       email:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
           length: 10
       phone:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomDigitSequence
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomDigitSequence
           args:
           digits: 10
 
@@ -138,21 +138,21 @@ vertexTypes:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomDigitSequence
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomDigitSequence
           args:
           digits: 12
       make:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
           length: 10
       model:
         type: Java.lang.String
         likelihood: 1.0
         valueGenerator:
-          impl: com.aerospike.graph.generator.process.ValueGenerator.RandomString
+          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
           args:
           length: 10
 

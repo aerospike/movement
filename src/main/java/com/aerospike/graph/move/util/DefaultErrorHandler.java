@@ -1,5 +1,6 @@
 package com.aerospike.graph.move.util;
 
+import com.aerospike.graph.move.config.ConfigurationBase;
 import org.apache.commons.configuration2.Configuration;
 
 import java.io.FileNotFoundException;

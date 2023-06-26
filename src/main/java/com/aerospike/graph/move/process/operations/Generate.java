@@ -3,7 +3,7 @@ package com.aerospike.graph.move.process.operations;
 
 import com.aerospike.graph.move.process.Job;
 import org.apache.commons.configuration2.Configuration;
-
+import com.aerospike.graph.move.util.ErrorUtil;
 import java.util.Map;
 
 /**
@@ -22,7 +22,7 @@ public class Generate extends Job {
 
     @Override
     public Map<String, Object> getMetrics() {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override

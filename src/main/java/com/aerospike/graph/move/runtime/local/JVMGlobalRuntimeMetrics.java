@@ -1,5 +1,6 @@
 package com.aerospike.graph.move.runtime.local;
 
+import com.aerospike.graph.move.util.ErrorUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,7 +85,7 @@ public class JVMGlobalRuntimeMetrics {
                         break;
                     }
                 }
-                return null;
+                throw ErrorUtil.unimplemented();
             });
         }
     }

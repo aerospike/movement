@@ -3,8 +3,9 @@ package com.aerospike.graph.move.encoding.format.tinkerpop;
 import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedVertex;
 import com.aerospike.graph.move.encoding.Encoder;
-import com.aerospike.graph.move.util.ConfigurationBase;
+import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.util.EncoderUtil;
+import com.aerospike.graph.move.util.ErrorUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class TraversalEncoder extends Encoder<Element> {
+public class TraversalEncoder implements Encoder<Element> {
     public static final Config CONFIG = new Config();
 
     public static class Config extends ConfigurationBase {
@@ -131,22 +132,22 @@ public class TraversalEncoder extends Encoder<Element> {
 
     @Override
     public Element encodeVertexMetadata(final EmittedVertex vertex) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public Element encodeEdgeMetadata(final EmittedEdge edge) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public Element encodeVertexMetadata(final String label) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public Element encodeEdgeMetadata(final String label) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
 

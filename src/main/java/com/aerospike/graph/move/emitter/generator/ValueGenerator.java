@@ -1,4 +1,4 @@
-package com.aerospike.graph.move.process;
+package com.aerospike.graph.move.emitter.generator;
 
 import com.aerospike.graph.move.emitter.generator.schema.def.ValueGeneratorConfig;
 

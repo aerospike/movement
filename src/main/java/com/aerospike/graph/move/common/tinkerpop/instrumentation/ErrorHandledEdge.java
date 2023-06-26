@@ -1,5 +1,6 @@
-package com.aerospike.graph.move.common.tinkerpop;
+package com.aerospike.graph.move.common.tinkerpop.instrumentation;
 
+import com.aerospike.graph.move.util.ErrorUtil;
 import org.apache.tinkerpop.gremlin.structure.*;
 
 import java.util.Iterator;
@@ -7,27 +8,27 @@ import java.util.Iterator;
 public class ErrorHandledEdge implements Edge {
     @Override
     public Iterator<Vertex> vertices(Direction direction) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public Object id() {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public String label() {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public Graph graph() {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
     public <V> Property<V> property(String key, V value) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
     @Override
@@ -37,6 +38,6 @@ public class ErrorHandledEdge implements Edge {
 
     @Override
     public <V> Iterator<Property<V>> properties(String... propertyKeys) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 }

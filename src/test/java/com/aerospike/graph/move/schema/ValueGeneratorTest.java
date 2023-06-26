@@ -2,7 +2,7 @@ package com.aerospike.graph.move.schema;
 
 import com.aerospike.graph.move.AbstractGeneratorTest;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
-import com.aerospike.graph.move.process.ValueGenerator;
+import com.aerospike.graph.move.emitter.generator.ValueGenerator;
 import org.junit.Test;
 
 /**

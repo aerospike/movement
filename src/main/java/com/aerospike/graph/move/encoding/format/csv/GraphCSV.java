@@ -1,15 +1,18 @@
 package com.aerospike.graph.move.encoding.format.csv;
 
 import com.aerospike.graph.move.emitter.EmittedEdge;
+import com.aerospike.graph.move.emitter.EmittedElement;
 import com.aerospike.graph.move.emitter.EmittedVertex;
 import com.aerospike.graph.move.emitter.generator.Generator;
 import com.aerospike.graph.move.emitter.generator.schema.SchemaParser;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
+import com.aerospike.graph.move.encoding.Decoder;
 import com.aerospike.graph.move.encoding.Encoder;
 import com.aerospike.graph.move.emitter.generator.schema.def.EdgeSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
-import com.aerospike.graph.move.structure.Util;
-import com.aerospike.graph.move.util.ConfigurationBase;
+import com.aerospike.graph.move.util.ErrorUtil;
+import com.aerospike.graph.move.util.StructureUtil;
+import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.util.EncoderUtil;
 import org.apache.commons.configuration2.Configuration;
 
@@ -28,7 +31,7 @@ import java.util.stream.Collectors;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class CSVEncoder extends Encoder<String> {
+public class GraphCSV implements Encoder<String>, Decoder<String> {
     public static final Generator.Config CONFIG = new Generator.Config();
 
     public static class Config extends ConfigurationBase {
@@ -50,21 +53,21 @@ public class CSVEncoder extends Encoder<String> {
 
     private final Optional<GraphSchema> optionalSchema;
 
-    private CSVEncoder(final GraphSchema schema) {
+    private GraphCSV(final GraphSchema schema) {
         this.optionalSchema = Optional.of(schema);
     }
 
-    private CSVEncoder() {
+    private GraphCSV() {
         this.optionalSchema = Optional.empty();
     }
 
-    public static CSVEncoder open(final Configuration config) {
+    public static GraphCSV open(final Configuration config) {
         if (config.containsKey(Generator.Config.Keys.SCHEMA_FILE)) {
             final String schemaFileLocation = CONFIG.getOrDefault(config, Generator.Config.Keys.SCHEMA_FILE);
             final GraphSchema schema = SchemaParser.parse(Path.of(schemaFileLocation));
-            return new CSVEncoder(schema);
+            return new GraphCSV(schema);
         }
-        return new CSVEncoder();
+        return new GraphCSV();
     }
 
     public VertexSchema vertexSchemaFromLabel(final String label) {
@@ -155,7 +158,7 @@ public class CSVEncoder extends Encoder<String> {
         if (!optionalSchema.isPresent())
             throw new RuntimeException("No schema present");
         final GraphSchema schema = optionalSchema.get();
-        return toCsvLine(new ArrayList<>(getVertexHeaderFields(Util.getSchemaFromVertexLabel(schema, label))));
+        return toCsvLine(new ArrayList<>(getVertexHeaderFields(StructureUtil.getSchemaFromVertexLabel(schema, label))));
     }
 
     @Override
@@ -163,7 +166,7 @@ public class CSVEncoder extends Encoder<String> {
         if (!optionalSchema.isPresent())
             throw new RuntimeException("No schema present");
         final GraphSchema schema = optionalSchema.get();
-        return toCsvLine(new ArrayList<>(getEdgeHeaderFields(Util.getSchemaFromEdgeLabel(schema, label))));
+        return toCsvLine(new ArrayList<>(getEdgeHeaderFields(StructureUtil.getSchemaFromEdgeLabel(schema, label))));
     }
 
     @Override
@@ -178,6 +181,21 @@ public class CSVEncoder extends Encoder<String> {
     }
 
 
+    @Override
+    public EmittedElement decodeElement(String encodedEdge) {
+        throw ErrorUtil.unimplemented();
+    }
+
+    @Override
+    public String decodeElementMetadata(EmittedElement element) {
+        throw ErrorUtil.unimplemented();
+    }
+
+    @Override
+    public String decodeElementMetadata(String label) {
+        throw ErrorUtil.unimplemented();
+    }
+
     public String getExtension() {
         return "csv";
     }
@@ -185,6 +203,11 @@ public class CSVEncoder extends Encoder<String> {
     @Override
     public void close() {
 
+    }
+
+    @Override
+    public boolean skipEntry(String line) {
+        return line.startsWith("~");
     }
 
     public static class CSVLine {

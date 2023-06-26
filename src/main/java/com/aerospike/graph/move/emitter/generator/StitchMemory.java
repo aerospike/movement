@@ -1,5 +1,7 @@
 package com.aerospike.graph.move.emitter.generator;
 
+import com.aerospike.graph.move.structure.EmittedIdImpl;
+
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,10 +25,10 @@ public class StitchMemory {
 
 
 
-    public Stream<GeneratedVertex.GeneratedVertexId> outV(final GeneratedVertex rootVertex, final String stitchLabel) {
+    public Stream<EmittedIdImpl> outV(final GeneratedVertex rootVertex, final String stitchLabel) {
         return rememberedEdges
                 .getOrDefault(stitchLabel, new ConcurrentHashMap<>())
                 .getOrDefault(rootVertex.id, new ConcurrentLinkedQueue<>())
-                .stream().map(GeneratedVertex.GeneratedVertexId::new);
+                .stream().map(EmittedIdImpl::new);
     }
 }

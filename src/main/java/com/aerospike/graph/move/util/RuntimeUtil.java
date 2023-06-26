@@ -1,10 +1,11 @@
 package com.aerospike.graph.move.util;
 
+import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.Emitter;
+import com.aerospike.graph.move.encoding.Decoder;
 import com.aerospike.graph.move.encoding.Encoder;
 import com.aerospike.graph.move.output.Output;
-import com.aerospike.graph.move.process.Job;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.stream.Stream;
@@ -37,6 +39,7 @@ public class RuntimeUtil {
         return (Emitter) openClassRef(config.getString(ConfigurationBase.Keys.EMITTER), config);
     }
 
+
     public static Object openClassRef(final String className, final Configuration config) {
         try {
             final Class clazz = Class.forName(className);
@@ -46,7 +49,7 @@ public class RuntimeUtil {
         }
     }
 
-    public static void invokeClassMain(final String className, Object[] args) {
+    public static void invokeClassMain(final String className, final Object[] args) {
         final Class clazz = loadClass(className);
         try {
             clazz.getMethod("main", String[].class).invoke(null, new Object[]{args});
@@ -63,7 +66,7 @@ public class RuntimeUtil {
         }
     }
 
-    public static Configuration loadConfiguration(String propertiesFile) {
+    public static Configuration loadConfiguration(final String propertiesFile) {
         try {
             Properties catalogProps = new Properties();
             catalogProps.load(new FileInputStream(propertiesFile));
@@ -73,7 +76,7 @@ public class RuntimeUtil {
         }
     }
 
-    public static Iterator<Emitable> walk(Stream<Emitable> input, Output writer) {
+    public static Iterator<Emitable> walk(final Stream<Emitable> input, final Output writer) {
         return IteratorUtils.flatMap(input.iterator(), emitable ->
                 IteratorUtils.flatMap(emitable.emit(writer).iterator(),
                         emitable1 -> {
@@ -95,5 +98,9 @@ public class RuntimeUtil {
     }
 
 
+    public static Decoder<String> loadDecoder(final Configuration config) {
+        logger.debug("Loading decoder");
+        return (Decoder<String>) openClassRef(config.getString(ConfigurationBase.Keys.DECODER), config);
+    }
 }
 

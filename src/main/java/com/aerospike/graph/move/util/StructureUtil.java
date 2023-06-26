@@ -1,4 +1,4 @@
-package com.aerospike.graph.move.structure;
+package com.aerospike.graph.move.util;
 
 import com.aerospike.graph.move.emitter.generator.schema.def.EdgeSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
@@ -9,7 +9,7 @@ import java.util.NoSuchElementException;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class Util {
+public class StructureUtil {
 
     public static EdgeSchema getSchemaFromEdgeName(final GraphSchema schema, final String edgeTypeName) {
         return schema.edgeTypes.stream()
