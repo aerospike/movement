@@ -141,6 +141,11 @@ public class SourceGraph extends Emitter.PhasedEmitter {
                 .toList();
     }
 
+    @Override
+    public List<Runtime.PHASE> phases() {
+        return List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO);
+    }
+
     public class TinkerPopVertex implements EmittedVertex {
         private final Vertex vertex;
 

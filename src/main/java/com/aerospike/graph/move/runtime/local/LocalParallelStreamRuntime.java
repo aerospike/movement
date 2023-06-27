@@ -78,7 +78,7 @@ public class LocalParallelStreamRuntime implements Runtime {
 
     //Distributed runtime uses this to provide specific elements to load for this JVM
     @Override
-    public void initialPhase(final Iterator<Object> idSupplier) {
+    public void initialPhase(final Iterator<List<Object>> idSupplier) {
         processStream(Runtime.PHASE.ONE, idSupplier, customThreadPool, this, config);
     }
 
@@ -86,23 +86,20 @@ public class LocalParallelStreamRuntime implements Runtime {
     public void initialPhase() {
         // Id iterator drives the process, it may be bounded to a specific purpose, return unordered or sequential ids, or be unbounded
         // If it is unbounded, it simply drives the stream and the emitter impl it is driving should end the process when finished.
-        Emitter emitter = RuntimeUtil.loadEmitter(config);
-        Iterator<List<Object>> i = emitter.getDriverForPhase(PHASE.ONE);
-        List<List<Object>> x = IteratorUtils.list(i);
-        initialPhase(IteratorUtils.stream(x.iterator()).flatMap(List::stream).iterator());
+        final Emitter emitter = RuntimeUtil.loadEmitter(config);
+        processStream(Runtime.PHASE.ONE, emitter.getDriverForPhase(PHASE.ONE), customThreadPool, this, config);
     }
 
 
     @Override
-    public void completionPhase(Iterator<Object> idSupplier) {
+    public void completionPhase(Iterator<List<Object>> idSupplier) {
         processStream(Runtime.PHASE.TWO, idSupplier, customThreadPool, this, config);
     }
 
     @Override
     public void completionPhase() {
         Emitter e = RuntimeUtil.loadEmitter(config);
-        Iterator<List<Object>> x = e.getDriverForPhase(PHASE.TWO);
-        completionPhase(IteratorUtils.flatMap(x, IteratorUtils::asIterator));
+        completionPhase(e.getDriverForPhase(PHASE.TWO));
     }
 
 
@@ -166,7 +163,9 @@ public class LocalParallelStreamRuntime implements Runtime {
         return new AbstractMap.SimpleEntry<>(emitter, output);
     }
 
-    private List<Map.Entry<Stream<Emitable>, Output>> createAndSetupEmitterToOutputConnections(final Iterator<Object> idSupplier, final PHASE phase) {
+    private List<Map.Entry<Stream<Emitable>, Output>> createAndSetupEmitterToOutputConnections(
+            final Iterator<List<Object>> idSupplier,
+            final PHASE phase) {
 
         return IntStream.range(0, customThreadPool.getParallelism()).mapToObj(threadNumber -> {
             delay(DelayType.IO_THREAD_INIT);
@@ -174,7 +173,7 @@ public class LocalParallelStreamRuntime implements Runtime {
         }).collect(Collectors.toList()).stream().map(emitterOutputPair -> {
             final Emitter emitter = emitterOutputPair.getKey();
             final Output output = emitterOutputPair.getValue();
-            return new AbstractMap.SimpleEntry<>(emitter.stream(idSupplier, phase), output);
+            return new AbstractMap.SimpleEntry<>(emitter.stream(IteratorUtils.flatMap(idSupplier, List::iterator), phase), output);
         }).collect(Collectors.toList());
     }
 
@@ -189,7 +188,7 @@ public class LocalParallelStreamRuntime implements Runtime {
     }
 
     private static void processStream(final PHASE phase,
-                                      final Iterator<Object> idSupplier,
+                                      final Iterator<List<Object>> idSupplier,
                                       final ForkJoinPool customThreadPool,
                                       final LocalParallelStreamRuntime runtime,
                                       final Configuration config) {
@@ -201,20 +200,21 @@ public class LocalParallelStreamRuntime implements Runtime {
         Decoder.init(phase.value(), config);
 
         try {
-            runtime.submit(customThreadPool,
-                    ParallelStreamProcessor
-                            .create(runtime.createAndSetupEmitterToOutputConnections(idSupplier, phase), config));
+            final List<Map.Entry<Stream<Emitable>, Output>> emitterConnections =
+                    runtime.createAndSetupEmitterToOutputConnections(idSupplier, phase);
+            final ParallelStreamProcessor processor = ParallelStreamProcessor.create(emitterConnections, config);
+            runtime.submit(customThreadPool, processor);
         } catch (Exception e) {
             runtime.errorHandler.handle(e);
         }
     }
 
     public static class ParallelStreamProcessor implements Runnable {
-        private final List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs;
+        private final List<Map.Entry<Stream<Emitable>, Output>> initalizedEmitterOutputPairs;
         private final Configuration config;
 
         private ParallelStreamProcessor(List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs, Configuration config) {
-            this.initializedStreamOutputPairs = initializedStreamOutputPairs;
+            this.initalizedEmitterOutputPairs = initializedStreamOutputPairs;
             this.config = config;
 
         }
@@ -227,7 +227,7 @@ public class LocalParallelStreamRuntime implements Runtime {
         //Make your elementIterators size equal to your threadpool size
         @Override
         public void run() {
-            initializedStreamOutputPairs.stream().parallel().forEach(emitterStreamOutputPair -> {
+            initalizedEmitterOutputPairs.stream().parallel().forEach(emitterStreamOutputPair -> {
                 final Stream<Emitable> elementStream = emitterStreamOutputPair.getKey();
                 final Output output = emitterStreamOutputPair.getValue();
                 DefaultErrorHandler errorHandler = new DefaultErrorHandler(config, String.format("%s:%d", LocalParallelStreamRuntime.class.getName(), Thread.currentThread().getId()));

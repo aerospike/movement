@@ -77,7 +77,7 @@ public class GraphCSVEncoder implements Encoder<String> {
         fields.add("~label");
         fields.add("~from");
         fields.add("~to");
-        ((Emitter) RuntimeUtil.lookup(Emitter.class)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
+        ((Emitter) RuntimeUtil.lookup(Emitter.class)).getAllPropertyKeysForEdgeLabel(label).stream().sorted().forEach(fields::add);
         return fields;
     }
 

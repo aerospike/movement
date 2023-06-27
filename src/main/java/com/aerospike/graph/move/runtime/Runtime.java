@@ -5,6 +5,7 @@ import com.aerospike.graph.move.runtime.local.LocalParallelStreamRuntime;
 import org.apache.commons.configuration2.Configuration;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -18,10 +19,10 @@ public interface Runtime {
 
 
     void initialPhase();
-    void initialPhase(Iterator<Object> iterator);
+    void initialPhase(Iterator<List<Object>> iterator);
 
     void completionPhase();
-    void completionPhase(Iterator<Object> iterator);
+    void completionPhase(Iterator<List<Object>> iterator);
 
 
     Optional<String> submitJob(Job job);

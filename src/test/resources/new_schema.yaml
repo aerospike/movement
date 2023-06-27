@@ -182,15 +182,3 @@ edgeTypes:
 #    outVertex: Household
 #    label: hasMember
 #    properties: []
-  - name: Activated
-    inVertex: Device
-    outVertex: Account
-    label: activated
-    properties:
-      - name: test
-        type: Java.lang.String
-        likelihood: 1.0
-        valueGenerator:
-          impl: com.aerospike.graph.move.emitter.generator.ValueGenerator.RandomString
-          args:
-            length: 10

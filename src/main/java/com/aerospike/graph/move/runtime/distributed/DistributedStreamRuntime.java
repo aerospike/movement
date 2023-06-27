@@ -258,11 +258,11 @@ public class DistributedStreamRuntime implements Runtime {
     @Override
     public void initialPhase() {
         ((MovementIteratorUtils.IteratorWithFeeder) vertexIterator).start();
-        subRuntime.initialPhase(IteratorUtils.stream(vertexIterator).flatMap(Collection::stream).iterator());
+        subRuntime.initialPhase(vertexIterator);
     }
 
     @Override
-    public void initialPhase(Iterator<Object> iterator) {
+    public void initialPhase(Iterator<List<Object>> iterator) {
 
     }
 
@@ -270,11 +270,11 @@ public class DistributedStreamRuntime implements Runtime {
     @Override
     public void completionPhase() {
         ((MovementIteratorUtils.IteratorWithFeeder) edgeIterator).start();
-        completionPhase(IteratorUtils.stream(edgeIterator).flatMap(Collection::stream).iterator());
+        completionPhase(edgeIterator);
     }
 
     @Override
-    public void completionPhase(Iterator<Object> iterator) {
+    public void completionPhase(Iterator<List<Object>> iterator) {
         subRuntime.completionPhase(iterator);
     }
 

@@ -6,7 +6,6 @@ import com.aerospike.graph.move.common.tinkerpop.SharedEmptyTinkerGraph;
 import com.aerospike.graph.move.common.tinkerpop.instrumentation.TinkerPopGraphProvider;
 import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.emitter.fileLoader.DirectoryLoader;
-import com.aerospike.graph.move.emitter.generator.Generator;
 import com.aerospike.graph.move.emitter.tinkerpop.SourceGraph;
 import com.aerospike.graph.move.encoding.format.csv.GraphCSVDecoder;
 import com.aerospike.graph.move.encoding.format.csv.GraphCSVEncoder;
@@ -35,7 +34,6 @@ public class CSVDecoderTest extends AbstractGeneratorTest {
     private Configuration getClassicGraphToCSVWriterConfiguration() {
         return new MapConfiguration(new HashMap<>() {{
             put(LocalParallelStreamRuntime.Config.Keys.THREADS, 1);
-            put(Generator.Config.Keys.ROOT_VERTEX_ID_END, 20L);
             put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, "/tmp/generate");
             put(ConfigurationBase.Keys.EMITTER, SourceGraph.class.getName());
             put(SourceGraph.Config.Keys.GRAPH_PROVIDER, TinkerPopGraphProvider.class.getName());

@@ -5,7 +5,6 @@ import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.Emitter;
 import com.aerospike.graph.move.encoding.Decoder;
 import com.aerospike.graph.move.runtime.Runtime;
-import com.aerospike.graph.move.util.MovementIteratorUtils;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -134,5 +133,10 @@ public class DirectoryLoader extends Emitter.PhasedEmitter {
         return readHeaderFromFileByType(edgePath, label).stream()
                 .filter(x -> !x.startsWith("~"))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Runtime.PHASE> phases() {
+        return List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO);
     }
 }

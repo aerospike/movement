@@ -1,10 +1,11 @@
 package com.aerospike.graph.move.emitter.generator;
 
-import com.aerospike.graph.move.emitter.*;
+import com.aerospike.graph.move.config.ConfigurationBase;
+import com.aerospike.graph.move.emitter.Emitable;
+import com.aerospike.graph.move.emitter.Emitter;
 import com.aerospike.graph.move.emitter.generator.schema.SchemaParser;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
-import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.runtime.Runtime;
 import com.aerospike.graph.move.util.ErrorUtil;
 import com.aerospike.graph.move.util.MovementIteratorUtils;
@@ -12,11 +13,7 @@ import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
@@ -99,28 +96,21 @@ public class Generator extends Emitter.PhasedEmitter {
     @Override
     public Iterator<List<Object>> getDriverForPhase(Runtime.PHASE phase) {
         if (phase.equals(Runtime.PHASE.ONE)) {
-            if (phaseOneStarted.compareAndSet(false, true)) {
-                return getOrCreateDriverIterator(phase,
-                        (x) -> MovementIteratorUtils.wrap(LongStream.range(rootVertexIdStart, rootVertexIdEnd).iterator()));
-            }
-            return phaseOneIterator;
+            return getOrCreateDriverIterator(phase,
+                    (x) -> LongStream.range(rootVertexIdStart, rootVertexIdEnd).iterator());
         } else if (phase.equals(Runtime.PHASE.TWO)) {
-            if (phaseTwoStarted.compareAndSet(false, true)) {
-                phaseTwoIterator = getOrCreateDriverIterator(phase,
-                        (x) -> StitchProcess.idIterator(config));
-            }
-            return phaseTwoIterator;
+            return getOrCreateDriverIterator(phase,
+                    (x) -> StitchProcess.idIterator(config));
         }
         throw new IllegalStateException("Unknown phase " + phase);
     }
-
 
     //Public methods eighth.
 
     public List<String> getAllPropertyKeysForVertexLabel(final String label) {
         return graphSchema.vertexTypes.stream()
                 .filter(it -> Objects.equals(it.label, label))
-                .findFirst().get()
+                .findFirst().orElseThrow(() -> new RuntimeException("Could not find vertex type " + label))
                 .properties.stream()
                 .map(it -> it.name)
                 .collect(Collectors.toList());
@@ -129,10 +119,15 @@ public class Generator extends Emitter.PhasedEmitter {
     public List<String> getAllPropertyKeysForEdgeLabel(final String label) {
         return graphSchema.edgeTypes.stream()
                 .filter(it -> Objects.equals(it.label, label))
-                .findFirst().get()
+                .findFirst().orElseThrow(() -> new RuntimeException("Could not find edge type" + label))
                 .properties.stream()
                 .map(it -> it.name)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Runtime.PHASE> phases() {
+        return List.of(Runtime.PHASE.ONE);
     }
 
     public static GraphSchema getGraphSchema(final Configuration config) {

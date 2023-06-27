@@ -9,15 +9,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class NullEmitter implements Emitter{
+public class NullEmitter implements Emitter {
 
     public NullEmitter(Configuration config) {
 
     }
 
-    public static NullEmitter open(Configuration config){
+    public static NullEmitter open(Configuration config) {
         return new NullEmitter(config);
     }
+
     @Override
     public Stream<Emitable> stream(Runtime.PHASE phase) {
         return stream(Collections.emptyIterator(), phase);
@@ -46,5 +47,10 @@ public class NullEmitter implements Emitter{
     @Override
     public List<String> getAllPropertyKeysForEdgeLabel(String label) {
         return List.of("b");
+    }
+
+    @Override
+    public List<Runtime.PHASE> phases() {
+        return List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO);
     }
 }

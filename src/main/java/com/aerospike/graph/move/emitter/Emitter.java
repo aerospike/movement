@@ -7,6 +7,7 @@ import org.apache.commons.configuration2.Configuration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -42,7 +43,7 @@ public interface Emitter {
         }
 
         protected Iterator<List<Object>> getOrCreateDriverIterator(Runtime.PHASE phase, Function<Void, Iterator<?>> createDriver) {
-            if (phase.equals(Runtime.PHASE.ONE)) {
+            if (phase.equals(Runtime.PHASE.ONE) && phases().contains(Runtime.PHASE.ONE)) {
                 if (phaseOneStarted.compareAndSet(false, true)) {
                     Iterator<Object> x = (Iterator<Object>) createDriver.apply(null);
                     assert x.hasNext();
@@ -51,7 +52,7 @@ public interface Emitter {
                 }
                 return Optional.ofNullable(phaseOneIterator).orElseThrow(() ->
                         new RuntimeException("Phase one iterator is null"));
-            } else if (phase.equals(Runtime.PHASE.TWO)) {
+            } else if (phase.equals(Runtime.PHASE.TWO) && phases().contains(Runtime.PHASE.TWO)) {
                 if (phaseTwoStarted.compareAndSet(false, true)) {
                     Iterator<Object> x = (Iterator<Object>) createDriver.apply(null);
                     assert x.hasNext();
@@ -63,7 +64,11 @@ public interface Emitter {
             throw new RuntimeException("Unknown phase: " + phase);
         }
     }
-    public List<String> getAllPropertyKeysForVertexLabel(final String label);
-    public List<String> getAllPropertyKeysForEdgeLabel(final String label);
+
+    List<String> getAllPropertyKeysForVertexLabel(final String label);
+
+    List<String> getAllPropertyKeysForEdgeLabel(final String label);
+
+    List<Runtime.PHASE> phases();
 
 }

@@ -45,7 +45,7 @@ public class StitchProcess implements Emitter {
     }
 
     public static Iterator<Object> idIterator(Configuration config) {
-        return null;
+        throw ErrorUtil.unimplemented();
     }
 
 
@@ -105,6 +105,11 @@ public class StitchProcess implements Emitter {
     @Override
     public List<String> getAllPropertyKeysForEdgeLabel(String label) {
         throw ErrorUtil.unimplemented();
+    }
+
+    @Override
+    public List<Runtime.PHASE> phases() {
+        return List.of(Runtime.PHASE.TWO);
     }
 
 }
