@@ -24,7 +24,7 @@ public class DistributedStreamRuntimeTest extends AbstractGeneratorTest {
     public void createDistributedStreamRuntime() throws Exception {
         final DistributedStreamRuntime runtime = DistributedStreamRuntime.open(testCSVConfiguration);
         runtime.start().get();
-        runtime.initialPhase();
+        runtime.initialPhase().get();
         runtime.close();
     }
 

@@ -39,7 +39,7 @@ public class GeneratorTest extends AbstractGeneratorTest {
 
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
 
-        runtime.initialPhase();
+        runtime.initialPhase().get();
         runtime.close();
 
 

@@ -28,8 +28,9 @@ public class FrontendTest extends AbstractGeneratorTest {
     public void invokeTestCSV() throws IOException {
         String[] args = {
                 "-c", sampleConfigurationLocationRelativeToModule(),
+                "-o", "runtime.testMode=true",
                 "-o", String.format("%s=%s", DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, testConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY)),
-                "-o", String.format("%s=%s", Generator.Config.Keys.ROOT_VERTEX_ID_END, 40000),
+                "-o", String.format("%s=%s", Generator.Config.Keys.ROOT_VERTEX_ID_END, 1000),
                 "-o", String.format("%s=%s", Generator.Config.Keys.SCHEMA_FILE, newGraphSchemaLocationRelativeToModule())
         };
         final long startTime = System.currentTimeMillis();

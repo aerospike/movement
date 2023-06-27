@@ -39,7 +39,7 @@ public class ParallelStreamRuntimeTest extends AbstractGeneratorTest {
 
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(testCSVConfiguration);
         final Encoder<String> encoder = GraphCSVEncoder.open(testCSVConfiguration);
-        runtime.initialPhase();
+        runtime.initialPhase().get();
         final long stopTime = System.currentTimeMillis();
         runtime.close();
         final Path directory = Path.of(testCSVConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY));
@@ -163,7 +163,7 @@ public class ParallelStreamRuntimeTest extends AbstractGeneratorTest {
     public void testErrorHandling() {
         testCSVConfiguration.setProperty(ConfigurationBase.Keys.OUTPUT, ErrorThrowingOutput.class.getName());
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(testCSVConfiguration);
-        runtime.initialPhase();
+        runtime.initialPhase().get();
 
     }
 }
