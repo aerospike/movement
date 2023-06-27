@@ -1,5 +1,6 @@
 package com.aerospike.graph.move;
 
+import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.runtime.local.LocalParallelStreamRuntime;
 import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.util.IOUtil;
@@ -10,17 +11,15 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 
 public class CLI {
     public static void main(String[] args) {
-        System.out.println("Aerospike Graph Data Generator.\n");
+        System.out.println("Movement, by Aerospike.\n");
         final GeneratorCLI cli;
         try {
             cli = CommandLine.populateCommand(new GeneratorCLI(), args);
@@ -66,37 +65,54 @@ public class CLI {
         final long startTime = System.currentTimeMillis();
         final AtomicLong lastVertexCount = new AtomicLong(0);
         final AtomicLong lastEdgeCount = new AtomicLong(0);
+        List<Output> outputs = new LinkedList<>();
         final ForkJoinTask<Object> backgroundTicker = IOUtil.backgroundTicker(.3, () -> {
-            final List<Long> outputVertexMetrics = runtime.getOutputVertexMetrics();
-            final List<Long> outputEdgeMetrics = runtime.getOutputEdgeMetrics();
-            outputTicker(outputVertexMetrics, outputEdgeMetrics, startTime, lastVertexCount, lastEdgeCount);
+            outputTicker(outputs, startTime, lastVertexCount, lastEdgeCount);
         });
-        runtime.initialPhase();
-        runtime.completionPhase();
-        outputTicker(runtime.getOutputVertexMetrics(), runtime.getOutputEdgeMetrics(), startTime, lastVertexCount, lastEdgeCount);
+
+        LocalParallelStreamRuntime.RunningPhase initalPhase = runtime.initialPhase();
+        outputs.addAll(initalPhase.getOutputs());
+        initalPhase.get();
+
+
+        LocalParallelStreamRuntime.RunningPhase completionPhase = runtime.completionPhase();
+        outputs.addAll(completionPhase.getOutputs());
+        completionPhase.get();
+
         backgroundTicker.cancel(true);
+
+        outputTicker(outputs, startTime, lastVertexCount, lastEdgeCount);
         runtime.close();
         if (!config.containsKey("runtime.testMode") || !config.getBoolean("runtime.testMode"))
             System.exit(0);
     }
 
 
-    private static void outputTicker(final List<Long> outputVertexMetrics,
-                                     final List<Long> outputEdgeMetrics,
+    static List<Long> getOutputVertexMetrics(final List<Output> outputs) {
+        return outputs.stream().map(Output::getVertexMetric).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    static List<Long> getOutputEdgeMetrics(final List<Output> outputs) {
+        return outputs.stream().map(Output::getEdgeMetric).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    private static void outputTicker(final List<Output> outputs,
                                      final long startTime,
                                      final AtomicLong lastVertexCount,
                                      AtomicLong lastEdgeCount) {
+        List<Long> edgeMetrics = getOutputEdgeMetrics(outputs);
+        List<Long> vertexMetrics = getOutputVertexMetrics(outputs);
         final Logger logger = LoggerFactory.getLogger("outputTicker");
         try {
-            if (!(outputVertexMetrics.size() > 0 || outputEdgeMetrics.size() > 0)) {
+            if (!(vertexMetrics.size() > 0 || edgeMetrics.size() > 0)) {
                 logger.debug("no active outputs");
                 return;
             }
             long totalOutputVertices = 0;
             long totalOutputEdges = 0;
-            for (int i = 0; i < outputVertexMetrics.size(); i++) {
-                totalOutputVertices += outputVertexMetrics.get(i);
-                totalOutputEdges += outputEdgeMetrics.get(i);
+            for (int i = 0; i < vertexMetrics.size(); i++) {
+                totalOutputVertices += vertexMetrics.get(i);
+                totalOutputEdges += edgeMetrics.get(i);
             }
             final long priorOutputVerticies = lastVertexCount.getAndSet(totalOutputVertices);
             final long priorOutputEdges = lastEdgeCount.getAndSet(totalOutputEdges);
@@ -119,7 +135,7 @@ public class CLI {
                     new Date(System.currentTimeMillis()),
                     totalOutputVertices,
                     totalOutputEdges,
-                    outputVertexMetrics.size(),
+                    getOutputVertexMetrics(outputs).size(),
                     vertexTransferredPerSecond,
                     edgeTransferredPerSecond,
                     elementsPerSecond,

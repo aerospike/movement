@@ -65,16 +65,16 @@ public class CSVDecoderTest extends AbstractGeneratorTest {
         recursiveDelete(Path.of("/tmp/generate"));
         final LocalParallelStreamRuntime writeCsvTask = new LocalParallelStreamRuntime(getClassicGraphToCSVWriterConfiguration());
 
-        writeCsvTask.initialPhase();
+        writeCsvTask.initialPhase().get();
         writeCsvTask.close();
-        writeCsvTask.completionPhase();
+        writeCsvTask.completionPhase().get();
         writeCsvTask.close();
 
         final LocalParallelStreamRuntime loadCSVTask = new LocalParallelStreamRuntime(getCSVLoaderToGraphConfiguration());
 
-        loadCSVTask.initialPhase();
+        loadCSVTask.initialPhase().get();
         loadCSVTask.close();
-        loadCSVTask.completionPhase();
+        loadCSVTask.completionPhase().get();
         loadCSVTask.close();
 
         final Graph loadedGraph = SharedEmptyTinkerGraph.getInstance();

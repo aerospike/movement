@@ -15,6 +15,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -78,28 +79,28 @@ public class LocalParallelStreamRuntime implements Runtime {
 
     //Distributed runtime uses this to provide specific elements to load for this JVM
     @Override
-    public void initialPhase(final Iterator<List<Object>> idSupplier) {
-        processStream(Runtime.PHASE.ONE, idSupplier, customThreadPool, this, config);
+    public Map.Entry<ForkJoinTask, List<Output>> initialPhase(final Iterator<List<Object>> idSupplier) {
+        return processStream(PHASE.ONE, idSupplier, customThreadPool, this, config);
     }
 
     @Override
-    public void initialPhase() {
+    public RunningPhase initialPhase() {
         // Id iterator drives the process, it may be bounded to a specific purpose, return unordered or sequential ids, or be unbounded
         // If it is unbounded, it simply drives the stream and the emitter impl it is driving should end the process when finished.
         final Emitter emitter = RuntimeUtil.loadEmitter(config);
-        processStream(Runtime.PHASE.ONE, emitter.getDriverForPhase(PHASE.ONE), customThreadPool, this, config);
+        return RunningPhase.of(processStream(Runtime.PHASE.ONE, emitter.getDriverForPhase(PHASE.ONE), customThreadPool, this, config));
     }
 
 
     @Override
-    public void completionPhase(Iterator<List<Object>> idSupplier) {
-        processStream(Runtime.PHASE.TWO, idSupplier, customThreadPool, this, config);
+    public RunningPhase completionPhase(Iterator<List<Object>> idSupplier) {
+        return RunningPhase.of(processStream(Runtime.PHASE.TWO, idSupplier, customThreadPool, this, config));
     }
 
     @Override
-    public void completionPhase() {
+    public RunningPhase completionPhase() {
         Emitter e = RuntimeUtil.loadEmitter(config);
-        completionPhase(e.getDriverForPhase(PHASE.TWO));
+        return completionPhase(e.getDriverForPhase(PHASE.TWO));
     }
 
 
@@ -117,12 +118,11 @@ public class LocalParallelStreamRuntime implements Runtime {
 
     public List<Long> getOutputEdgeMetrics() {
         return List.copyOf(outputMap.values().stream().map(Output::getEdgeMetric).collect(Collectors.toList()));
-
     }
 
 
     @Override
-    public Optional<String> submitJob(Job job) {
+    public Optional<String> submitJob(final Job job) {
         throw ErrorUtil.unimplemented();
     }
 
@@ -152,8 +152,8 @@ public class LocalParallelStreamRuntime implements Runtime {
         }
     }
 
-    private Object submit(final ForkJoinPool pool, final Runnable task) throws ExecutionException, InterruptedException {
-        return pool.submit(task).get();
+    private ForkJoinTask<?> submit(final ForkJoinPool pool, final Runnable task) throws ExecutionException, InterruptedException {
+        return pool.submit(task);
     }
 
     private Map.Entry<Emitter, Output> createNewEmitterOutputPair(final int id) {
@@ -177,7 +177,7 @@ public class LocalParallelStreamRuntime implements Runtime {
         }).collect(Collectors.toList());
     }
 
-    private static void processEmitable(Emitable emitable, Output output) {
+    private static void processEmitable(final Emitable emitable, final Output output) {
         IteratorUtils.iterate(RuntimeUtil.walk(emitable.emit(output), output));
     }
 
@@ -187,33 +187,35 @@ public class LocalParallelStreamRuntime implements Runtime {
         });
     }
 
-    private static void processStream(final PHASE phase,
-                                      final Iterator<List<Object>> idSupplier,
-                                      final ForkJoinPool customThreadPool,
-                                      final LocalParallelStreamRuntime runtime,
-                                      final Configuration config) {
+    private static Map.Entry<ForkJoinTask, List<Output>> processStream(final PHASE phase,
+                                                                       final Iterator<List<Object>> idSupplier,
+                                                                       final ForkJoinPool customThreadPool,
+                                                                       final LocalParallelStreamRuntime runtime,
+                                                                       final Configuration config) {
 
 
         Output.init(phase.value(), config);
         Emitter.init(phase.value(), config);
         Encoder.init(phase.value(), config);
         Decoder.init(phase.value(), config);
-
+        final ForkJoinTask<?> task;
+        final List<Map.Entry<Stream<Emitable>, Output>> emitterConnections;
         try {
-            final List<Map.Entry<Stream<Emitable>, Output>> emitterConnections =
-                    runtime.createAndSetupEmitterToOutputConnections(idSupplier, phase);
+            emitterConnections = runtime.createAndSetupEmitterToOutputConnections(idSupplier, phase);
             final ParallelStreamProcessor processor = ParallelStreamProcessor.create(emitterConnections, config);
-            runtime.submit(customThreadPool, processor);
+            task = runtime.submit(customThreadPool, processor);
         } catch (Exception e) {
             runtime.errorHandler.handle(e);
+            throw new RuntimeException(e);
         }
+        return new AbstractMap.SimpleEntry<>(task, emitterConnections.stream().map(entry -> entry.getValue()).collect(Collectors.toList()));
     }
 
     public static class ParallelStreamProcessor implements Runnable {
         private final List<Map.Entry<Stream<Emitable>, Output>> initalizedEmitterOutputPairs;
         private final Configuration config;
 
-        private ParallelStreamProcessor(List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs, Configuration config) {
+        private ParallelStreamProcessor(final List<Map.Entry<Stream<Emitable>, Output>> initializedStreamOutputPairs, final Configuration config) {
             this.initalizedEmitterOutputPairs = initializedStreamOutputPairs;
             this.config = config;
 
@@ -238,6 +240,32 @@ public class LocalParallelStreamRuntime implements Runtime {
                     throw e;
                 }
             });
+        }
+    }
+
+    public static class RunningPhase {
+        private final ForkJoinTask task;
+        private final List<Output> outputs;
+
+        public RunningPhase(final Map.Entry<ForkJoinTask, List<Output>> entry) {
+            this.task = entry.getKey();
+            this.outputs = List.copyOf(entry.getValue());
+        }
+
+        public static RunningPhase of(Map.Entry<ForkJoinTask, List<Output>> entry) {
+            return new RunningPhase(entry);
+        }
+
+        public List<Output> getOutputs() {
+            return outputs;
+        }
+
+        public Object get() {
+            try {
+                return task.get();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

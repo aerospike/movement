@@ -33,13 +33,10 @@ public abstract class AbstractGeneratorTest {
         return "src/test/resources/basic_schema.yaml";
     }
 
-    public String testGeneratorPropertiesLocationRelativeToProject() {
-        return "release/conf/neustar_test.properties";
+    public String sampleConfigurationLocationRelativeToModule() {
+        return "conf/generate-csv-sample.properties";
     }
 
-    public String testGeneratorTraversalPropertiesLocationRelativeToProject() {
-        return "conf/generator-sample-traversal.properties";
-    }
     public String newGraphSchemaLocationRelativeToModule() {
         return "src/test/resources/new_schema.yaml";
     }

@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-echo will clear /tmp/generate
+export CLASSPATH='target/Movement-1.0.0-SNAPSHOT.jar:'
+
 rm -rf /tmp/generate
-echo running generate in /tmp/generate
-java -cp ./lib/graph-generator-1.0.0-SNAPSHOT.jar:\
-  com.aerospike.graph.generator.CLI \
-  -c conf/write-csv-100m.properties
+
+java com.aerospike.graph.move.CLI \
+  -c conf/generate-csv-sample.properties \
+  -o emitter.schemaFile=src/test/resources/new_schema.yaml \
+  -o output.directory=/tmp/generate \
+  -o emitter.rootVertexIdEnd=20 \
+  -o output.entriesPerFile=100

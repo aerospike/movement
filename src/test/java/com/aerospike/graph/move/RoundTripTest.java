@@ -22,8 +22,8 @@ public class RoundTripTest extends AbstractGeneratorTest {
         final Output output = RuntimeUtil.loadOutput(config);
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
 
-        runtime.initialPhase();
-        runtime.completionPhase();
+        runtime.initialPhase().get();
+        runtime.completionPhase().get();
         System.out.println(output);
         output.close();
     }

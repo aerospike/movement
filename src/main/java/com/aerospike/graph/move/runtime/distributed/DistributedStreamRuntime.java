@@ -1,5 +1,6 @@
 package com.aerospike.graph.move.runtime.distributed;
 
+import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.process.Job;
 import com.aerospike.graph.move.runtime.local.LocalParallelStreamRuntime;
 import com.aerospike.graph.move.runtime.Runtime;
@@ -16,10 +17,10 @@ import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 import org.apache.commons.configuration2.Configuration;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -212,8 +213,8 @@ public class DistributedStreamRuntime implements Runtime {
 
     private void workerStart(Handler<AsyncResult<?>> handler) {
         handler.handle(Future.succeededFuture());
-        initialPhase();
-        completionPhase();
+        initialPhase().get();
+        completionPhase().get();
     }
 
     private void startupProcedureAsCoordinator(Handler<AsyncResult<?>> handler) {
@@ -256,26 +257,30 @@ public class DistributedStreamRuntime implements Runtime {
 
 
     @Override
-    public void initialPhase() {
+    public LocalParallelStreamRuntime.RunningPhase initialPhase() {
         ((MovementIteratorUtils.IteratorWithFeeder) vertexIterator).start();
         subRuntime.initialPhase(vertexIterator);
+        return null;
     }
 
     @Override
-    public void initialPhase(Iterator<List<Object>> iterator) {
+    public Map.Entry<ForkJoinTask, List<Output>> initialPhase(Iterator<List<Object>> iterator) {
 
+        return null;
     }
 
 
     @Override
-    public void completionPhase() {
+    public LocalParallelStreamRuntime.RunningPhase completionPhase() {
         ((MovementIteratorUtils.IteratorWithFeeder) edgeIterator).start();
-        completionPhase(edgeIterator);
+        completionPhase(edgeIterator).get();
+        return null;
     }
 
     @Override
-    public void completionPhase(Iterator<List<Object>> iterator) {
-        subRuntime.completionPhase(iterator);
+    public LocalParallelStreamRuntime.RunningPhase completionPhase(Iterator<List<Object>> iterator) {
+        subRuntime.completionPhase(iterator).get();
+        return null;
     }
 
     @Override

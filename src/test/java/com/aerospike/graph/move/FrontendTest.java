@@ -1,5 +1,7 @@
 package com.aerospike.graph.move;
 
+import com.aerospike.graph.move.config.ConfigurationBase;
+import com.aerospike.graph.move.emitter.generator.Generator;
 import com.aerospike.graph.move.output.file.DirectoryOutput;
 import com.aerospike.graph.move.util.IOUtil;
 import com.aerospike.graph.move.util.RuntimeUtil;
@@ -9,6 +11,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.IntStream;
 
@@ -16,15 +19,19 @@ public class FrontendTest extends AbstractGeneratorTest {
     Configuration testConfiguration;
 
     @Before
-    public void setup() {
-        testConfiguration = RuntimeUtil.loadConfiguration(testGeneratorPropertiesLocationRelativeToProject());
+    public void setup() throws IOException {
+        testConfiguration = ConfigurationBase.getCSVSampleConfiguration(newGraphSchemaLocationRelativeToModule(), Files.createTempDirectory("test").toAbsolutePath().toString());
         IOUtil.recursiveDelete(Path.of(testConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY)));
     }
 
     @Test
-    @Ignore
-    public void invokeTestCSV() throws InterruptedException, IOException {
-        String[] args = {"-c", testGeneratorPropertiesLocationRelativeToProject()};
+    public void invokeTestCSV() throws IOException {
+        String[] args = {
+                "-c", sampleConfigurationLocationRelativeToModule(),
+                "-o", String.format("%s=%s", DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, testConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY)),
+                "-o", String.format("%s=%s", Generator.Config.Keys.ROOT_VERTEX_ID_END, 40000),
+                "-o", String.format("%s=%s", Generator.Config.Keys.SCHEMA_FILE, newGraphSchemaLocationRelativeToModule())
+        };
         final long startTime = System.currentTimeMillis();
         CLI.main(args);
         final long stopTime = System.currentTimeMillis();
@@ -39,7 +46,7 @@ public class FrontendTest extends AbstractGeneratorTest {
     @Test
     @Ignore
     public void invokeTestRemoteGraph() {
-        String[] args = {"-c", testGeneratorTraversalPropertiesLocationRelativeToProject()};
+        String[] args = {"-c", sampleConfigurationLocationRelativeToModule()};
         IntStream.range(0, 100).forEach(i -> {
             System.out.println("pass");
             final long startTime = System.currentTimeMillis();

@@ -4,10 +4,7 @@ import com.aerospike.graph.move.runtime.Runtime;
 import com.aerospike.graph.move.util.MovementIteratorUtils;
 import org.apache.commons.configuration2.Configuration;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -61,7 +58,7 @@ public interface Emitter {
                 }
                 return Optional.ofNullable(phaseTwoIterator).orElseThrow(() -> new RuntimeException("Phase two iterator is null"));
             }
-            throw new RuntimeException("Unknown phase: " + phase);
+            return Collections.emptyIterator();
         }
     }
 

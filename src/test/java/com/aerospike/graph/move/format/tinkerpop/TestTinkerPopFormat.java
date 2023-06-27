@@ -119,8 +119,8 @@ public class TestTinkerPopFormat extends AbstractGeneratorTest {
         final Graph fireflyGraph = (Graph) RuntimeUtil.openClassRef(FIREFLY_GRAPH_CLASS, config);
         fireflyGraph.traversal().V().drop().iterate();
 
-        runtime.initialPhase();
-        runtime.completionPhase();
+        runtime.initialPhase().get();
+        runtime.completionPhase().get();
 
 
         // The correct number of verticies have moved from the TinkerGraph to the CSV files
