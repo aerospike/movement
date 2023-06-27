@@ -4,7 +4,6 @@ import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.emitter.generator.Generator;
 import com.aerospike.graph.move.output.file.DirectoryOutput;
 import com.aerospike.graph.move.util.IOUtil;
-import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -15,22 +14,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.IntStream;
 
-public class FrontendTest extends AbstractGeneratorTest {
+import static com.aerospike.graph.move.util.IOUtil.recursiveDelete;
+
+public class FrontendTest extends AbstractMovementTest {
     Configuration testConfiguration;
 
     @Before
     public void setup() throws IOException {
         testConfiguration = ConfigurationBase.getCSVSampleConfiguration(newGraphSchemaLocationRelativeToModule(), Files.createTempDirectory("test").toAbsolutePath().toString());
-        IOUtil.recursiveDelete(Path.of(testConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY)));
+        recursiveDelete(Path.of(testConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY)));
     }
 
     @Test
     public void invokeTestCSV() throws IOException {
         String[] args = {
                 "-c", sampleConfigurationLocationRelativeToModule(),
-                "-o", "runtime.testMode=true",
+                "-o", "CLI.testMode=true",
                 "-o", String.format("%s=%s", DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, testConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY)),
-                "-o", String.format("%s=%s", Generator.Config.Keys.ROOT_VERTEX_ID_END, 1000),
+                "-o", String.format("%s=%s", Generator.Config.Keys.ROOT_VERTEX_ID_END, 400000),
                 "-o", String.format("%s=%s", Generator.Config.Keys.SCHEMA_FILE, newGraphSchemaLocationRelativeToModule())
         };
         final long startTime = System.currentTimeMillis();
@@ -43,6 +44,48 @@ public class FrontendTest extends AbstractGeneratorTest {
         System.out.println("Total size: " + writtenSize / 1024 / 1024 + " MB");
         System.out.println("MB/s: " + (writtenSize / totalTime) / 1000);
     }
+
+
+    @Test
+    public void invokeTestBatch() throws IOException {
+        String[] args = {
+                "-c", sampleConfigurationLocationRelativeToModule(),
+                "-o", "CLI.testMode=true",
+                "-o", "CLI.testMode=true",
+
+                "-o", String.format("%s=%s", DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, testConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY)),
+                "-o", String.format("%s=%s", Generator.Config.Keys.ROOT_VERTEX_ID_END, 400000),
+                "-o", String.format("%s=%s", Generator.Config.Keys.SCHEMA_FILE, newGraphSchemaLocationRelativeToModule())
+        };
+        final long startTime = System.currentTimeMillis();
+        CLI.main(args);
+        final long stopTime = System.currentTimeMillis();
+        final long totalTime = stopTime - startTime;
+        final Path directory = Path.of(testConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY));
+        final long writtenSize = IOUtil.calculateDirectorySize(directory.toAbsolutePath().toString());
+        System.out.println("Total time: " + totalTime / 1000 + "s");
+        System.out.println("Total size: " + writtenSize / 1024 / 1024 + " MB");
+        System.out.println("MB/s: " + (writtenSize / totalTime) / 1000);
+    }
+    @Test
+    public void invokeTestBatchTwo() throws IOException {
+        String[] args = {
+                "-c", sampleConfigurationLocationRelativeToModule(),
+                "-x"
+        };
+        final long startTime = System.currentTimeMillis();
+        CLI.main(args);
+        final long stopTime = System.currentTimeMillis();
+        final long totalTime = stopTime - startTime;
+        final Path directory = Path.of(testConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY));
+        final long writtenSize = IOUtil.calculateDirectorySize(directory.toAbsolutePath().toString());
+        System.out.println("Total time: " + totalTime / 1000 + "s");
+        System.out.println("Total size: " + writtenSize / 1024 / 1024 + " MB");
+        System.out.println("MB/s: " + (writtenSize / totalTime) / 1000);
+    }
+
+
+
 
     @Test
     @Ignore

@@ -1,11 +1,10 @@
 package com.aerospike.graph.move.format.tinkerpop;
 
-import com.aerospike.graph.move.AbstractGeneratorTest;
+import com.aerospike.graph.move.AbstractMovementTest;
 import com.aerospike.graph.move.common.tinkerpop.instrumentation.TinkerPopGraphProvider;
 import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.generator.GeneratedVertex;
 import com.aerospike.graph.move.emitter.generator.Generator;
-import com.aerospike.graph.move.emitter.generator.StitchProcess;
 import com.aerospike.graph.move.emitter.generator.VertexContext;
 import com.aerospike.graph.move.emitter.generator.schema.def.EdgeSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
@@ -44,7 +43,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class TestTinkerPopFormat extends AbstractGeneratorTest {
+public class TestTinkerPopFormat extends AbstractMovementTest {
 
     @Test
     public void testWriteVertex() {

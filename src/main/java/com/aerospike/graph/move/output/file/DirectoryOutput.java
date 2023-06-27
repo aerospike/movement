@@ -85,7 +85,6 @@ public class DirectoryOutput implements Output {
 
     public static DirectoryOutput open(Configuration config) {
         final Encoder encoder = (Encoder) encoderCache.computeIfAbsent(CONFIG.getOrDefault(config, Config.Keys.ENCODER), key -> (Encoder) RuntimeUtil.loadEncoder(config));
-        final Emitter emitter = (Emitter) RuntimeUtil.loadEmitter(config);
         final int entriesPerFile = Integer.valueOf(CONFIG.getOrDefault(config, Config.Keys.ENTRIES_PER_FILE));
         final String outputDirectory = CONFIG.getOrDefault(config, Config.Keys.OUTPUT_DIRECTORY);
         return new DirectoryOutput(Path.of(outputDirectory), entriesPerFile, encoder, config);

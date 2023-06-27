@@ -1,6 +1,9 @@
 package com.aerospike.graph.move;
 
+import com.aerospike.graph.move.emitter.generator.Generator;
 import com.aerospike.graph.move.output.Output;
+import com.aerospike.graph.move.output.file.DirectoryOutput;
+import com.aerospike.graph.move.process.BatchJob;
 import com.aerospike.graph.move.runtime.local.LocalParallelStreamRuntime;
 import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.util.IOUtil;
@@ -11,13 +14,19 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import static com.aerospike.graph.move.output.file.DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY;
+
 
 public class CLI {
+    public static final String TEST_MODE = "CLI.testMode";
+    private static final long ONE_MB_DATA = 2000000L / 1024;
+
     public static void main(String[] args) {
         System.out.println("Movement, by Aerospike.\n");
         final GeneratorCLI cli;
@@ -26,6 +35,18 @@ public class CLI {
         } catch (CommandLine.ParameterException pxe) {
             System.err.printf("Error parsing command line arguments: %s \n", pxe);
             CommandLine.usage(new GeneratorCLI(), System.out);
+            return;
+        }
+        if (cli.runBatchJob) {
+            runBatch(RuntimeUtil.loadConfiguration(cli.configPath));
+            return;
+        }
+        if (cli.batchConfigPaths != null && cli.batchConfigPaths.size() > 0) {
+            final List<Configuration> configs = cli.batchConfigPaths.stream()
+                    .map(RuntimeUtil::loadConfiguration)
+                    .collect(Collectors.toList());
+            final BatchJob batchJob = BatchJob.of(configs.toArray(new Configuration[0]));
+            batchJob.run();
             return;
         }
         if (cli.printExampleConfig) {
@@ -50,11 +71,14 @@ public class CLI {
     }
 
     private static class GeneratorCLI {
-        @Option(names = "-c", description = "Path to the configuration file.")
+        @Option(names = "-x", description = "custom batch job")
+        private boolean runBatchJob;
+        @Option(names = "-b", description = "Batch mode, provide several configurations")
+        private List<String> batchConfigPaths;
+        @Option(names = "-c", description = "Path to the configuration file")
         private String configPath;
         @Option(names = "-p", description = "Print example configuration")
         private boolean printExampleConfig;
-
         @Option(names = "-o", description = "Override configuration key")
         private Map<String, String> overrides;
 
@@ -73,20 +97,53 @@ public class CLI {
         LocalParallelStreamRuntime.RunningPhase initalPhase = runtime.initialPhase();
         outputs.addAll(initalPhase.getOutputs());
         initalPhase.get();
+        runtime.close();
 
 
         LocalParallelStreamRuntime.RunningPhase completionPhase = runtime.completionPhase();
         outputs.addAll(completionPhase.getOutputs());
         completionPhase.get();
+        runtime.close();
 
         backgroundTicker.cancel(true);
 
         outputTicker(outputs, startTime, lastVertexCount, lastEdgeCount);
-        runtime.close();
-        if (!config.containsKey("runtime.testMode") || !config.getBoolean("runtime.testMode"))
+        if (!config.containsKey(TEST_MODE) || !config.getBoolean(TEST_MODE))
             System.exit(0);
     }
 
+    public static void runBatch(Configuration config) {
+        final Path baseDir = Path.of(config.getString(OUTPUT_DIRECTORY));
+        config.setProperty(TEST_MODE, true);
+        BatchJob.of(config).withOverrides(new HashMap<>() {{
+            put("1gb", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("1gb")));
+            }});
+            put("2gb", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA * 2);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("2gb")));
+            }});
+            put("4gb", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA * 4);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("4gb")));
+
+            }});
+            put("8gb", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA * 8);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("8gb")));
+
+            }});
+            put("16gb", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA * 16);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("16gb")));
+            }});
+            put("32gb", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA * 32);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("32gb")));
+            }});
+        }}).run();
+    }
 
     static List<Long> getOutputVertexMetrics(final List<Output> outputs) {
         return outputs.stream().map(Output::getVertexMetric).filter(Objects::nonNull).collect(Collectors.toList());

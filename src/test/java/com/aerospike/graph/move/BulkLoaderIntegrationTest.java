@@ -32,7 +32,7 @@ import java.util.List;
 
 import static junit.framework.TestCase.assertEquals;
 
-public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
+public class BulkLoaderIntegrationTest extends AbstractMovementTest {
 
     private static final String BULK_LOADER_MAIN_CLASS = "com.aerospike.firefly.bulkloader.SparkBulkLoader";
     static private final String DEFAULT_CONFIG_REL = "src/test/resources/config-generator.properties";
@@ -123,8 +123,8 @@ public class BulkLoaderIntegrationTest extends AbstractGeneratorTest {
             put(Generator.Config.Keys.SCHEMA_FILE, testGraphSchemaLocationRelativeToModule());
 //            put(Generator.Config.Keys.ROOT_VERTEX_ID_END, 2000000L); // 1G
             put(Generator.Config.Keys.ROOT_VERTEX_ID_END, 200000L); // 100M
-            put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, "/tmp/generate");
             put(ConfigurationBase.Keys.EMITTER, Generator.class.getName());
+            put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, "/tmp/generate");
             put(DirectoryOutput.Config.Keys.ENCODER, GraphCSVEncoder.class.getName());
             put(ConfigurationBase.Keys.OUTPUT, DirectoryOutput.class.getName());
             put(DirectoryOutput.Config.Keys.ENTRIES_PER_FILE, 100000);

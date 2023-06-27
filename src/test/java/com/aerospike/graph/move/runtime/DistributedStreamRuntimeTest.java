@@ -1,6 +1,6 @@
 package com.aerospike.graph.move.runtime;
 
-import com.aerospike.graph.move.AbstractGeneratorTest;
+import com.aerospike.graph.move.AbstractMovementTest;
 import com.aerospike.graph.move.TestUtil;
 import com.aerospike.graph.move.runtime.distributed.DistributedStreamRuntime;
 import com.aerospike.graph.move.config.ConfigurationBase;
@@ -9,7 +9,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class DistributedStreamRuntimeTest extends AbstractGeneratorTest {
+public class DistributedStreamRuntimeTest extends AbstractMovementTest {
 
     Configuration testCSVConfiguration;
 

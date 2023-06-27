@@ -1,6 +1,6 @@
 package com.aerospike.graph.move.runtime;
 
-import com.aerospike.graph.move.AbstractGeneratorTest;
+import com.aerospike.graph.move.AbstractMovementTest;
 import com.aerospike.graph.move.TestUtil;
 import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.encoding.Encoder;
@@ -25,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class ParallelStreamRuntimeTest extends AbstractGeneratorTest {
+public class ParallelStreamRuntimeTest extends AbstractMovementTest {
     Configuration testCSVConfiguration;
 
     @Before

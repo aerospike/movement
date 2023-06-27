@@ -1,6 +1,6 @@
 package com.aerospike.graph.move.emitter.generator;
 
-import com.aerospike.graph.move.AbstractGeneratorTest;
+import com.aerospike.graph.move.AbstractMovementTest;
 import com.aerospike.graph.move.common.tinkerpop.SharedEmptyTinkerGraph;
 import com.aerospike.graph.move.common.tinkerpop.instrumentation.TinkerPopGraphProvider;
 import com.aerospike.graph.move.config.ConfigurationBase;
@@ -20,7 +20,7 @@ import java.util.HashMap;
 
 import static junit.framework.TestCase.*;
 
-public class GeneratorTest extends AbstractGeneratorTest {
+public class GeneratorTest extends AbstractMovementTest {
     @Test
     public void testGenerate() {
         Configuration config = new MapConfiguration(new HashMap<>() {{

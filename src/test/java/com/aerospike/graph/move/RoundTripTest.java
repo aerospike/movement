@@ -16,7 +16,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 
-public class RoundTripTest extends AbstractGeneratorTest {
+public class RoundTripTest extends AbstractMovementTest {
 
     private void mockRun(Configuration config) {
         final Output output = RuntimeUtil.loadOutput(config);

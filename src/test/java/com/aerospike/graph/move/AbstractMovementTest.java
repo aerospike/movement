@@ -12,7 +12,7 @@ import java.util.HashMap;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public abstract class AbstractGeneratorTest {
+public abstract class AbstractMovementTest {
 
     public GraphSchema schema;
 

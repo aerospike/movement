@@ -1,6 +1,6 @@
 package com.aerospike.graph.move.format.csv;
 
-import com.aerospike.graph.move.AbstractGeneratorTest;
+import com.aerospike.graph.move.AbstractMovementTest;
 import com.aerospike.graph.move.common.tinkerpop.ClassicGraph;
 import com.aerospike.graph.move.common.tinkerpop.SharedEmptyTinkerGraph;
 import com.aerospike.graph.move.common.tinkerpop.instrumentation.TinkerPopGraphProvider;
@@ -29,7 +29,7 @@ import java.util.Set;
 import static com.aerospike.graph.move.util.IOUtil.recursiveDelete;
 import static junit.framework.TestCase.assertEquals;
 
-public class CSVDecoderTest extends AbstractGeneratorTest {
+public class CSVDecoderTest extends AbstractMovementTest {
 
     private Configuration getClassicGraphToCSVWriterConfiguration() {
         return new MapConfiguration(new HashMap<>() {{

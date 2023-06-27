@@ -1,6 +1,6 @@
 package com.aerospike.graph.move.format.csv;
 
-import com.aerospike.graph.move.AbstractGeneratorTest;
+import com.aerospike.graph.move.AbstractMovementTest;
 import com.aerospike.graph.move.TestUtil;
 import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.emitter.NullEmitter;
@@ -28,7 +28,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class CSVEncoderTest extends AbstractGeneratorTest {
+public class CSVEncoderTest extends AbstractMovementTest {
     @Test
     public void testWriteCSVLine() throws IOException {
         final Path tempPath = TestUtil.createTempDirectory();

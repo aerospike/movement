@@ -1,8 +1,7 @@
 package com.aerospike.graph.move.output.file;
 
-import com.aerospike.graph.move.AbstractGeneratorTest;
+import com.aerospike.graph.move.AbstractMovementTest;
 import com.aerospike.graph.move.TestUtil;
-import com.aerospike.graph.move.emitter.NullEmitter;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -19,7 +18,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class FileOutputTest extends AbstractGeneratorTest {
+public class FileOutputTest extends AbstractMovementTest {
 
     @Test
     public void testWriteLine() throws IOException {
