@@ -5,4 +5,5 @@ rm -rf /tmp/generate
 
 java com.aerospike.graph.move.CLI \
   -c conf/generate-csv-sample.properties \
+  -o SCALE_UNIT=1024 \
   -x

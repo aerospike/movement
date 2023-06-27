@@ -25,7 +25,7 @@ import static com.aerospike.graph.move.output.file.DirectoryOutput.Config.Keys.O
 
 public class CLI {
     public static final String TEST_MODE = "CLI.testMode";
-    private static final long ONE_MB_DATA = 2000000L / 1024;
+    private static final long ONE_GB_DATA = 2000000L;
 
     public static void main(String[] args) {
         System.out.println("Movement, by Aerospike.\n");
@@ -114,33 +114,34 @@ public class CLI {
 
     public static void runBatch(Configuration config) {
         final Path baseDir = Path.of(config.getString(OUTPUT_DIRECTORY));
+        final int scaleUnit = config.containsKey("SCALE_UNIT") ? config.getInt("SCALE_UNIT") : 1;
         config.setProperty(TEST_MODE, true);
         BatchJob.of(config).withOverrides(new HashMap<>() {{
-            put("1gb", new HashMap<>() {{
-                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA);
-                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("1gb")));
+            put("1", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, scaleUnit * ONE_GB_DATA);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("1")));
             }});
-            put("2gb", new HashMap<>() {{
-                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA * 2);
-                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("2gb")));
+            put("2", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, scaleUnit * ONE_GB_DATA * 2);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("2")));
             }});
-            put("4gb", new HashMap<>() {{
-                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA * 4);
-                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("4gb")));
+            put("4", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, scaleUnit * ONE_GB_DATA * 4);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("4")));
 
             }});
-            put("8gb", new HashMap<>() {{
-                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA * 8);
-                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("8gb")));
+            put("8", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, scaleUnit * ONE_GB_DATA * 8);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("8")));
 
             }});
-            put("16gb", new HashMap<>() {{
-                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA * 16);
-                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("16gb")));
+            put("16", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, scaleUnit * ONE_GB_DATA * 16);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("16")));
             }});
-            put("32gb", new HashMap<>() {{
-                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, ONE_MB_DATA * 32);
-                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("32gb")));
+            put("32", new HashMap<>() {{
+                put(Generator.Config.Keys.ROOT_VERTEX_ID_END, scaleUnit * ONE_GB_DATA * 32);
+                put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, String.valueOf(baseDir.resolve("32")));
             }});
         }}).run();
     }
