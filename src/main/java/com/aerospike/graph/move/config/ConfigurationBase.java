@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public abstract class ConfigurationBase {
+
     public static class Keys {
         public static final String EMITTER = "emitter";
         public static final String DECODER = "decoder";

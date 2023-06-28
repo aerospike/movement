@@ -103,6 +103,8 @@ public class CLI {
         initialPhaseTicker.cancel(true);
         outputTicker(initalPhaseOutputs, startTime, lastVertexCount, lastEdgeCount);
         System.out.println("Phase one complete");
+        lastVertexCount.set(0);
+        lastEdgeCount.set(0);
 
 
         System.out.println("Phase two start");
@@ -148,7 +150,7 @@ public class CLI {
     private static void outputTicker(final List<Output> outputs,
                                      final long startTime,
                                      final AtomicLong lastVertexCount,
-                                     AtomicLong lastEdgeCount) {
+                                     final AtomicLong lastEdgeCount) {
         List<Long> edgeMetrics = getOutputEdgeMetrics(outputs);
         List<Long> vertexMetrics = getOutputVertexMetrics(outputs);
         final Logger logger = LoggerFactory.getLogger("outputTicker");

@@ -4,8 +4,8 @@ import com.aerospike.graph.move.CLI;
 import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.encoding.format.csv.GraphCSVEncoder;
 import com.aerospike.graph.move.output.file.DirectoryOutput;
+import com.aerospike.graph.move.util.ConfigurationUtil;
 import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
@@ -27,11 +27,13 @@ public class BatchJob {
             public static final String BATCH_TASK_SETTINGS = "batch.task.settings";
 
         }
-        public Map<String,String> taskSettings(final String taskName, final Configuration config) {
-            return IteratorUtils.set(IteratorUtils.concat(config.getKeys(),DEFAULTS.keySet().iterator())).stream()
+
+        public Map<String, String> taskSettings(final String taskName, final Configuration config) {
+            return IteratorUtils.set(IteratorUtils.concat(config.getKeys(), DEFAULTS.keySet().iterator())).stream()
                     .filter(key -> key.startsWith(Keys.BATCH_TASK_SETTINGS + "." + taskName + "."))
                     .collect(Collectors.toMap(key -> key, key -> config.getString(key)));
         }
+
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
             put(DirectoryOutput.Config.Keys.ENTRIES_PER_FILE, "1000");
             put(DirectoryOutput.Config.Keys.ENCODER, GraphCSVEncoder.class.getName());
@@ -41,6 +43,7 @@ public class BatchJob {
             put(DirectoryOutput.Config.Keys.BUFFER_SIZE_KB, "4096");
         }};
     }
+
     final List<Configuration> configs;
     final Map<String, Map<String, Object>> overrides = new HashMap<>();
 
@@ -48,7 +51,7 @@ public class BatchJob {
         this.configs = configs;
     }
 
-    public BatchJob withOverrides(Map<String,Map<String, Object>> overrides) {
+    public BatchJob withOverrides(Map<String, Map<String, Object>> overrides) {
         this.overrides.putAll(overrides);
         return this;
     }
@@ -57,15 +60,11 @@ public class BatchJob {
         return new BatchJob(Arrays.stream(configs).collect(Collectors.toList()));
     }
 
-
     public void run() {
         if (!overrides.isEmpty()) {
             final Configuration config = configs.get(0);
             for (Map<String, Object> override : overrides.values()) {
-                final Configuration overrideConfig = new MapConfiguration(IteratorUtils.stream(config.getKeys())
-                        .map(key -> Map.entry(key, override.containsKey(key) ? override.get(key) : config.getProperty(key)))
-                        .collect(Collectors.toMap(t -> t.getKey(), x -> x.getValue())));
-                CLI.run(overrideConfig);
+                CLI.run(ConfigurationUtil.configurationWithOverrides(config, override));
             }
         } else {
             for (Configuration config : configs) {

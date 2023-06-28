@@ -26,11 +26,12 @@ public class GeneratorTest extends AbstractMovementTest {
         Configuration config = new MapConfiguration(new HashMap<>() {{
             put(Generator.Config.Keys.ROOT_VERTEX_ID_END, 20L);
             put(ConfigurationBase.Keys.EMITTER, Generator.class.getName());
+            put(Generator.Config.Keys.SCHEMA_FILE, newGraphSchemaLocationRelativeToModule());
+
             put(ConfigurationBase.Keys.ENCODER, GraphEncoder.class.getName());
             put(GraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraph.class.getName());
             put(TinkerPopGraphProvider.Config.Keys.GRAPH_IMPL, SharedEmptyTinkerGraph.class.getName());
             put(ConfigurationBase.Keys.OUTPUT, GraphOutput.class.getName());
-            put(Generator.Config.Keys.SCHEMA_FILE, newGraphSchemaLocationRelativeToModule());
 
         }});
 
