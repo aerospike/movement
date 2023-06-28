@@ -15,10 +15,6 @@ import com.google.common.cache.CacheStats;
 import java.util.*;
 
 public class CachedGraph implements Graph {
-    private final Graph graph;
-    public static final TinkerPopGraphProvider.Config CONFIG = new TinkerPopGraphProvider.Config();
-    private final LRUVertexReadThruCache cache;
-
     public static class Config extends ConfigurationBase {
         @Override
         public Map<String, String> getDefaults() {
@@ -32,6 +28,17 @@ public class CachedGraph implements Graph {
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
         }};
     }
+    public static final TinkerPopGraphProvider.Config CONFIG = new TinkerPopGraphProvider.Config();
+
+
+
+    private final Graph graph;
+    private final LRUVertexReadThruCache cache;
+
+    public CachedGraph(Graph graph) {
+        this.graph = graph;
+        this.cache = new LRUVertexReadThruCache(graph, 10000);
+    }
 
     public static CachedGraph open(Configuration config) {
         return new CachedGraph((Graph)
@@ -39,10 +46,7 @@ public class CachedGraph implements Graph {
     }
 
 
-    public CachedGraph(Graph graph) {
-        this.graph = graph;
-        this.cache = new LRUVertexReadThruCache(graph, 10000);
-    }
+
 
     @Override
     public Vertex addVertex(Object... keyValues) {

@@ -9,7 +9,7 @@ import java.util.NoSuchElementException;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class StructureUtil {
+public class GeneratorUtil {
 
     public static EdgeSchema getSchemaFromEdgeName(final GraphSchema schema, final String edgeTypeName) {
         return schema.edgeTypes.stream()

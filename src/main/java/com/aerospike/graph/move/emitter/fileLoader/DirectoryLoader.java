@@ -19,7 +19,6 @@ import java.util.stream.Stream;
 
 public class DirectoryLoader extends Emitter.PhasedEmitter {
 
-    private final Decoder<String> decoder;
 
     public static class Config extends ConfigurationBase {
         @Override
@@ -36,18 +35,17 @@ public class DirectoryLoader extends Emitter.PhasedEmitter {
     }
 
     public static final DirectoryLoader.Config CONFIG = new DirectoryLoader.Config();
+    private final Configuration config;
 
 
     private final String vertexPath;
     private final String edgePath;
-    private final Configuration config;
 
 
     private DirectoryLoader(Configuration config) {
         this.config = config;
         this.vertexPath = CONFIG.getOrDefault(config, Config.Keys.VERTEX_FILE_PATH);
         this.edgePath = CONFIG.getOrDefault(config, Config.Keys.EDGE_FILE_PATH);
-        this.decoder = RuntimeUtil.loadDecoder(config);
     }
 
     public static DirectoryLoader open(Configuration config) {
@@ -94,14 +92,24 @@ public class DirectoryLoader extends Emitter.PhasedEmitter {
 
     }
 
-    private static String labelFromPath(final Path path) {
-        return path.getParent().getFileName().toString();
+    @Override
+    public List<Runtime.PHASE> phases() {
+        return List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO);
     }
-
 
     @Override
     public void close() {
 
+    }
+
+    private static String labelFromPath(final Path path) {
+        return path.getParent().getFileName().toString();
+    }
+
+    public List<String> getAllPropertyKeysForEdgeLabel(final String label) {
+        return readHeaderFromFileByType(edgePath, label).stream()
+                .filter(x -> !x.startsWith("~"))
+                .collect(Collectors.toList());
     }
 
     public List<String> getAllPropertyKeysForVertexLabel(final String label) {
@@ -129,14 +137,4 @@ public class DirectoryLoader extends Emitter.PhasedEmitter {
         }
     }
 
-    public List<String> getAllPropertyKeysForEdgeLabel(final String label) {
-        return readHeaderFromFileByType(edgePath, label).stream()
-                .filter(x -> !x.startsWith("~"))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<Runtime.PHASE> phases() {
-        return List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO);
-    }
 }

@@ -2,20 +2,13 @@ package com.aerospike.graph.move.emitter.tinkerpop;
 
 import com.aerospike.graph.move.common.tinkerpop.GraphProvider;
 import com.aerospike.graph.move.emitter.*;
-import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.runtime.Runtime;
-import com.aerospike.graph.move.structure.EmittedId;
-import com.aerospike.graph.move.structure.EmittedIdImpl;
 import com.aerospike.graph.move.config.ConfigurationBase;
-import com.aerospike.graph.move.util.ErrorUtil;
-import com.aerospike.graph.move.util.MovementIteratorUtils;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -24,11 +17,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 public class SourceGraph extends Emitter.PhasedEmitter {
-    public static final Config CONFIG = new Config();
-    private final Optional<Iterator<Object>> idSupplier;
-    private final String batchSize;
-    private final Configuration config;
-
     public static class Config extends ConfigurationBase {
         @Override
         public Map<String, String> getDefaults() {
@@ -46,12 +34,10 @@ public class SourceGraph extends Emitter.PhasedEmitter {
         }};
     }
 
-    public static SourceGraph open(Configuration config) {
-        final GraphProvider provider = (GraphProvider)
-                RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_PROVIDER), config);
-        return new SourceGraph(provider.getGraph(), config, Optional.of(provider), Optional.empty());
-    }
-
+    public static final Config CONFIG = new Config();
+    private final Optional<Iterator<Object>> idSupplier;
+    private final String batchSize;
+    private final Configuration config;
     private final Graph graph;
     private final Optional<GraphProvider> graphProvider;
 
@@ -66,11 +52,12 @@ public class SourceGraph extends Emitter.PhasedEmitter {
         this.idSupplier = idSupplier;
         this.batchSize = CONFIG.getOrDefault(config, Config.Keys.BATCH_SIZE);
     }
-
-
-    public Stream<Emitable> stream(Stream<Object> inputStream, Runtime.PHASE phase) {
-        return stream(inputStream.iterator(), phase);
+    public static SourceGraph open(Configuration config) {
+        final GraphProvider provider = (GraphProvider)
+                RuntimeUtil.openClassRef(CONFIG.getOrDefault(config, Config.Keys.GRAPH_PROVIDER), config);
+        return new SourceGraph(provider.getGraph(), config, Optional.of(provider), Optional.empty());
     }
+
 
     @Override
     public Stream<Emitable> stream(Iterator<Object> iterator, Runtime.PHASE phase) {
@@ -93,12 +80,13 @@ public class SourceGraph extends Emitter.PhasedEmitter {
                 });
     }
 
-
     @Override
     public Stream<Emitable> stream(Runtime.PHASE phase) {
         return stream(IteratorUtils.stream(getDriverForPhase(phase)).flatMap(it -> it.stream()), phase);
     }
-
+    public Stream<Emitable> stream(Stream<Object> inputStream, Runtime.PHASE phase) {
+        return stream(inputStream.iterator(), phase);
+    }
     @Override
     public Iterator<List<Object>> getDriverForPhase(Runtime.PHASE phase) {
         if (phase.equals(Runtime.PHASE.ONE)) {
@@ -107,6 +95,10 @@ public class SourceGraph extends Emitter.PhasedEmitter {
             return getOrCreateDriverIterator(phase, (x) -> IteratorUtils.map(graph.edges(), e -> e.id()));
         }
         throw new IllegalStateException("Unknown phase " + phase);
+    }
+    @Override
+    public List<Runtime.PHASE> phases() {
+        return List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO);
     }
 
     @Override
@@ -140,104 +132,4 @@ public class SourceGraph extends Emitter.PhasedEmitter {
                 .dedup()
                 .toList();
     }
-
-    @Override
-    public List<Runtime.PHASE> phases() {
-        return List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO);
-    }
-
-    public class TinkerPopVertex implements EmittedVertex {
-        private final Vertex vertex;
-
-        public TinkerPopVertex(final Vertex vertex) {
-            this.vertex = vertex;
-        }
-
-        @Override
-        public Stream<Emitable> emit(final Output writer) {
-            writer.vertexWriter(vertex.label()).writeVertex(this);
-            return Stream.empty();
-        }
-
-        @Override
-        public Stream<String> propertyNames() {
-            return IteratorUtils.stream(vertex.properties()).map(p -> p.key());
-        }
-
-        @Override
-        public Optional<Object> propertyValue(final String field) {
-            if (field.equals("~id"))
-                return Optional.of(vertex.id());
-            if (field.equals("~label"))
-                return Optional.of(vertex.label());
-            //@todo multi properties
-            if (!vertex.properties(field).hasNext() || !vertex.properties(field).next().isPresent()) {
-                return Optional.empty();
-            }
-            return Optional.of(vertex.properties(field).next().value());
-        }
-
-        @Override
-        public String label() {
-            return vertex.label();
-        }
-
-        @Override
-        public Stream<Emitable> stream() {
-            return Stream.empty();
-        }
-
-        @Override
-        public EmittedId id() {
-            return new EmittedIdImpl(Long.valueOf(vertex.id().toString()));
-        }
-    }
-
-    public class TinkerPopEdge implements EmittedEdge {
-        private final Edge edge;
-
-        public TinkerPopEdge(final Edge edge) {
-            this.edge = edge;
-        }
-
-        @Override
-        public Stream<Emitable> emit(final Output writer) {
-            writer.edgeWriter(edge.label()).writeEdge(this);
-            return Stream.empty();
-        }
-
-        @Override
-        public EmittedId fromId() {
-            return new EmittedIdImpl(Long.valueOf(edge.outVertex().id().toString()));
-        }
-
-        @Override
-        public EmittedId toId() {
-            return new EmittedIdImpl(Long.valueOf(edge.inVertex().id().toString()));
-        }
-
-        @Override
-        public Stream<String> propertyNames() {
-            return IteratorUtils.stream(edge.properties()).map(Property::key);
-        }
-
-        @Override
-        public Optional<Object> propertyValue(final String name) {
-            if (!edge.property(name).isPresent()) {
-                return Optional.empty();
-            }
-            return Optional.of(edge.property(name).value());
-        }
-
-        @Override
-        public String label() {
-            return edge.label();
-        }
-
-        @Override
-        public Stream<Emitable> stream() {
-            return Stream.empty();
-        }
-    }
-
 }

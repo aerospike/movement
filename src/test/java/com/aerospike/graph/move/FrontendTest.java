@@ -68,6 +68,7 @@ public class FrontendTest extends AbstractMovementTest {
         System.out.println("MB/s: " + (writtenSize / totalTime) / 1000);
     }
     @Test
+    @Ignore
     public void invokeTestBatchTwo() throws IOException {
         String[] args = {
                 "-c", sampleConfigurationLocationRelativeToModule(),

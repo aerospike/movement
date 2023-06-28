@@ -1,4 +1,4 @@
-package com.aerospike.graph.move.format.csv;
+package com.aerospike.graph.move.encoding.format.csv;
 
 import com.aerospike.graph.move.AbstractMovementTest;
 import com.aerospike.graph.move.common.tinkerpop.ClassicGraph;
@@ -7,8 +7,6 @@ import com.aerospike.graph.move.common.tinkerpop.instrumentation.TinkerPopGraphP
 import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.emitter.fileLoader.DirectoryLoader;
 import com.aerospike.graph.move.emitter.tinkerpop.SourceGraph;
-import com.aerospike.graph.move.encoding.format.csv.GraphCSVDecoder;
-import com.aerospike.graph.move.encoding.format.csv.GraphCSVEncoder;
 import com.aerospike.graph.move.encoding.format.tinkerpop.GraphEncoder;
 import com.aerospike.graph.move.output.file.DirectoryOutput;
 import com.aerospike.graph.move.output.tinkerpop.GraphOutput;
@@ -65,16 +63,16 @@ public class CSVDecoderTest extends AbstractMovementTest {
         recursiveDelete(Path.of("/tmp/generate"));
         final LocalParallelStreamRuntime writeCsvTask = new LocalParallelStreamRuntime(getClassicGraphToCSVWriterConfiguration());
 
-        writeCsvTask.initialPhase().get();
+        writeCsvTask.phaseOne().get();
         writeCsvTask.close();
-        writeCsvTask.completionPhase().get();
+        writeCsvTask.phaseTwo().get();
         writeCsvTask.close();
 
         final LocalParallelStreamRuntime loadCSVTask = new LocalParallelStreamRuntime(getCSVLoaderToGraphConfiguration());
 
-        loadCSVTask.initialPhase().get();
+        loadCSVTask.phaseOne().get();
         loadCSVTask.close();
-        loadCSVTask.completionPhase().get();
+        loadCSVTask.phaseTwo().get();
         loadCSVTask.close();
 
         final Graph loadedGraph = SharedEmptyTinkerGraph.getInstance();

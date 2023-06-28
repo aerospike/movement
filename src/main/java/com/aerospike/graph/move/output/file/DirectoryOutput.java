@@ -22,10 +22,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
 public class DirectoryOutput implements Output {
-    private static ConcurrentHashMap<String, Encoder> encoderCache = new ConcurrentHashMap<>();
-
-    private final Configuration config;
-    public static Config CONFIG = new Config();
 
     public static class Config extends ConfigurationBase {
         @Override
@@ -40,6 +36,8 @@ public class DirectoryOutput implements Output {
             public static final String VERTEX_OUTPUT_DIRECTORY = "output.vertexDirectory";
             public static final String EDGE_OUTPUT_DIRECTORY = "output.edgeDirectory";
             public static final String BUFFER_SIZE_KB = "output.bufferSizeKB";
+            public static final String WRITES_BEFORE_FLUSH = "output.writesBeforeFlush";
+
         }
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
@@ -49,30 +47,35 @@ public class DirectoryOutput implements Output {
             put(Keys.VERTEX_OUTPUT_DIRECTORY, "/tmp/generate/vertices");
             put(Keys.EDGE_OUTPUT_DIRECTORY, "/tmp/generate/edges");
             put(Keys.BUFFER_SIZE_KB, "4096");
+            put(Keys.WRITES_BEFORE_FLUSH, "1000");
         }};
     }
 
+    public static Config CONFIG = new Config();
+    private final Configuration config;
 
+
+    private static ConcurrentHashMap<String, Encoder> encoderCache = new ConcurrentHashMap<>();
+
+    private final Path root;
     private final Path vertexPath;
     private final Path edgePath;
     private final int entriesPerFile;
     private final Encoder<String> encoder;
     private final AtomicLong edgeMetric;
     private final AtomicLong vertexMetric;
-    private Path root;
+    private final int writesBeforeFlush;
+
     private final Map<String, SplitFileLineOutput> vertexOutputs = new ConcurrentHashMap<>();
     private final Map<String, SplitFileLineOutput> edgeOutputs = new ConcurrentHashMap<>();
 
-    private static Path resolveOrCreate(final Path root, final String name) {
-        Path path = root.resolve(name);
-        if (!path.toFile().exists()) {
-            if (!path.toFile().mkdirs())
-                throw new RuntimeException("Could not create directory " + path);
-        }
-        return path;
-    }
 
-    protected DirectoryOutput(final Path root, final int entriesPerFile, final Encoder<String> encoder, final Configuration config) {
+    protected DirectoryOutput(final Path root,
+                              final int entriesPerFile,
+                              final Encoder<String> encoder,
+                              final int writesBeforeFlush,
+                              final Configuration config) {
+        this.writesBeforeFlush = writesBeforeFlush;
         this.encoder = encoder;
         this.entriesPerFile = entriesPerFile;
         this.root = root;
@@ -87,11 +90,9 @@ public class DirectoryOutput implements Output {
         final Encoder encoder = (Encoder) encoderCache.computeIfAbsent(CONFIG.getOrDefault(config, Config.Keys.ENCODER), key -> (Encoder) RuntimeUtil.loadEncoder(config));
         final int entriesPerFile = Integer.valueOf(CONFIG.getOrDefault(config, Config.Keys.ENTRIES_PER_FILE));
         final String outputDirectory = CONFIG.getOrDefault(config, Config.Keys.OUTPUT_DIRECTORY);
-        return new DirectoryOutput(Path.of(outputDirectory), entriesPerFile, encoder, config);
+        final int writesBeforeFlush = Integer.valueOf(CONFIG.getOrDefault(config, Config.Keys.WRITES_BEFORE_FLUSH));
+        return new DirectoryOutput(Path.of(outputDirectory), entriesPerFile, encoder, writesBeforeFlush, config);
     }
-
-    private int WRITES_BEFORE_FLUSH = 10;
-
 
 
     @Override
@@ -100,7 +101,7 @@ public class DirectoryOutput implements Output {
             final Path path = edgePath.resolve(labelKey);
             return new SplitFileLineOutput(labelKey,
                     path,
-                    WRITES_BEFORE_FLUSH,
+                    writesBeforeFlush,
                     encoder,
                     entriesPerFile,
                     edgeMetric,
@@ -114,20 +115,12 @@ public class DirectoryOutput implements Output {
             final Path path = vertexPath.resolve(labelKey);
             return new SplitFileLineOutput(labelKey,
                     path,
-                    WRITES_BEFORE_FLUSH,
+                    writesBeforeFlush,
                     encoder,
                     entriesPerFile,
                     vertexMetric,
                     config);
         });
-    }
-
-    public Path getRootPath() {
-        return root;
-    }
-
-    public Long getVertexMetric() {
-        return vertexMetric.get();
     }
 
     @Override
@@ -148,6 +141,24 @@ public class DirectoryOutput implements Output {
     public Long getEdgeMetric() {
         return edgeMetric.get();
     }
+
+    public Path getRootPath() {
+        return root;
+    }
+
+    public Long getVertexMetric() {
+        return vertexMetric.get();
+    }
+
+    private static Path resolveOrCreate(final Path root, final String name) {
+        Path path = root.resolve(name);
+        if (!path.toFile().exists()) {
+            if (!path.toFile().mkdirs())
+                throw new RuntimeException("Could not create directory " + path);
+        }
+        return path;
+    }
+
 
     @Override
     public String toString() {

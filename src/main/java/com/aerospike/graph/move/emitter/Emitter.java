@@ -25,6 +25,12 @@ public interface Emitter {
 
     Iterator<List<Object>> getDriverForPhase(Runtime.PHASE phase);
 
+    List<String> getAllPropertyKeysForVertexLabel(final String label);
+
+    List<String> getAllPropertyKeysForEdgeLabel(final String label);
+
+    List<Runtime.PHASE> phases();
+
     void close();
 
 
@@ -36,7 +42,7 @@ public interface Emitter {
         protected static Iterator<List<Object>> phaseTwoIterator;
 
         private Iterator<List<Object>> wrapChunkedSyncronized(Iterator<Object> it) {
-            return MovementIteratorUtils.SyncronizedBatchIterator.create(it, 1000);
+            return MovementIteratorUtils.Threadsafe.SyncronizedBatchIterator.create(it, 1000);
         }
 
         protected Iterator<List<Object>> getOrCreateDriverIterator(Runtime.PHASE phase, Function<Void, Iterator<?>> createDriver) {
@@ -61,11 +67,5 @@ public interface Emitter {
             return Collections.emptyIterator();
         }
     }
-
-    List<String> getAllPropertyKeysForVertexLabel(final String label);
-
-    List<String> getAllPropertyKeysForEdgeLabel(final String label);
-
-    List<Runtime.PHASE> phases();
 
 }

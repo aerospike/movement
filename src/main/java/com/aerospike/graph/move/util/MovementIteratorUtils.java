@@ -82,31 +82,6 @@ public class MovementIteratorUtils {
         }
     }
 
-    public static class RangeIterator implements Iterator<Long> {
-        static final AtomicLong current = new AtomicLong(0);
-        private final long chunkSize;
-
-        public RangeIterator(long chunkSize) {
-            this.chunkSize = chunkSize;
-        }
-
-        public void setBase(long base) {
-            if (current.get() == 0)
-                current.set(base);
-            else throw new IllegalStateException("Base already set");
-        }
-
-        @Override
-        public boolean hasNext() {
-            return current.get() < Long.MAX_VALUE - chunkSize;
-        }
-
-        @Override
-        public Long next() {
-            return current.addAndGet(chunkSize);
-        }
-    }
-
     public static class BatchIterator implements Iterator<List<Object>> {
         private final Iterator<Object> iterator;
         private final int batchSize;
@@ -135,33 +110,6 @@ public class MovementIteratorUtils {
 
         }
     }
-
-    public static class SyncronizedBatchIterator implements Iterator<List<Object>> {
-        public static Iterator<List<Object>> create(Iterator<Object> iterator, int batchSize) {
-            return new SyncronizedBatchIterator(new BatchIterator(iterator, batchSize));
-        }
-
-        private final BatchIterator iterator;
-
-        private SyncronizedBatchIterator(final BatchIterator iterator) {
-            this.iterator = iterator;
-        }
-
-        @Override
-        public boolean hasNext() {
-            synchronized (this) {
-                return iterator.hasNext();
-            }
-        }
-
-        @Override
-        public List<Object> next() {
-            synchronized (this) {
-                return iterator.next();
-            }
-        }
-    }
-
 
     public static class IteratorWithFeeder implements Iterator<List<Object>> {
         private final DistributedStreamRuntime distributedStreamRuntime;
@@ -214,4 +162,33 @@ public class MovementIteratorUtils {
             }
         }
     }
+
+    public static class Threadsafe{
+        public static class SyncronizedBatchIterator implements Iterator<List<Object>> {
+            public static Iterator<List<Object>> create(Iterator<Object> iterator, int batchSize) {
+                return new SyncronizedBatchIterator(new BatchIterator(iterator, batchSize));
+            }
+
+            private final BatchIterator iterator;
+
+            private SyncronizedBatchIterator(final BatchIterator iterator) {
+                this.iterator = iterator;
+            }
+
+            @Override
+            public boolean hasNext() {
+                synchronized (this) {
+                    return iterator.hasNext();
+                }
+            }
+
+            @Override
+            public List<Object> next() {
+                synchronized (this) {
+                    return iterator.next();
+                }
+            }
+        }
+    }
+
 }

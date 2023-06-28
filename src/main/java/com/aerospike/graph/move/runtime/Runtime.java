@@ -3,6 +3,7 @@ package com.aerospike.graph.move.runtime;
 import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.process.Job;
 import com.aerospike.graph.move.runtime.local.LocalParallelStreamRuntime;
+import com.aerospike.graph.move.runtime.local.RunningPhase;
 import org.apache.commons.configuration2.Configuration;
 
 import java.util.Iterator;
@@ -21,11 +22,11 @@ public interface Runtime {
     }
 
 
-    LocalParallelStreamRuntime.RunningPhase initialPhase();
-    Map.Entry<ForkJoinTask, List<Output>> initialPhase(Iterator<List<Object>> iterator);
+    RunningPhase phaseOne();
+    Map.Entry<ForkJoinTask, List<Output>> phaseOne(Iterator<List<Object>> iterator);
 
-    LocalParallelStreamRuntime.RunningPhase completionPhase();
-    LocalParallelStreamRuntime.RunningPhase completionPhase(Iterator<List<Object>> iterator);
+    RunningPhase phaseTwo();
+    RunningPhase phaseTwo(Iterator<List<Object>> iterator);
 
 
     Optional<String> submitJob(Job job);

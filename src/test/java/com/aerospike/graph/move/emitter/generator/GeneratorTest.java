@@ -39,7 +39,7 @@ public class GeneratorTest extends AbstractMovementTest {
 
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
 
-        runtime.initialPhase().get();
+        runtime.phaseOne().get();
         runtime.close();
 
 

@@ -9,7 +9,7 @@ import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
 import com.aerospike.graph.move.structure.EmittedId;
 import com.aerospike.graph.move.structure.EmittedIdImpl;
-import com.aerospike.graph.move.util.StructureUtil;
+import com.aerospike.graph.move.util.GeneratorUtil;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -60,16 +60,6 @@ public class EdgeGenerator {
     public class GeneratedEdge extends EdgeGenerator implements EmittedEdge {
         private final Long inV;
         private final Long outV;
-
-
-        public GeneratedEdge(final EdgeSchema edgeSchema,
-                             final GraphSchema graphSchema,
-                             final Long inV,
-                             final Long outV) {
-            super(edgeSchema, graphSchema);
-            this.inV = inV;
-            this.outV = outV;
-        }
 
         public GeneratedEdge(final EdgeGenerator edgeGenerator, final Long inV, final Long outV) {
             super(edgeGenerator.edgeSchema, edgeGenerator.graphSchema);
@@ -126,7 +116,7 @@ public class EdgeGenerator {
 
 
         public Stream<Emitable> next() {
-            final VertexSchema vertexSchema = StructureUtil.getSchemaFromVertexName(graphSchema, edgeSchema.inVertex);
+            final VertexSchema vertexSchema = GeneratorUtil.getSchemaFromVertexName(graphSchema, edgeSchema.inVertex);
             if (!idSupplier.hasNext())
                 return Stream.empty();
             Long nextId;
@@ -142,7 +132,7 @@ public class EdgeGenerator {
                     Optional.of(ge));
             if (!idSupplier.hasNext())
                 return Stream.empty();
-            nextVertex = new GeneratedVertex(false, idSupplier.next(), context);
+            nextVertex = new GeneratedVertex(idSupplier.next(), context);
             return Stream.of(nextVertex);
         }
 

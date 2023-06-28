@@ -7,9 +7,6 @@ import com.aerospike.graph.move.encoding.Encoder;
 import com.aerospike.graph.move.encoding.format.tinkerpop.TraversalEncoder;
 import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.output.OutputWriter;
-import com.aerospike.graph.move.structure.EmittedIdImpl;
-import com.aerospike.graph.move.util.CapturedError;
-import com.aerospike.graph.move.util.ErrorUtil;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
@@ -17,9 +14,7 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
 
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
@@ -91,15 +86,6 @@ public class TraversalOutput implements Output, OutputWriter {
     public void dropStorage() {
         GraphTraversalSource g = ((TraversalEncoder) encoder).getTraversal();
         g.V().drop().iterate();
-        int count = 0;
-        while (g.V().hasNext()) {
-            count++;
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     @Override

@@ -1,10 +1,11 @@
-package com.aerospike.graph.move.format.csv;
+package com.aerospike.graph.move.encoding.format.csv;
 
 import com.aerospike.graph.move.AbstractMovementTest;
 import com.aerospike.graph.move.TestUtil;
 import com.aerospike.graph.move.config.ConfigurationBase;
 import com.aerospike.graph.move.emitter.NullEmitter;
 import com.aerospike.graph.move.emitter.generator.GeneratedVertex;
+import com.aerospike.graph.move.emitter.generator.Generator;
 import com.aerospike.graph.move.emitter.generator.VertexContext;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
@@ -34,15 +35,14 @@ public class CSVEncoderTest extends AbstractMovementTest {
         final Path tempPath = TestUtil.createTempDirectory();
         final Encoder<String> encoder = GraphCSVEncoder.open(new MapConfiguration(new HashMap<>() {{
             put(GraphCSVEncoder.Config.Keys.SCHEMA_FILE, testGraphSchemaLocationRelativeToModule());
-            put(ConfigurationBase.Keys.EMITTER, NullEmitter.class.getName());
+            put(ConfigurationBase.Keys.EMITTER, Generator.class.getName());
         }}));
         Configuration config = RuntimeUtil.loadConfiguration(testGraphSchemaLocationRelativeToModule());
-        final String metadata = encoder.encodeVertexMetadata(testVertexSchema().label);
         final SplitFileLineOutput fo = new SplitFileLineOutput("test", tempPath, 1024, encoder, 20, config);
         final GraphSchema graphSchema = testGraphSchema();
         final VertexSchema vertexSchema = testVertexSchema();
         final VertexContext vertexContext = new VertexContext(graphSchema, vertexSchema, IteratorUtils.of(1L));
-        GeneratedVertex vertex = new GeneratedVertex(1, vertexContext);
+        GeneratedVertex vertex = new GeneratedVertex(1L, vertexContext);
         fo.writeVertex(vertex);
         final Path currentPath = Path.of(fo.getCurrentFile());
         fo.close();

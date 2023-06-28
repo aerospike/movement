@@ -7,13 +7,29 @@ import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 
 public class CSVLine {
+    enum CSVField {
+        EMPTY
+    }
     private final List<Object> line;
     private final List<String> header;
+
 
     public CSVLine(String line, String headerLine) {
         final List<String> header = parseHeader(headerLine);
         this.line = parseLine(header, line);
         this.header = header;
+    }
+
+    public Object getEntry(String key) {
+        try {
+            return line.get(header.indexOf(key));
+        } catch (IndexOutOfBoundsException e) {
+            throw new RuntimeException("Key not found: " + key);
+        }
+    }
+
+    public List<String> propertyNames() {
+        return header.stream().filter(k -> !k.startsWith("~")).collect(Collectors.toList());
     }
 
     private static List<String> parseHeader(final String header) {
@@ -23,10 +39,6 @@ public class CSVLine {
             keys.add(st.nextToken());
         }
         return keys;
-    }
-
-    enum CSVField {
-        EMPTY
     }
 
     private List<Object> parseLine(List<String> header, String line) {
@@ -47,15 +59,5 @@ public class CSVLine {
         return results;
     }
 
-    public Object getEntry(String key) {
-        try {
-            return line.get(header.indexOf(key));
-        } catch (IndexOutOfBoundsException e) {
-            throw new RuntimeException("Key not found: " + key);
-        }
-    }
 
-    public List<String> propertyNames() {
-        return header.stream().filter(k -> !k.startsWith("~")).collect(Collectors.toList());
-    }
 }

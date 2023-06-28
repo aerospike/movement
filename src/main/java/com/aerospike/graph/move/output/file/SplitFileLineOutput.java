@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * it should return False if no more lines are available in the file
  */
 public class SplitFileLineOutput implements OutputWriter {
+    private static final AtomicLong fileIncr = new AtomicLong(0);
     private final int writesBeforeFlush;
     private final Encoder encoder;
     private final long maxLines;
@@ -30,12 +31,11 @@ public class SplitFileLineOutput implements OutputWriter {
     private final AtomicLong metric;
     private final Configuration config;
     boolean closed = false;
-    FileWriter fileWriter;
-    BufferedWriter bufferedWriter;
-    int writeCountSinceLastFlush = 0;
+    private FileWriter fileWriter;
+    private BufferedWriter bufferedWriter;
+    private int writeCountSinceLastFlush = 0;
     private String outputFile = null;
     private AtomicLong linesWritten = new AtomicLong(0);
-    private static AtomicLong fileIncr = new AtomicLong(0);
 
     /**
      * 8m buffer
@@ -70,6 +70,40 @@ public class SplitFileLineOutput implements OutputWriter {
         this(label, basePath, writesBeforeFlush, encoder, maxLines, new AtomicLong(0), config);
     }
 
+       @Override
+    public void writeEdge(final Emitable edge) {
+        writeEdgeLine((EmittedEdge) edge);
+    }
+
+    @Override
+    public void writeVertex(final Emitable vertex) {
+        writeVertexLine((EmittedVertex) vertex);
+    }
+
+
+    @Override
+    public void init() {
+    }
+
+    @Override
+    public void close() {
+        flush();
+        closed = true;
+    }
+
+    @Override
+    public void flush() {
+        try {
+            if (!closed) {
+                bufferedWriter.flush();
+                writeCountSinceLastFlush = 0;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
     public AtomicLong getMetric() {
         return metric;
     }
@@ -101,7 +135,6 @@ public class SplitFileLineOutput implements OutputWriter {
         metric.addAndGet(1);
     }
 
-    // Just for testing.
     public String getCurrentFile() {
         return outputFile;
     }
@@ -140,38 +173,6 @@ public class SplitFileLineOutput implements OutputWriter {
         }
     }
 
-    @Override
-    public void writeEdge(final Emitable edge) {
-        writeEdgeLine((EmittedEdge) edge);
-    }
-
-    @Override
-    public void writeVertex(final Emitable vertex) {
-        writeVertexLine((EmittedVertex) vertex);
-    }
-
-
-    @Override
-    public void init() {
-    }
-
-    @Override
-    public void close() {
-        flush();
-        closed = true;
-    }
-
-    @Override
-    public void flush() {
-        try {
-            if (!closed) {
-                bufferedWriter.flush();
-                writeCountSinceLastFlush = 0;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     @Override
     public String toString() {

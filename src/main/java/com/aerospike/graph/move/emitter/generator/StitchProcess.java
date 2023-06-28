@@ -11,9 +11,8 @@ import com.aerospike.graph.move.output.OutputWriter;
 import com.aerospike.graph.move.runtime.Runtime;
 import com.aerospike.graph.move.structure.EmittedIdImpl;
 import com.aerospike.graph.move.util.ErrorUtil;
-import com.aerospike.graph.move.util.MovementIteratorUtils;
 import com.aerospike.graph.move.util.RuntimeUtil;
-import com.aerospike.graph.move.util.StructureUtil;
+import com.aerospike.graph.move.util.GeneratorUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
@@ -22,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
 
-import static com.aerospike.graph.move.util.StructureUtil.coinFlip;
+import static com.aerospike.graph.move.util.GeneratorUtil.coinFlip;
 
 
 /**
@@ -84,7 +83,7 @@ public class StitchProcess implements Emitter {
 
     private Optional<EmittedEdge> encounter(EmittedVertex a, EmittedVertex b) {
         if (coinFlip(getLikelyhoodToJoin(a.label(), b.label()))) {
-            final EdgeSchema stitchSchema = StructureUtil.getStitchSchema(graphSchema, a.label(), b.label());
+            final EdgeSchema stitchSchema = GeneratorUtil.getStitchSchema(graphSchema, a.label(), b.label());
             final EdgeGenerator generator = new EdgeGenerator(stitchSchema, graphSchema);
             return Optional.of(generator.emit((OutputWriter) output, (Long) a.id().getId(), (Long) b.id().getId()));
         }

@@ -24,7 +24,7 @@ public class DistributedStreamRuntimeTest extends AbstractMovementTest {
     public void createDistributedStreamRuntime() throws Exception {
         final DistributedStreamRuntime runtime = DistributedStreamRuntime.open(testCSVConfiguration);
         runtime.start().get();
-        runtime.initialPhase().get();
+        runtime.phaseOne().get();
         runtime.close();
     }
 

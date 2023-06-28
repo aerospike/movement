@@ -7,7 +7,6 @@ import com.aerospike.graph.move.emitter.generator.schema.SchemaParser;
 import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
 import com.aerospike.graph.move.runtime.Runtime;
-import com.aerospike.graph.move.util.ErrorUtil;
 import com.aerospike.graph.move.util.MovementIteratorUtils;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -49,20 +48,20 @@ public class Generator extends Emitter.PhasedEmitter {
     public static final Config CONFIG = new Config();
     private final Configuration config;
 
-    //Static variables second.
+    //Static variables
     //...
 
-    //Final class variables third
+    //Final class variables
 
     private final Long rootVertexIdStart;
     private final Long rootVertexIdEnd;
     private final VertexSchema rootVertexSchema;
     private final GraphSchema graphSchema;
 
-    //Mutable variables fourth.
+    //Mutable variables
     private Iterator<Object> idSupplier;
 
-    //Constructor fifth.
+    //Constructor
     private Generator(final Configuration config) {
         this.config = config;
         this.rootVertexSchema = getRootVertexSchema(config);
@@ -72,10 +71,13 @@ public class Generator extends Emitter.PhasedEmitter {
         this.idSupplier = MovementIteratorUtils.PrimitiveIteratorWrap.wrap(LongStream.range(rootVertexIdEnd + 1, Long.MAX_VALUE));
     }
 
-    //Open, create or getInstance methods sixth.
+    //Open, create or getInstance methods
     public static Generator open(final Configuration config) {
         return new Generator(config);
     }
+
+    //Public static methods.
+
 
     //Implementation seventh.
     @Override
@@ -88,7 +90,7 @@ public class Generator extends Emitter.PhasedEmitter {
         return IteratorUtils.stream(iterator)
                 .flatMap(rootVertexId -> {
                     if (phase == Runtime.PHASE.ONE)
-                        return Stream.of(new GeneratedVertex(true, (Long) rootVertexId, new VertexContext(graphSchema, rootVertexSchema, MovementIteratorUtils.wrapToLong(idSupplier))));
+                        return Stream.of(new GeneratedVertex((Long) rootVertexId, new VertexContext(graphSchema, rootVertexSchema, MovementIteratorUtils.wrapToLong(idSupplier))));
                     return Stream.empty();
                 });
     }
@@ -103,6 +105,10 @@ public class Generator extends Emitter.PhasedEmitter {
                     (x) -> StitchProcess.idIterator(config));
         }
         throw new IllegalStateException("Unknown phase " + phase);
+    }
+    @Override
+    public List<Runtime.PHASE> phases() {
+        return List.of(Runtime.PHASE.ONE);
     }
 
     //Public methods eighth.
@@ -125,10 +131,7 @@ public class Generator extends Emitter.PhasedEmitter {
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public List<Runtime.PHASE> phases() {
-        return List.of(Runtime.PHASE.ONE);
-    }
+
 
     public static GraphSchema getGraphSchema(final Configuration config) {
         final String schemaFileLocation = CONFIG.getOrDefault(config, Config.Keys.SCHEMA_FILE);
@@ -141,10 +144,14 @@ public class Generator extends Emitter.PhasedEmitter {
                 .filter(v -> v.label.equals(schema.entrypointVertexType))
                 .findFirst().orElseThrow(() -> new RuntimeException("Could not find root vertex type"));
     }
-    //Private methods ninth.
+    //Private static methods.
+
+    //Public methods
+
+    //Private methods
     //...
 
-    //Inner classes tenth.
+    //Inner classes
     //...
 
     //toString eleventh.

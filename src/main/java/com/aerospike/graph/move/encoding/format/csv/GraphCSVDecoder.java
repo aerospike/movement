@@ -1,27 +1,14 @@
 package com.aerospike.graph.move.encoding.format.csv;
 
 import com.aerospike.graph.move.config.ConfigurationBase;
-import com.aerospike.graph.move.emitter.EmittedEdge;
 import com.aerospike.graph.move.emitter.EmittedElement;
-import com.aerospike.graph.move.emitter.EmittedVertex;
-import com.aerospike.graph.move.emitter.Emitter;
 import com.aerospike.graph.move.emitter.generator.Generator;
-import com.aerospike.graph.move.emitter.generator.schema.SchemaParser;
-import com.aerospike.graph.move.emitter.generator.schema.def.EdgeSchema;
-import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
-import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
 import com.aerospike.graph.move.encoding.Decoder;
-import com.aerospike.graph.move.encoding.Encoder;
 import com.aerospike.graph.move.runtime.Runtime;
-import com.aerospike.graph.move.util.EncoderUtil;
 import com.aerospike.graph.move.util.ErrorUtil;
-import com.aerospike.graph.move.util.RuntimeUtil;
-import com.aerospike.graph.move.util.StructureUtil;
 import org.apache.commons.configuration2.Configuration;
 
-import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 /**
@@ -37,11 +24,9 @@ public class GraphCSVDecoder implements Decoder<String> {
         }
 
         public static class Keys {
-            public static final String SCHEMA_FILE = Generator.Config.Keys.SCHEMA_FILE;
         }
 
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
-
         }};
     }
 
@@ -58,26 +43,6 @@ public class GraphCSVDecoder implements Decoder<String> {
     public static GraphCSVDecoder open(final Configuration config) {
         return new GraphCSVDecoder(config);
     }
-
-
-    public List<String> getVertexHeaderFields(final String label) {
-        List<String> fields = new ArrayList<>();
-        fields.add("~id");
-        fields.add("~label");
-        ((Emitter) RuntimeUtil.lookup(Emitter.class)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
-        return fields;
-    }
-
-
-    public List<String> getEdgeHeaderFields(final String label) {
-        List<String> fields = new ArrayList<>();
-        fields.add("~label");
-        fields.add("~from");
-        fields.add("~to");
-        ((Emitter) RuntimeUtil.lookup(Emitter.class)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
-        return fields;
-    }
-
 
     @Override
     public EmittedElement decodeElement(String encodedElement, String headerLine, Runtime.PHASE phase) {

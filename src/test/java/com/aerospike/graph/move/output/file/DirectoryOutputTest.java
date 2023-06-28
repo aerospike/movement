@@ -23,7 +23,7 @@ public class DirectoryOutputTest extends AbstractMovementTest {
     @Test
     public void testFileSplitting() throws IOException {
         final TestUtil.TestToStringEncoder encoder = new TestUtil.TestToStringEncoder();
-        final DirectoryOutput dirOut = new DirectoryOutput(TestUtil.createTempDirectory(), 2, encoder, emptyConfiguration());
+        final DirectoryOutput dirOut = new DirectoryOutput(TestUtil.createTempDirectory(), 2, encoder, 10,emptyConfiguration());
         final Path root = dirOut.getRootPath();
         final List<Long> ids = List.of(1L, 2L);
         final VertexContext vertexContext = new VertexContext(testGraphSchema(), testVertexSchema(), ids.iterator());

@@ -59,8 +59,8 @@ public class BulkLoaderIntegrationTest extends AbstractMovementTest {
         }});
         final Output output = RuntimeUtil.loadOutput(config);
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
-        runtime.initialPhase().get();
-        runtime.completionPhase().get();
+        runtime.phaseOne().get();
+        runtime.phaseTwo().get();
 
         System.out.println(output);
         output.close();
@@ -89,8 +89,8 @@ public class BulkLoaderIntegrationTest extends AbstractMovementTest {
         }});
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
 
-        runtime.initialPhase().get();
-        runtime.completionPhase().get();
+        runtime.phaseOne().get();
+        runtime.phaseTwo().get();
 
         final List<Output> outputs = List.copyOf(runtime.getOutputMap().values());
         outputs.forEach(Output::close);
@@ -134,8 +134,8 @@ public class BulkLoaderIntegrationTest extends AbstractMovementTest {
         final Emitter emitter = RuntimeUtil.loadEmitter(config);
 //        final LocalSequentialStreamRuntime runtime = new LocalSequentialStreamRuntime(config, stitchMemory, Optional.of(output), Optional.of(emitter));
         IOUtil.recursiveDelete(Path.of("/tmp/generate"));
-        runtime.initialPhase().get();
-        runtime.completionPhase().get();
+        runtime.phaseOne().get();
+        runtime.phaseTwo().get();
         System.out.println(output);
         output.close();
         Configuration fireflyConfig = RuntimeUtil.loadConfiguration(DEFAULT_CONFIG_REL);

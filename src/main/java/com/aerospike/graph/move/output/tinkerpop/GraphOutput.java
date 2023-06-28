@@ -6,15 +6,10 @@ import com.aerospike.graph.move.emitter.EmittedVertex;
 import com.aerospike.graph.move.encoding.format.tinkerpop.GraphEncoder;
 import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.output.OutputWriter;
-import com.aerospike.graph.move.structure.EmittedIdImpl;
-import com.aerospike.graph.move.util.CapturedError;
-import com.aerospike.graph.move.util.ErrorUtil;
 import com.aerospike.graph.move.util.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
 
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)

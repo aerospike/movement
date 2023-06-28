@@ -22,8 +22,8 @@ public class RoundTripTest extends AbstractMovementTest {
         final Output output = RuntimeUtil.loadOutput(config);
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(config);
 
-        runtime.initialPhase().get();
-        runtime.completionPhase().get();
+        runtime.phaseOne().get();
+        runtime.phaseTwo().get();
         System.out.println(output);
         output.close();
     }

@@ -111,14 +111,22 @@ public class RuntimeUtil {
         logger.debug("Loading decoder");
         return (Decoder<String>) openClassRef(config.getString(ConfigurationBase.Keys.DECODER), config);
     }
-
-    public static Object lookup(Class targetClass) {
+    private static Object nextOrLoad(final Iterator<?> iterator, Callable<Object> loader){
+        if(iterator.hasNext())
+            return iterator.next();
+        try {
+            return loader.call();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public static Object lookup(final Class targetClass, final Configuration config) {
         if (Output.class.isAssignableFrom(targetClass))
-            return outputs.iterator().next();
+            return nextOrLoad(outputs.iterator(), () -> loadOutput(config));
         if (Emitter.class.isAssignableFrom(targetClass))
-            return emitters.iterator().next();
+            return nextOrLoad(emitters.iterator(), () -> loadEmitter(config));
         if (Encoder.class.isAssignableFrom(targetClass))
-            return encoders.iterator().next();
+            return nextOrLoad(encoders.iterator(), () -> loadEncoder(config));
         else
             throw new RuntimeException("Cannot find class: " + targetClass.getName());
     }

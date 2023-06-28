@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
 public class GraphEncoder implements Encoder<Element> {
-    public static final Config CONFIG = new Config();
 
     public static class Config extends ConfigurationBase {
         @Override
@@ -40,6 +39,7 @@ public class GraphEncoder implements Encoder<Element> {
         }};
     }
 
+    public static final Config CONFIG = new Config();
 
     private final Graph graph;
 
@@ -130,9 +130,6 @@ public class GraphEncoder implements Encoder<Element> {
         return "";
     }
 
-    public Graph getGraph() {
-        return graph;
-    }
 
     @Override
     public void close() {
@@ -142,4 +139,9 @@ public class GraphEncoder implements Encoder<Element> {
             throw new RuntimeException(e);
         }
     }
+
+    public Graph getGraph() {
+        return graph;
+    }
+
 }

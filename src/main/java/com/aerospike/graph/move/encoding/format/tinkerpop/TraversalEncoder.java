@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
 public class TraversalEncoder implements Encoder<Element> {
-    public static final Config CONFIG = new Config();
 
     public static class Config extends ConfigurationBase {
         @Override
@@ -36,19 +35,18 @@ public class TraversalEncoder implements Encoder<Element> {
             public static final String PORT = "encoder.port";
             public static final String REMOTE_TRAVERSAL_SOURCE_NAME = "encoder.remoteTraversalSourceName";
         }
-
         public static final Map<String, String> DEFAULTS = new HashMap<>() {{
             put(Keys.REMOTE_TRAVERSAL_SOURCE_NAME, "g");
             put(Keys.CLEAR, "true");
         }};
-
     }
+    public static final Config CONFIG = new Config();
 
 
     private final GraphTraversalSource g;
 
 
-    private TraversalEncoder(GraphTraversalSource g) {
+    protected TraversalEncoder(GraphTraversalSource g) {
         this.g = g;
     }
 
@@ -149,7 +147,6 @@ public class TraversalEncoder implements Encoder<Element> {
     public Element encodeEdgeMetadata(final String label) {
         throw ErrorUtil.unimplemented();
     }
-
 
     @Override
     public String getExtension() {

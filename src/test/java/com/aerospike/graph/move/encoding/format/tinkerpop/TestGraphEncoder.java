@@ -1,4 +1,4 @@
-package com.aerospike.graph.move.format.tinkerpop;
+package com.aerospike.graph.move.encoding.format.tinkerpop;
 
 import com.aerospike.graph.move.AbstractMovementTest;
 import com.aerospike.graph.move.common.tinkerpop.instrumentation.TinkerPopGraphProvider;
@@ -11,7 +11,6 @@ import com.aerospike.graph.move.emitter.generator.schema.def.GraphSchema;
 import com.aerospike.graph.move.emitter.generator.schema.def.OutEdgeSpec;
 import com.aerospike.graph.move.emitter.generator.schema.def.VertexSchema;
 import com.aerospike.graph.move.encoding.Encoder;
-import com.aerospike.graph.move.encoding.format.tinkerpop.GraphEncoder;
 import com.aerospike.graph.move.output.Output;
 import com.aerospike.graph.move.output.OutputWriter;
 import com.aerospike.graph.move.output.file.DirectoryOutput;
@@ -43,7 +42,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class TestTinkerPopFormat extends AbstractMovementTest {
+public class TestGraphEncoder extends AbstractMovementTest {
 
     @Test
     public void testWriteVertex() {
@@ -53,7 +52,7 @@ public class TestTinkerPopFormat extends AbstractMovementTest {
         final GraphSchema graphSchema = testGraphSchema();
         final VertexSchema vertexSchema = testVertexSchema();
         final VertexContext vertexContext = new VertexContext(graphSchema, vertexSchema, IteratorUtils.of(1L));
-        GeneratedVertex vertex = new GeneratedVertex(1, vertexContext);
+        GeneratedVertex vertex = new GeneratedVertex(1L, vertexContext);
         ((OutputWriter) graphOutput).writeVertex(vertex);
         assertTrue(graph.traversal().V().hasLabel(vertexSchema.label).hasNext());
         final Vertex testV = graph.traversal().V().hasLabel(vertexSchema.label).next();
@@ -70,7 +69,7 @@ public class TestTinkerPopFormat extends AbstractMovementTest {
         final VertexSchema rootVertexSchema = testVertexSchema();
         final Iterator<Long> idSupplier = LongStream.range(0, 100).iterator();
         final VertexContext vertexContext = new VertexContext(graphSchema, rootVertexSchema, idSupplier);
-        final Emitable rootVertex = new GeneratedVertex(true, idSupplier.next(), vertexContext);
+        final Emitable rootVertex = new GeneratedVertex(idSupplier.next(), vertexContext);
         rootVertex.emit(graphOutput);
         final Iterator<Emitable> paths = rootVertex.stream().iterator();
         assertTrue(paths.hasNext());
@@ -118,8 +117,8 @@ public class TestTinkerPopFormat extends AbstractMovementTest {
         final Graph fireflyGraph = (Graph) RuntimeUtil.openClassRef(FIREFLY_GRAPH_CLASS, config);
         fireflyGraph.traversal().V().drop().iterate();
 
-        runtime.initialPhase().get();
-        runtime.completionPhase().get();
+        runtime.phaseOne().get();
+        runtime.phaseTwo().get();
 
 
         // The correct number of verticies have moved from the TinkerGraph to the CSV files

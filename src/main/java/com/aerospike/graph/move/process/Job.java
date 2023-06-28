@@ -20,9 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class Job {
     private final String id;
     private final Configuration config;
-
     final AtomicBoolean isRunning = new AtomicBoolean(false);
-
 
     private static final Map<String, Job> jobs = new ConcurrentHashMap<>();
 

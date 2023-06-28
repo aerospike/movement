@@ -5,6 +5,7 @@ import com.aerospike.graph.move.process.Job;
 import com.aerospike.graph.move.runtime.local.LocalParallelStreamRuntime;
 import com.aerospike.graph.move.runtime.Runtime;
 import com.aerospike.graph.move.config.ConfigurationBase;
+import com.aerospike.graph.move.runtime.local.RunningPhase;
 import com.aerospike.graph.move.util.MovementIteratorUtils;
 import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.JoinConfig;
@@ -213,8 +214,8 @@ public class DistributedStreamRuntime implements Runtime {
 
     private void workerStart(Handler<AsyncResult<?>> handler) {
         handler.handle(Future.succeededFuture());
-        initialPhase().get();
-        completionPhase().get();
+        phaseOne().get();
+        phaseTwo().get();
     }
 
     private void startupProcedureAsCoordinator(Handler<AsyncResult<?>> handler) {
@@ -257,29 +258,29 @@ public class DistributedStreamRuntime implements Runtime {
 
 
     @Override
-    public LocalParallelStreamRuntime.RunningPhase initialPhase() {
+    public RunningPhase phaseOne() {
         ((MovementIteratorUtils.IteratorWithFeeder) vertexIterator).start();
-        subRuntime.initialPhase(vertexIterator);
+        subRuntime.phaseOne(vertexIterator);
         return null;
     }
 
     @Override
-    public Map.Entry<ForkJoinTask, List<Output>> initialPhase(Iterator<List<Object>> iterator) {
+    public Map.Entry<ForkJoinTask, List<Output>> phaseOne(Iterator<List<Object>> iterator) {
 
         return null;
     }
 
 
     @Override
-    public LocalParallelStreamRuntime.RunningPhase completionPhase() {
+    public RunningPhase phaseTwo() {
         ((MovementIteratorUtils.IteratorWithFeeder) edgeIterator).start();
-        completionPhase(edgeIterator).get();
+        phaseTwo(edgeIterator).get();
         return null;
     }
 
     @Override
-    public LocalParallelStreamRuntime.RunningPhase completionPhase(Iterator<List<Object>> iterator) {
-        subRuntime.completionPhase(iterator).get();
+    public RunningPhase phaseTwo(Iterator<List<Object>> iterator) {
+        subRuntime.phaseTwo(iterator).get();
         return null;
     }
 

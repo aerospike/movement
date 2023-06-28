@@ -14,8 +14,6 @@ import java.util.Map;
 public class DefaultErrorHandler {
 
 
-    public static Config CONFIG = new Config();
-    private final Configuration config;
 
     public static class Config extends ConfigurationBase {
         @Override
@@ -31,6 +29,9 @@ public class DefaultErrorHandler {
             put(Keys.LOG_OUTPUT_DIR, "/tmp/");
         }};
     }
+    public static Config CONFIG = new Config();
+    private final Configuration config;
+
 
     private final FileOutputStream fileWriteStream;
 

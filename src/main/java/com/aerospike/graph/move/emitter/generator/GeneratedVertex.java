@@ -4,11 +4,10 @@ import com.aerospike.graph.move.emitter.Emitable;
 import com.aerospike.graph.move.emitter.EmittedVertex;
 import com.aerospike.graph.move.emitter.generator.schema.def.OutEdgeSpec;
 import com.aerospike.graph.move.output.Output;
-import com.aerospike.graph.move.output.OutputWriter;
 import com.aerospike.graph.move.emitter.generator.schema.def.EdgeSchema;
 import com.aerospike.graph.move.structure.EmittedId;
 import com.aerospike.graph.move.structure.EmittedIdImpl;
-import com.aerospike.graph.move.util.StructureUtil;
+import com.aerospike.graph.move.util.GeneratorUtil;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.Iterator;
@@ -32,25 +31,19 @@ import java.util.stream.Stream;
  */
 
 public class GeneratedVertex implements Emitable, EmittedVertex {
-    private final boolean root;
     public final VertexContext context;
-    private AtomicBoolean emitted = new AtomicBoolean(false);
-    public final long id;
+    public final Long id;
 
-    public GeneratedVertex(final boolean root,
-                           final long id,
+    private AtomicBoolean emitted = new AtomicBoolean(false);
+
+    public GeneratedVertex(final Long id,
                            final VertexContext vertexContext) {
-        this.root = root;
         this.id = id;
         this.context = vertexContext;
     }
 
     public EmittedId id() {
         return new EmittedIdImpl(this.id);
-    }
-
-    public GeneratedVertex(final long id, final VertexContext vertexContext) {
-        this(false, id, vertexContext);
     }
 
     /*
@@ -77,7 +70,7 @@ public class GeneratedVertex implements Emitable, EmittedVertex {
 
     @Override
     public String label() {
-        return getFieldFromVertex(this, "~label");
+        return getFieldFromVertex(this, "~label").toString();
     }
 
     @Override
@@ -95,7 +88,7 @@ public class GeneratedVertex implements Emitable, EmittedVertex {
                         final Double likelihood;
                         final Integer chancesToCreate;
                         try {
-                            edgeSchema = StructureUtil.getSchemaFromEdgeName(context.graphSchema, outEdgeSpec.name);
+                            edgeSchema = GeneratorUtil.getSchemaFromEdgeName(context.graphSchema, outEdgeSpec.name);
                             likelihood = outEdgeSpec.likelihood;
                             chancesToCreate = outEdgeSpec.chancesToCreate;
                         } catch (NullPointerException e) {
@@ -135,17 +128,18 @@ public class GeneratedVertex implements Emitable, EmittedVertex {
         }
     }
 
-    //@todo should return Object
-    private static String getFieldFromVertex(final GeneratedVertex vertex, final String field) {
+    private static Object getFieldFromVertex(final GeneratedVertex vertex, final String field) {
         if (field.equals("~id"))
             return String.valueOf(vertex.id);
         if (field.equals("~label"))
             return vertex.context.vertexSchema.label;
         else
             return vertex.context.vertexSchema.properties.stream()
-                    .filter(p -> p.name.equals(field))
+                    .filter(p ->
+                            p.name.equals(field))
                     .map(p ->
                             ValueGenerator.getGenerator(p.valueGenerator).generate(p.valueGenerator.args))
-                    .findFirst().orElseThrow(() -> new NoSuchElementException("could not find generator")).toString();
+                    .findFirst().orElseThrow(() ->
+                            new NoSuchElementException("could not find generator")).toString();
     }
 }

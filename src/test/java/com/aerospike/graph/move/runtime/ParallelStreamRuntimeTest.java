@@ -39,7 +39,7 @@ public class ParallelStreamRuntimeTest extends AbstractMovementTest {
 
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(testCSVConfiguration);
         final Encoder<String> encoder = GraphCSVEncoder.open(testCSVConfiguration);
-        runtime.initialPhase().get();
+        runtime.phaseOne().get();
         final long stopTime = System.currentTimeMillis();
         runtime.close();
         final Path directory = Path.of(testCSVConfiguration.getString(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY));
@@ -84,7 +84,7 @@ public class ParallelStreamRuntimeTest extends AbstractMovementTest {
         private final Configuration config;
 
         public ErrorThrowingOutput(Path root, int entriesPerFile, Encoder<String> encoder, Configuration config) {
-            super(root, entriesPerFile, encoder, config);
+            super(root, entriesPerFile, encoder, 10, config);
             this.config = config;
         }
 
@@ -113,7 +113,6 @@ public class ParallelStreamRuntimeTest extends AbstractMovementTest {
             final String outputDirectory = CONFIG.getOrDefault(config, DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY);
             return new ErrorThrowingOutput(Path.of(outputDirectory), entriesPerFile, encoder, config);
         }
-
 
 
         @Override
@@ -163,7 +162,7 @@ public class ParallelStreamRuntimeTest extends AbstractMovementTest {
     public void testErrorHandling() {
         testCSVConfiguration.setProperty(ConfigurationBase.Keys.OUTPUT, ErrorThrowingOutput.class.getName());
         final LocalParallelStreamRuntime runtime = new LocalParallelStreamRuntime(testCSVConfiguration);
-        runtime.initialPhase().get();
+        runtime.phaseOne().get();
 
     }
 }
