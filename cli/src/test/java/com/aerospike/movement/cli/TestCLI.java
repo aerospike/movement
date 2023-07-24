@@ -1,0 +1,121 @@
+package com.aerospike.movement.cli;
+
+import com.aerospike.movement.config.core.ConfigurationBase;
+import com.aerospike.movement.plugin.cli.CLIPlugin;
+import com.aerospike.movement.process.core.Task;
+import com.aerospike.movement.runtime.core.Runtime;
+import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
+import com.aerospike.movement.util.core.ConfigurationUtil;
+import com.aerospike.movement.util.core.iterator.OneShotSupplier;
+import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
+import com.aerospike.movement.test.core.AbstractMovementTest;
+import com.aerospike.movement.test.mock.MockUtil;
+import com.aerospike.movement.test.mock.encoder.MockEncoder;
+import com.aerospike.movement.test.mock.output.MockOutput;
+import com.aerospike.movement.test.mock.task.MockTask;
+import com.aerospike.movement.util.core.RuntimeUtil;
+import com.aerospike.movement.util.core.iterator.IteratorUtils;
+import junit.framework.TestCase;
+import org.junit.Test;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+
+import static com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime.Config.Keys.BATCH_SIZE;
+import static com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime.Config.Keys.THREADS;
+import static com.aerospike.movement.test.mock.MockUtil.getHitCounter;
+import static com.aerospike.movement.util.core.RuntimeUtil.getAvailableProcessors;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+/**
+ * Unit test for simple App.
+ */
+public class TestCLI extends AbstractMovementTest {
+    @Test
+    public void testHelp() throws Exception {
+        String[] args = {CLI.MovementCLI.Args.HELP_LONG};
+        assertTrue(CLI.parseAndLoadPlugin(args).isEmpty());
+    }
+
+    @Test
+    public void testListTasks() throws Exception {
+        RuntimeUtil.loadClass(MockTask.class.getName());
+        final Map<String, Class<? extends Task>> tasks = RuntimeUtil.getTasks();
+        assertTrue(tasks.containsKey(MockTask.class.getSimpleName()));
+
+        String[] args = {CLI.MovementCLI.Args.LIST_TASKS};
+        final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);
+        assertTrue(x.isPresent());
+        final List<Object> y = IteratorUtils.list(x.get().call());
+        final List<String> z = RuntimeUtil.findAvailableSubclasses(Task.class)
+                .stream().map(Class::getName).collect(Collectors.toList());
+        assertEquals(2, z.size());
+        assertEquals(z.size(), y.size());
+        CLI.main(args);
+    }
+
+    @Test
+    public void testListComponents() throws Exception {
+        RuntimeUtil.loadClass(MockTask.class.getName());
+        final Map<String, Class<? extends Task>> tasks = RuntimeUtil.getTasks();
+        assertTrue(tasks.containsKey(MockTask.class.getSimpleName()));
+
+        final String[] args = {CLI.MovementCLI.Args.LIST_COMPONENTS};
+        final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);
+        assertTrue(x.isPresent());
+        final List<Object> y = IteratorUtils.list(x.get().call());
+        for (Object s : y) {
+            System.out.println(s);
+        }
+        assertTrue(y.size() > 3);
+        CLI.main(args);
+    }
+
+    private String override(final String key, final String value) {
+        return String.format("%s=%s", key, value);
+    }
+
+    private final Integer TEST_SIZE = 10_000;
+
+    @Test
+    public void testRunTask() throws Exception {
+        RuntimeUtil.loadClass(MockTask.class.getName());
+        final Path tmpConfig = Files.createTempFile("movement", "test").toAbsolutePath();
+        final String configString = ConfigurationUtil.configurationToPropertiesFormat(getMockConfiguration(new HashMap<>()));
+        Files.write(tmpConfig, configString.getBytes());
+
+
+        final String[] args = {
+                CLI.MovementCLI.Args.TASK, MockTask.class.getSimpleName(),
+                CLI.MovementCLI.Args.CONFIG_SHORT, tmpConfig.toString(),
+                CLI.MovementCLI.Args.SET_SHORT, override(THREADS, "1"),
+                CLI.MovementCLI.Args.SET_SHORT, override(BATCH_SIZE, String.valueOf(TEST_SIZE / getAvailableProcessors() / 8)),
+                CLI.MovementCLI.Args.SET_SHORT, override(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName()),
+                CLI.MovementCLI.Args.SET_SHORT, override(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName()),
+        };
+        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
+        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
+
+        MockUtil.setDefaultMockCallbacks();
+
+
+        final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);
+        assertTrue(x.isPresent());
+        final Iterator<Object> iterator = x.get().call();
+        while (iterator.hasNext()) {
+            final Object it = iterator.next();
+            if (!iterator.hasNext()) {
+                System.out.println(it);
+            }
+        }
+
+        final int NUMBER_OF_PHASES = 1;
+        TestCase.assertEquals(TEST_SIZE * NUMBER_OF_PHASES, getHitCounter(MockEncoder.class, MockEncoder.Methods.ENCODE));
+        TestCase.assertEquals(TEST_SIZE * NUMBER_OF_PHASES, getHitCounter(MockOutput.class, MockOutput.Methods.WRITE_TO_OUTPUT));
+    }
+
+}

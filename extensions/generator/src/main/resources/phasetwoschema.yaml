@@ -1,0 +1,124 @@
+entrypointVertexType: Individual
+
+
+vertexTypes:
+  - name: Individual
+    outEdges:
+      - name: LivedAt
+        likelihood: 1.0
+        chancesToCreate: 1
+        chancesToJoin: 0
+      - name: Purchased
+        likelihood: 1.0
+        chancesToCreate: 1
+        chancesToJoin: 0
+      - name: UsedDevice
+        likelihood: 1.0
+        chancesToCreate: 1
+        chancesToJoin: 0
+      - name: Viewed
+        likelihood: 1.0
+        chancesToCreate: 1
+        chancesToJoin: 0
+    properties:
+      - name: ssn
+        likelihood: 1.0
+        valueGenerator:
+          impl: FormattedRandomSSN
+          args: {}
+      - name: phone
+        likelihood: 1.0
+        valueGenerator:
+          impl: FormattedRandomUSPhone
+          args: {}
+
+  - name: Device
+    outEdges:
+      - name: AssociatedWithCookie
+        likelihood: 1.0
+        chancesToCreate: 1
+        chancesToJoin: 0
+    properties:
+      - name: id
+        likelihood: 1.0
+        valueGenerator:
+          impl: RandomString
+          args:
+            length: 1
+      - name: type
+        likelihood: 1.0
+        valueGenerator:
+          impl: ChoiceFromList
+          args:
+            choices: ["iphone", "mac", "pc", "android", "unknown"]
+
+
+  - name: Household
+    outEdges: []
+    properties:
+      - name: name
+        likelihood: 1.0
+        valueGenerator:
+          impl: RandomString
+          args:
+            length: 10
+
+  - name: Product
+    outEdges: [ ]
+    properties:
+      - name: catagory
+        likelihood: 1.0
+        valueGenerator:
+          impl: ChoiceFromList
+          args:
+            choices: ["food", "auto", "household", "luxury", "other"]
+
+  - name: Cookie
+    outEdges: [ ]
+    properties:
+      - name: cookieId
+        likelihood: 1.0
+        valueGenerator:
+          impl: RandomDigitSequence
+          args:
+            digits: 12
+
+edgeTypes:
+  - name: UsedDevice
+    inVertex: Individual
+    outVertex: Device
+    properties:
+      - name: date
+        likelihood: 1.0
+        valueGenerator:
+          impl: FormattedDateTime
+          args: {}
+  - name: Purchased
+    inVertex: Product
+    outVertex: Individual
+    properties:
+      - name: date
+        likelihood: 1.0
+        valueGenerator:
+          impl: FormattedDateTime
+          args: {}
+
+  - name: Viewed
+    inVertex: Product
+    outVertex: Individual
+    properties:
+      - name: date
+        likelihood: 1.0
+        valueGenerator:
+          impl: FormattedDateTime
+          args: {}
+
+  - name: AssociatedWithCookie
+    inVertex: Cookie
+    outVertex: Device
+    properties: []
+
+  - name: LivedAt
+    inVertex: Household
+    outVertex: Individual
+    properties: []
