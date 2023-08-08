@@ -34,7 +34,7 @@ public class ConfigurationUtil {
             catalogProps.load(new FileInputStream(file));
             return new MapConfiguration(catalogProps);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw RuntimeUtil.getErrorHandler(ConfigurationUtil.class).handleError(new RuntimeException(e));
         }
     }
 
@@ -95,7 +95,7 @@ public class ConfigurationUtil {
         try {
             return fromURL(new URL(url));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw RuntimeUtil.getErrorHandler(ConfigurationUtil.class).handleError(new RuntimeException(e));
         }
     }
 
@@ -105,7 +105,7 @@ public class ConfigurationUtil {
             tempFile = Files.createTempFile("movement", "tmp");
             IOUtil.downloadFileFromURL(url, tempFile.toFile());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw RuntimeUtil.getErrorHandler(ConfigurationUtil.class).handleError(new RuntimeException(e));
         }
         return fromFile(tempFile.toFile());
     }

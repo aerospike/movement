@@ -38,7 +38,7 @@ public class DirectoryLoader extends Loadable implements Emitter {
         }
 
         @Override
-        public Map<String, String> defaultConfigMap(final Map<String,Object> config) {
+        public Map<String, String> defaultConfigMap(final Map<String, Object> config) {
             return DEFAULTS;
         }
 
@@ -67,7 +67,7 @@ public class DirectoryLoader extends Loadable implements Emitter {
     private DirectoryLoader(final Configuration config) {
         super(Config.INSTANCE, config);
         this.config = config;
-        this.errorHandler = RuntimeUtil.loadErrorHandler(this, config);
+        this.errorHandler = RuntimeUtil.getErrorHandler(this, config);
     }
 
     public static DirectoryLoader open(final Configuration config) {
@@ -75,16 +75,19 @@ public class DirectoryLoader extends Loadable implements Emitter {
     }
 
     @Override
-    public Stream<Emitable> stream(WorkChunkDriver driver, final Runtime.PHASE phase) {
-        return IteratorUtils.stream(IteratorUtils.map(driver.iterator(), chunk -> {
-            WorkFile file = (WorkFile) chunk;
-            final Emitable x = EmitableFile.from(
-                    file.getPath(),
-                    phase,
-                    labelFromPath(file.getPath()),
-                    config);
-            return x;
-        }));
+    public Stream<Emitable> stream(WorkChunkDriver workChunkDriver, final Runtime.PHASE phase) {
+        return Stream.iterate(workChunkDriver.getNext(), Optional::isPresent, i -> workChunkDriver.getNext())
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(chunk -> {
+                    WorkFile file = (WorkFile) chunk;
+                    final Emitable x = EmitableFile.from(
+                            file.getPath(),
+                            phase,
+                            labelFromPath(file.getPath()),
+                            config);
+                    return x;
+                });
     }
 
 

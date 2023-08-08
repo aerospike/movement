@@ -48,7 +48,7 @@ class Pipeline extends CheckedNotThreadSafe implements AutoCloseable {
         if (started.compareAndSet(false, true)) {
             return getEmitter().stream(driver, phase);
         } else {
-            throw new IllegalStateException(String.format("%s already started", this));
+            throw RuntimeUtil.getErrorHandler(this).handleError(new IllegalStateException(String.format("%s already started", this)));
         }
     }
 

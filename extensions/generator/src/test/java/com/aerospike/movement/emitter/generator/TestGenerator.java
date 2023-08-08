@@ -16,6 +16,7 @@ import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.util.core.ConfigurationUtil;
 import com.aerospike.movement.util.core.IOUtil;
 import com.aerospike.movement.util.core.iterator.PrimitiveIteratorWrap;
+import junit.framework.Assert;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.junit.After;
@@ -30,8 +31,7 @@ import java.util.stream.LongStream;
 
 import static com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime.Config.Keys.THREADS;
 import static com.aerospike.movement.test.mock.MockUtil.*;
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
+import static junit.framework.TestCase.*;
 
 public class TestGenerator extends AbstractMovementTest {
     final int THREAD_COUNT = 4;
@@ -61,7 +61,7 @@ public class TestGenerator extends AbstractMovementTest {
         final Configuration config = ConfigurationUtil.configurationWithOverrides(defaultConfig, new MapConfiguration(new HashMap<>() {{
             put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName());
-            put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(DUPLICATE_TEST_SIZE+1));
+            put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(DUPLICATE_TEST_SIZE + 1));
             put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
         }}));
         registerCleanupCallback(() -> {
@@ -76,7 +76,9 @@ public class TestGenerator extends AbstractMovementTest {
 
 
         MockUtil.setDefaultMockCallbacks();
-        MockUtil.setDuplicateIdOutputVerification(emittedIds);
+        final AtomicBoolean duplicateIdDetected = new AtomicBoolean(false);
+        MockUtil.setDuplicateIdOutputVerification(emittedIds, duplicateIdDetected);
+        assertFalse(duplicateIdDetected.get());
 
         final long msTaken = integrationTest(runtime, config);
         assertEquals(DUPLICATE_TEST_SIZE * 15, getHitCounter(MockEncoder.class, MockEncoder.Methods.ENCODE));
@@ -89,7 +91,7 @@ public class TestGenerator extends AbstractMovementTest {
         final Configuration config = ConfigurationUtil.configurationWithOverrides(defaultConfig, new MapConfiguration(new HashMap<>() {{
             put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName());
-            put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(TEST_SIZE+1));
+            put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(TEST_SIZE + 1));
             put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
             put(LocalParallelStreamRuntime.Config.Keys.THREADS, 8);
         }}));
@@ -107,7 +109,9 @@ public class TestGenerator extends AbstractMovementTest {
 
 
         MockUtil.setDefaultMockCallbacks();
-        MockUtil.setDuplicateIdOutputVerification(emittedIds);
+        final AtomicBoolean duplicateIdDetected = new AtomicBoolean(false);
+        MockUtil.setDuplicateIdOutputVerification(emittedIds,duplicateIdDetected);
+        assertFalse(duplicateIdDetected.get());
         MockUtil.setCallback(MockEncoder.class, MockEncoder.Methods.ENCODE,
                 MockCallback.create((object, args) -> {
                     MockUtil.incrementHitCounter(MockEncoder.class, MockEncoder.Methods.ENCODE);
@@ -170,24 +174,27 @@ public class TestGenerator extends AbstractMovementTest {
 
         final Configuration config = ConfigurationUtil.configurationWithOverrides(defaultConfig, new MapConfiguration(new HashMap<>() {{
             put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName());
+            put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(TEST_SIZE + 1));
+            put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
         }}));
         registerCleanupCallback(() -> {
             LocalParallelStreamRuntime.getInstance(config).close();
         });
+        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotSupplier.of(() -> PrimitiveIteratorWrap.wrap(LongStream.of(1L, 2L, 1L).iterator())));
+        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotSupplier.of(() -> PrimitiveIteratorWrap.wrap(LongStream.range(0, TEST_SIZE).iterator())));
+
         final Set<Object> emittedIds = Collections.synchronizedSet(new HashSet<>());
         final Runtime runtime = LocalParallelStreamRuntime.getInstance(config);
+        final AtomicBoolean passed = new AtomicBoolean(false);
 
         MockUtil.setDefaultMockCallbacks();
-        MockUtil.setDuplicateIdOutputVerification(emittedIds);
+        MockUtil.setDuplicateIdOutputVerification(emittedIds, passed);
+        integrationTest(runtime, config);
 
-        final AtomicBoolean passed = new AtomicBoolean(false);
-        try {
-            integrationTest(runtime, config);
-        } catch (Exception ignored) {
-            passed.set(true);
-        }
         assertTrue(passed.get());
     }
+
 
     @Test
     @Ignore
@@ -197,7 +204,7 @@ public class TestGenerator extends AbstractMovementTest {
         final Configuration config = ConfigurationUtil.configurationWithOverrides(defaultConfig, new MapConfiguration(new HashMap<>() {{
             put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName());
-            put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(P2SCHEMASCALE+1));
+            put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(P2SCHEMASCALE + 1));
             put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
             put(YAMLParser.Config.Keys.YAML_FILE_URI, schemaURI.toString());
         }}));
@@ -213,7 +220,9 @@ public class TestGenerator extends AbstractMovementTest {
 
 
         MockUtil.setDefaultMockCallbacks();
-        MockUtil.setDuplicateIdOutputVerification(emittedIds);
+        final AtomicBoolean duplicateIdDetected = new AtomicBoolean(false);
+        MockUtil.setDuplicateIdOutputVerification(emittedIds, duplicateIdDetected);
+        assertFalse(duplicateIdDetected.get());
 
         final long msTaken = integrationTest(runtime, config);
         assertEquals(P2SCHEMASCALE * 15, getHitCounter(MockEncoder.class, MockEncoder.Methods.ENCODE));

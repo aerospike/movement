@@ -1,6 +1,7 @@
 package com.aerospike.movement.config.core;
 
 import com.aerospike.movement.util.core.ConfigurationUtil;
+import com.aerospike.movement.util.core.RuntimeUtil;
 import com.aerospike.movement.util.core.iterator.IteratorUtils;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
@@ -32,8 +33,10 @@ public abstract class ConfigurationBase {
     }
 
     public String getOrDefault(String key, Configuration config) {
-        return Optional.ofNullable(config.containsKey(key) ? config.getString(key) : defaultConfigMap().get(key)).orElseThrow(() ->
-                new RuntimeException("Missing required configuration key: " + key));
+        final Optional<String> it = Optional.ofNullable(config.containsKey(key) ? config.getString(key) : defaultConfigMap().get(key));
+        if(it.isPresent())
+            return it.get();
+        throw RuntimeUtil.getErrorHandler(this, config).handleError(new RuntimeException("Missing required configuration key: " + key));
     }
 
     public String getOrDefault(String key, Map<String, Object> config) {

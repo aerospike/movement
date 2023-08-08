@@ -69,7 +69,6 @@ public class LocalParallelStreamRuntime implements Runtime {
             public static final String DELAY_MS = "runtime.outputStallTimeMs";
             public static final String BATCH_SIZE = "driver.batchSize";
 
-
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
@@ -93,22 +92,22 @@ public class LocalParallelStreamRuntime implements Runtime {
     private LocalParallelStreamRuntime(final Configuration config) {
         this.config = config;
         this.customThreadPool = new ForkJoinPool(Integer.parseInt(CONFIG.getOrDefault(Config.Keys.THREADS, config)));
-        this.errorHandler = RuntimeUtil.loadErrorHandler(this, config);
+        this.errorHandler = RuntimeUtil.getErrorHandler(this, config);
     }
 
-    public LocalParallelStreamRuntime init(Configuration config) {
+    public LocalParallelStreamRuntime init(final Configuration config) {
         if (initialized.get()) {
-            throw new RuntimeException("Runtime already initialized");
+            throw errorHandler.handleError(new RuntimeException("Runtime already initialized"));
         }
         close();
         return (LocalParallelStreamRuntime) getInstance(config);
     }
 
-    public static Runtime open(Configuration config) {
+    public static Runtime open(final Configuration config) {
         return getInstance(config);
     }
 
-    public static Runtime getInstance(Configuration config) {
+    public static Runtime getInstance(final Configuration config) {
         if (initialized.compareAndSet(false, true)) {
             INSTANCE = new LocalParallelStreamRuntime(config);
         }
@@ -202,7 +201,7 @@ public class LocalParallelStreamRuntime implements Runtime {
                 processEmitable(emitableIterator.next(), output);
             }
         } catch (Exception e) {
-            errorHandler.handle(e, output);
+            errorHandler.handle(RuntimeUtil.getErrorHandler(LocalParallelStreamRuntime.class).handleError(e, output), output);
         }
         completionHandler.run();
     }
@@ -215,15 +214,21 @@ public class LocalParallelStreamRuntime implements Runtime {
         Emitter.init(phase, config);
         Encoder.init(phase, config);
         Decoder.init(phase, config);
-        ((WorkChunkDriver) RuntimeUtil.lookupOrLoad(WorkChunkDriver.class, config)).init(config);
+
+        final Optional<WorkChunkDriver> configuredWorkChunkDriver = Optional.ofNullable((WorkChunkDriver) RuntimeUtil.lookupOrLoad(WorkChunkDriver.class, config));
+        if (configuredWorkChunkDriver.isEmpty()) {
+            throw RuntimeUtil.getErrorHandler(LocalParallelStreamRuntime.class, config).handleError(new RuntimeException("No WorkChunkDriver configured"), phase);
+        } else {
+            configuredWorkChunkDriver.get().init(config);
+        }
+
         try {
             final List<Pipeline> pipelines = setupPipelines(customThreadPool.getParallelism(), phase, config);
             final ParallelStreamProcessor processor = ParallelStreamProcessor.create(pipelines, config, phase);
             final ForkJoinTask<?> task = runtime.submit(customThreadPool, processor);
             return RunningPhase.of(task, pipelines, phase, config);
         } catch (Exception e) {
-            runtime.errorHandler.handleError(e, phase);
-            throw new RuntimeException(e);
+            throw runtime.errorHandler.handleError(e, phase);
         }
     }
 
@@ -272,7 +277,7 @@ public class LocalParallelStreamRuntime implements Runtime {
                 final Emitter emitter = pipeline.getEmitter();
                 final Output output = pipeline.getOutput();
                 final WorkChunkDriver driver = (WorkChunkDriver) RuntimeUtil.lookupOrLoad(WorkChunkDriver.class, config);
-                final ErrorHandler errorHandler = RuntimeUtil.loadErrorHandler(this, config);
+                final ErrorHandler errorHandler = RuntimeUtil.getErrorHandler(this, config);
                 try {
                     LocalParallelStreamRuntime.driveIndividualThreadSync(phase,
                             driver,
@@ -284,8 +289,7 @@ public class LocalParallelStreamRuntime implements Runtime {
                             }, RuntimeErrorHandler.create(waitGroup, errorHandler)
                     );
                 } catch (Exception e) {
-                    errorHandler.handleError(e, pipeline);
-                    throw e;
+                    throw errorHandler.handleError(e, pipeline);
                 }
             });
             try {
@@ -293,7 +297,7 @@ public class LocalParallelStreamRuntime implements Runtime {
                 RuntimeUtil.closeAllInstancesOfLoadable(WorkChunkDriver.class);
                 RuntimeUtil.unload(WorkChunkDriver.class);
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                throw errorHandler.handleError(e, phase, pipelines, waitGroup);
             }
         }
     }

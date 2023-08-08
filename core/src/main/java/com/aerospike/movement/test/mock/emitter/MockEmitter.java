@@ -58,11 +58,15 @@ public class MockEmitter extends Loadable implements Emitter {
 
     @Override
     public Stream<Emitable> stream(final WorkChunkDriver workChunkDriver, final Runtime.PHASE phase) {
-        final WorkChunkDriver driver = (WorkChunkDriver) MockUtil.onEvent(this.getClass(), Methods.STREAM, this, workChunkDriver, phase)
+        final WorkChunkDriver wcd = (WorkChunkDriver) MockUtil.onEvent(this.getClass(), Methods.STREAM, this, workChunkDriver, phase)
                 .orElseThrow(() ->
                         ErrorUtil.runtimeException("no stream available in mock emitter"));
-        return IteratorUtils.stream(IteratorUtils.map(IteratorUtils.flatMap(driver, WorkChunk::iterator),
-                id -> new MockEmitable(id, false, config)));
+
+        return Stream.iterate(wcd.getNext(), wc -> wc.isPresent(), i -> wcd.getNext())
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .flatMap(wc -> IteratorUtils.stream(wc.iterator()))
+                .map(id -> new MockEmitable(id, false, config));
     }
 
 

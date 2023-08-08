@@ -1,6 +1,8 @@
 package com.aerospike.movement.cli;
 
 import com.aerospike.movement.plugin.cli.CLIPlugin;
+import com.aerospike.movement.runtime.core.local.RunningPhase;
+import com.aerospike.movement.util.core.iterator.IteratorUtils;
 import picocli.CommandLine;
 
 import java.util.*;
@@ -8,13 +10,45 @@ import java.util.stream.Collectors;
 
 
 public class CLI {
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
+        int statusFrequency = 100;
         try {
             Optional<CLIPlugin> plugin = parseAndLoadPlugin(args);
             final Iterator<?> results = plugin.orElseThrow(() -> new RuntimeException("Could not load CLI Plugin")).call();
-            while (results.hasNext()) {
-                results.next();
-//                System.out.println(results.next());
+            int x = 0;
+            long lastCount = 0;
+            if (plugin.get().getCommandLine().debug) {
+                final long startTime = System.currentTimeMillis();
+                while (results.hasNext()) {
+                    x++;
+                    if (x % statusFrequency == 0) {
+                        final Map<String, Object> res = (Map<String, Object>) results.next();
+                        if (res.containsKey(RunningPhase.Keys.OUTPUTS)) {
+                            final Map<String, Long> outputs = (Map<String, Long>) res.get(RunningPhase.Keys.OUTPUTS);
+                            final Optional<Long> totalProcessed = outputs.values()
+                                    .stream()
+                                    .filter(it -> {
+                                        return Long.class.isAssignableFrom(it.getClass());
+                                    })
+                                    .reduce(Long::sum);
+                            if (totalProcessed.isPresent()) {
+                                final long endTime = System.currentTimeMillis();
+                                final long duration = endTime - startTime;
+                                final double seconds = duration / 1000.0;
+                                final double rate = totalProcessed.get() / seconds;
+                                final Long total = totalProcessed.get();
+                                if (total > 0 && total > lastCount) {
+                                    System.out.println(String.format("Processed %d elements in %f seconds (%f elements per second)", totalProcessed.get(), seconds, rate));
+                                    lastCount = total;
+                                }
+                            }
+                        }
+                    } else {
+                        results.next();
+                    }
+                }
+            } else {
+                IteratorUtils.iterate(results);
             }
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
@@ -37,7 +71,6 @@ public class CLI {
             return Optional.empty();
         }
 
-
         return Optional.of((CLIPlugin) CLIPlugin.open(cli));
     }
 
@@ -59,6 +92,8 @@ public class CLI {
             public static final String SET_LONG = "--set";
             public static final String HELP_SHORT = "-h";
             public static final String HELP_LONG = "--help";
+            public static final String DEBUG_SHORT = "-d";
+            public static final String DEBUG_LONG = "--debug";
             public static final String LIST_TASKS = "--list-tasks";
             public static final String LIST_COMPONENTS = "--list-components";
 
@@ -79,23 +114,31 @@ public class CLI {
         @CommandLine.Option(names = {Args.SET_SHORT, Args.SET_LONG}, description = "Set or override configuration key")
         protected Map<String, String> overrides;
 
+        @CommandLine.Option(names = {Args.DEBUG_SHORT, Args.DEBUG_LONG}, description = "Debug")
+        protected Boolean debug = false;
 
-        public boolean help(){
+
+        public boolean help() {
             return Optional.ofNullable(help).orElse(false);
         }
-        public boolean listTasks(){
+
+        public boolean listTasks() {
             return Optional.ofNullable(listTasks).orElse(false);
         }
-        public boolean listComponents(){
+
+        public boolean listComponents() {
             return Optional.ofNullable(listComponents).orElse(false);
         }
-        public Optional<String> taskName(){
+
+        public Optional<String> taskName() {
             return Optional.ofNullable(taskName);
         }
-        public Optional<String> configPath(){
+
+        public Optional<String> configPath() {
             return Optional.ofNullable(configPath);
         }
-        public Optional<Map<String, String>> overrides(){
+
+        public Optional<Map<String, String>> overrides() {
             return Optional.ofNullable(overrides);
         }
 
@@ -112,6 +155,4 @@ public class CLI {
             e.printStackTrace();
         }
     }
-
-
 }

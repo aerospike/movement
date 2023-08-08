@@ -5,6 +5,7 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.generator.Generator;
 import com.aerospike.movement.process.core.Task;
 import com.aerospike.movement.runtime.core.Runtime;
+import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
 import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.util.core.ConfigurationUtil;
 import com.aerospike.movement.util.core.ErrorUtil;
@@ -17,6 +18,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.LongStream;
+
+import static com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime.Config.Keys.BATCH_SIZE;
+import static com.aerospike.movement.util.core.RuntimeUtil.getAvailableProcessors;
 
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
@@ -32,6 +36,7 @@ public class Generate extends Task {
             final long scale = Long.parseLong(Config.INSTANCE.getOrDefault(Config.Keys.SCALE_FACTOR, config));
             return PrimitiveIteratorWrap.wrap(LongStream.range(0, scale).iterator());
         }));
+        //@todo phase2 stitching work chunk driver
     }
 
     @Override
@@ -48,10 +53,16 @@ public class Generate extends Task {
 
         @Override
         public Map<String, String> defaultConfigMap(final Map<String, Object> config) {
+            final long workPerProcessor = Long.parseLong(Generator.Config.INSTANCE.getOrDefault(Generator.Config.Keys.SCALE_FACTOR, config)) / getAvailableProcessors();
+            final long scaleFactor = Long.parseLong(Generator.Config.INSTANCE.getOrDefault(Generator.Config.Keys.SCALE_FACTOR, config));
             return new HashMap<>() {{
                 put(ConfigurationBase.Keys.EMITTER, Generator.class.getName());
                 //alias driver range to generator scale factor
                 put(SuppliedWorkChunkDriver.Config.Keys.RANGE_TOP, Generator.Config.INSTANCE.getOrDefault(Generator.Config.Keys.SCALE_FACTOR, config));
+                put(SuppliedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(0L));
+                put(BATCH_SIZE, String.valueOf(Math.min(workPerProcessor, Math.min(scaleFactor / getAvailableProcessors(), 100_000))));
+                put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(scaleFactor + 1));
+                put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
             }};
         }
 

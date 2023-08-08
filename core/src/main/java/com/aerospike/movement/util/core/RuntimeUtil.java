@@ -23,6 +23,7 @@ import org.reflections.scanners.Scanners;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -32,6 +33,10 @@ import java.util.stream.Stream;
 import static org.reflections.scanners.Scanners.SubTypes;
 
 public class RuntimeUtil {
+    public static ErrorHandler getErrorHandler(final Object loggedObject) {
+        return getErrorHandler(loggedObject, ConfigurationUtil.empty());
+    }
+
     public static ErrorHandler getErrorHandler(final Object loggedObject, final Configuration config) {
         return loadErrorHandler(loggedObject, config);
     }
@@ -57,13 +62,16 @@ public class RuntimeUtil {
 
     public static Object openClassRef(final String className, final Configuration config) {
         try {
-            final Class clazz = Optional.ofNullable(Class.forName(className)).orElseThrow(() ->
-                    new RuntimeException("Could not load class: " + className));
-            return clazz.getMethod(STATIC_OPEN_METHOD, Configuration.class).invoke(null, config);
+            final Optional<Class<?>> maybeLoad = Optional.ofNullable(Class.forName(className));
+            if (maybeLoad.isEmpty())
+                getErrorHandler(RuntimeUtil.class).handleError(new RuntimeException("Could not load class: " + className));
+            return maybeLoad.get().getMethod(STATIC_OPEN_METHOD, Configuration.class).invoke(null, config);
+        } catch (InvocationTargetException invocationTargetException) {
+            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class, config).handleError(invocationTargetException.getTargetException());
         } catch (NoSuchMethodException nsm) {
-            throw new RuntimeException(String.format("Class %s does not properly implement a static open(Configuration) method", className));
+            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class, config).handleError(new RuntimeException(String.format("Class %s does not properly implement a static open(Configuration) method", className)));
         } catch (Exception e) {
-            throw new RuntimeException(String.format("Error opening class %s", className), e);
+            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class, config).handleError(e);
         }
     }
 
@@ -71,7 +79,7 @@ public class RuntimeUtil {
         try {
             return clazz.getMethod(method);
         } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class).handleError(new RuntimeException(e));
         }
     }
 
@@ -88,7 +96,7 @@ public class RuntimeUtil {
         try {
             return Optional.ofNullable(clazz.getMethod(methodName, String[].class).invoke(object, new Object[]{args}));
         } catch (Exception e) {
-            throw new RuntimeException("Error invoking method: " + methodName, e);
+            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class).handleError(new RuntimeException("Error invoking method: " + methodName, e));
         }
     }
 
@@ -96,7 +104,7 @@ public class RuntimeUtil {
         try {
             return clazz.getField(fieldName).get(null);
         } catch (Exception e) {
-            throw new RuntimeException("Error getting field: " + fieldName, e);
+            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class).handleError(new RuntimeException("Error getting field: " + fieldName, e));
         }
     }
 
@@ -104,7 +112,7 @@ public class RuntimeUtil {
         try {
             return Class.forName(className);
         } catch (Exception e) {
-            throw new RuntimeException("Error loading class: " + className, e);
+            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class).handleError(new RuntimeException("Error loading class: " + className, e));
         }
     }
 
@@ -113,7 +121,7 @@ public class RuntimeUtil {
         try {
             return Class.forName(name);
         } catch (Exception e) {
-            throw new RuntimeException("Error loading class: " + name, e);
+            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class).handleError(new RuntimeException("Error loading class: " + name, e));
         }
     }
 
@@ -169,7 +177,7 @@ public class RuntimeUtil {
         try {
             return loader.call();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw getErrorHandler(RuntimeUtil.class, ConfigurationUtil.empty()).handleError(e);
         }
     }
 
@@ -210,7 +218,7 @@ public class RuntimeUtil {
         if (Task.class.isAssignableFrom(targetClass))
             return nextOrLoad(lookup(targetClass), () -> loadTask(targetClass.getName(), config), loadableId);
         else
-            throw new RuntimeException("Cannot find class: " + targetClass.getName());
+            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class, config).handleError(new RuntimeException("Cannot find class: " + targetClass.getName()));
     }
 
     private static Object loadTask(final String name, final Configuration config) {
@@ -246,13 +254,13 @@ public class RuntimeUtil {
                     Thread.sleep(Long.parseLong(LocalParallelStreamRuntime.CONFIG
                             .getOrDefault(LocalParallelStreamRuntime.Config.Keys.DELAY_MS, config)));
                 } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    throw RuntimeUtil.getErrorHandler(RuntimeUtil.class, config).handleError(new RuntimeException(e));
                 }
                 break;
         }
     }
 
-    public static ErrorHandler loadErrorHandler(final Object context, final Configuration config) {
+    private static ErrorHandler loadErrorHandler(final Object context, final Configuration config) {
         final ErrorHandler eh = LoggingErrorHandler.create(context, config);
         if (ErrorHandler.trigger.get() != null)
             return eh.withTrigger(ErrorHandler.trigger.get());
@@ -276,7 +284,8 @@ public class RuntimeUtil {
             LocalParallelStreamRuntime.encoders.clear();
         else if (Decoder.class.isAssignableFrom(clazz))
             LocalParallelStreamRuntime.decoders.clear();
-        else throw new RuntimeException("Unknown class: " + clazz.getName());
+        else
+            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class).handleError(new RuntimeException("Unknown class: " + clazz.getName()));
     }
 
     public static <T> Set<Class<T>> findAvailableSubclasses(final Class<T> clazz, final String packagePrefix) {
@@ -325,7 +334,5 @@ public class RuntimeUtil {
                             }
                         }));
     }
-
-
 }
 

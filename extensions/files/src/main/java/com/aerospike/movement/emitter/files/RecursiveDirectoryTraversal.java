@@ -4,6 +4,7 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunk;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
+import com.aerospike.movement.runtime.core.driver.WorkList;
 import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.util.core.ConfigurationUtil;
 import com.aerospike.movement.util.core.RuntimeUtil;
@@ -12,10 +13,7 @@ import org.apache.commons.configuration2.Configuration;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
@@ -83,16 +81,18 @@ public class RecursiveDirectoryTraversal extends WorkChunkDriver {
     public void close() throws Exception {
 
     }
-
     @Override
-    public boolean hasNext() {
-        return false;
-    }
-
-    @Override
-    public WorkChunk next() {
-        synchronized (DirectoryLoader.class) {
-            return WorkFile.fromPath(iterator.next());
+    public Optional<WorkChunk> getNext() {
+        synchronized (RecursiveDirectoryTraversal.class) {
+            if (!initialized.get()) {
+                throw new IllegalStateException("WorkChunkDriver not initialized");
+            }
+            if (!iterator.hasNext()) {
+                return Optional.empty();
+            }
+            final WorkChunk file = WorkFile.fromPath(iterator.next());
+            onNextValue(file);
+            return Optional.of(file);
         }
     }
 

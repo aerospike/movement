@@ -42,6 +42,10 @@ public class CLIPlugin extends Plugin {
 
     private final CLI.MovementCLI cli;
 
+    public CLI.MovementCLI getCommandLine() {
+        return cli;
+    }
+
     public static Plugin open(final CLI.MovementCLI cli) {
         return new CLIPlugin(cli);
     }

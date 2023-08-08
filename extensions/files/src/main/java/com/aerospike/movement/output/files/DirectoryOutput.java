@@ -167,7 +167,7 @@ public class DirectoryOutput extends Loadable implements Output {
                         throw new RuntimeException(e);
                     }
                 }).orElse(new HashMap<>() {{
-                    put("status", "no metrics");
+                    put("status", 0L);
                 }});
     }
 

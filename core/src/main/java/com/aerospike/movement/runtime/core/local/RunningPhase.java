@@ -15,6 +15,10 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.stream.Collectors;
 
 public class RunningPhase implements Iterator<Map<String, Object>> {
+    public static class Keys {
+        public static final String OUTPUTS = "outputs";
+    }
+
     private final ForkJoinTask task;
     private final List<Pipeline> pipelines;
     private final Configuration config;
@@ -44,7 +48,7 @@ public class RunningPhase implements Iterator<Map<String, Object>> {
             return task.get();
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException(String.format(phase.toString(), e.getMessage()));
+            throw RuntimeUtil.getErrorHandler(this).handleError(new RuntimeException(String.format(phase.toString(), e.getMessage())));
         }
     }
 
@@ -57,12 +61,22 @@ public class RunningPhase implements Iterator<Map<String, Object>> {
 
             @Override
             public Map<String, Object> next() {
-                return new PrintableMap(LocalParallelStreamRuntime.outputs.stream()
-                        .map(it -> new AbstractMap.SimpleEntry<>(((Loadable) it).getId().toString(), it.getMetrics()))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+                final Map<String, Object> status = new HashMap<>();
+                for (Output output : LocalParallelStreamRuntime.outputs) {
+                    output.getMetrics().forEach((k, v) -> {
+                        status.compute(k, (key, value) -> {
+                            if (v instanceof String) {
+                                return v;
+                            }
+                            return (Long) Optional.ofNullable(value).orElse(0L) + (Long) v;
+                        });
+                    });
+                }
+                return new HashMap<>() {{
+                    put(Keys.OUTPUTS, status);
+                }};
             }
         };
-
     }
 
     private static class PrintableMap extends AbstractMap<String, Object> {
@@ -86,7 +100,7 @@ public class RunningPhase implements Iterator<Map<String, Object>> {
     }
 
     public void close() {
-        final ErrorHandler errorHandler = RuntimeUtil.loadErrorHandler(this, config);
+        final ErrorHandler errorHandler = RuntimeUtil.getErrorHandler(this, config);
         pipelines.forEach(p -> RuntimeUtil.closeWrap(p.getOutput(), errorHandler));
         SuppliedWorkChunkDriver.clearSupplierForPhase(this.phase);
     }

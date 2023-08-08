@@ -9,6 +9,7 @@ import com.aerospike.movement.test.mock.emitter.MockEmitter;
 import com.aerospike.movement.test.mock.encoder.MockEncoder;
 import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.util.core.ConfigurationUtil;
+import com.aerospike.movement.util.core.RuntimeUtil;
 import com.aerospike.movement.util.core.iterator.IteratorUtils;
 
 import java.util.*;
@@ -81,7 +82,7 @@ public final class MockUtil {
                 }));
     }
 
-    public static void setDuplicateIdOutputVerification(final Set<Object> emittedIds) {
+    public static void setDuplicateIdOutputVerification(final Set<Object> emittedIds, final AtomicBoolean detected) {
         MockUtil.setCallback(MockOutput.class, MockOutput.Methods.WRITER,
                 MockCallback.create((object, args) -> {
                     incrementHitCounter(MockOutput.class, MockOutput.Methods.WRITER);
@@ -93,13 +94,13 @@ public final class MockUtil {
                     try {
                         item = (EmitableGraphElement) args[1];
                     } catch (Exception e) {
-                        throw new RuntimeException(e);
+                        throw RuntimeUtil.getErrorHandler(MockUtil.class).handleError(new RuntimeException(e));
                     }
                     if (EmittedVertex.class.isAssignableFrom(item.getClass())) {
                         final EmittedId id = ((EmittedVertex) item).id();
                         //Fail if an id is emitted twice
                         if (emittedIds.contains(id.getId())) {
-                            throw new IllegalStateException("Duplicate id emitted: " + id.getId());
+                            detected.set(true);
                         }
                         emittedIds.add(id.getId());
                     }
@@ -166,7 +167,7 @@ public final class MockUtil {
         try {
             return metadataCounters.get(typeName).get(subtypeName).get();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw RuntimeUtil.getErrorHandler(MockUtil.class).handleError(new RuntimeException(e));
         }
     }
 

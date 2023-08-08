@@ -20,7 +20,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class SuppliedWorkChunkDriver extends WorkChunkDriver {
-
+    @Override
+    public Optional<WorkChunk> getNext() {
+        synchronized (SuppliedWorkChunkDriver.class) {
+            if (!initialized.get()) {
+                throw new IllegalStateException("WorkChunkDriver not initialized");
+            }
+            if (!iterator.hasNext()) {
+                return Optional.empty();
+            }
+            final List<Object> x = iterator.next();
+            final WorkList value = WorkList.from(x, config);
+            onNextValue(value);
+            return Optional.of(value);
+        }
+    }
 
     public static class Config extends ConfigurationBase {
         public static final Config INSTANCE = new Config();
@@ -45,11 +59,12 @@ public class SuppliedWorkChunkDriver extends WorkChunkDriver {
             public static final String RANGE_BOTTOM = "workChunkDriver.supplied.range.bottom";
             public static final String RANGE_TOP = "workChunkDriver.supplied.range.top";
         }
+
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
+            put(Keys.RANGE_BOTTOM, String.valueOf(0L));
         }};
 
     }
-
 
 
     private static final ConcurrentHashMap<Runtime.PHASE, IteratorSupplier> suppliers = new ConcurrentHashMap<>();
@@ -82,7 +97,7 @@ public class SuppliedWorkChunkDriver extends WorkChunkDriver {
         } else if (Optional.ofNullable(suppliers.get(RuntimeUtil.getCurrentPhase(config))).isPresent()) {
             supplier = Optional.ofNullable(suppliers.get(RuntimeUtil.getCurrentPhase(config))).get();
         } else {
-            throw new RuntimeException("No configured iterator supplier set for phase: " + RuntimeUtil.getCurrentPhase(config));
+            throw RuntimeUtil.getErrorHandler(SuppliedWorkChunkDriver.class, config).handleError(new RuntimeException("No configured iterator supplier set for phase: " + RuntimeUtil.getCurrentPhase(config)));
         }
 
         if (initialized.compareAndSet(false, true)) {
@@ -107,24 +122,6 @@ public class SuppliedWorkChunkDriver extends WorkChunkDriver {
     @Override
     protected AtomicBoolean getInitialized() {
         return initialized;
-    }
-
-    @Override
-    public boolean hasNext() {
-        synchronized (SuppliedWorkChunkDriver.class) {
-            return initialized.get() && iterator.hasNext();
-        }
-    }
-
-    @Override
-    public WorkChunk next() {
-        synchronized (SuppliedWorkChunkDriver.class) {
-            onNext();
-            final List<Object> x = iterator.next();
-            final WorkList value = WorkList.from(x, config);
-            onNextValue(value);
-            return value;
-        }
     }
 
 

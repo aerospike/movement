@@ -12,26 +12,29 @@ import java.util.concurrent.TimeUnit;
 public final class IOUtil {
     private IOUtil() {
     }
+
     public static ForkJoinTask<Object> backgroundTicker(final double ticksPerSecond, final Runnable runnable) {
         return (ForkJoinTask<Object>) new ForkJoinPool(1).submit(() -> {
             try {
                 Thread.sleep((long) (TimeUnit.SECONDS.toMillis(1) / ticksPerSecond));
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                throw RuntimeUtil.getErrorHandler(e).handleError(e);
             }
             runnable.run();
         });
     }
+
     public static String readFromResources(final String resourceName) {
         try (InputStream is = IOUtil.class.getClassLoader().getResourceAsStream(resourceName)) {
             if (is == null)
-                throw new RuntimeException("Could not find resource: " + resourceName);
+                throw RuntimeUtil.getErrorHandler(IOUtil.class).handleError(new RuntimeException("Could not find resource: " + resourceName));
             return new String(is.readAllBytes());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw RuntimeUtil.getErrorHandler(e).handleError(e);
         }
     }
-    public static File copyFromResourcesIntoNewTempFile(final String resourceName){
+
+    public static File copyFromResourcesIntoNewTempFile(final String resourceName) {
         try {
             final File tempFile = File.createTempFile("resource", resourceName);
             tempFile.deleteOnExit();
@@ -45,7 +48,7 @@ public final class IOUtil {
             }
             return tempFile;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw RuntimeUtil.getErrorHandler(e).handleError(e);
         }
     }
 
@@ -58,7 +61,7 @@ public final class IOUtil {
                 fileOutputStream.write(dataBuffer, 0, bytesRead);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw RuntimeUtil.getErrorHandler(e).handleError(e);
         }
     }
 
@@ -66,7 +69,7 @@ public final class IOUtil {
         try {
             return Files.createTempDirectory("motion");
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw RuntimeUtil.getErrorHandler(e).handleError(e);
         }
     }
 }

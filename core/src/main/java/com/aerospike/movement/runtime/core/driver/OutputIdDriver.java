@@ -5,7 +5,7 @@ import com.aerospike.movement.process.core.Loadable;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.util.core.ConfigurationUtil;
-import com.aerospike.movement.util.core.Threadsafe;
+
 import org.apache.commons.configuration2.Configuration;
 
 import java.util.*;
@@ -19,7 +19,7 @@ import static com.aerospike.movement.runtime.core.local.LocalParallelStreamRunti
  * It is not necessary for a process to use every id provided by IdSupplier
  * getting a chunk is threadsafe, but an individual chunk should be consumed by the thread that it is asigned to
  */
-public abstract class OutputIdDriver extends Loadable implements Threadsafe {
+public abstract class OutputIdDriver extends Loadable implements OptionalSequence<OutputId> {
 
     protected OutputIdDriver(ConfigurationBase base, Configuration config) {
         super(base, config);
@@ -53,7 +53,6 @@ public abstract class OutputIdDriver extends Loadable implements Threadsafe {
     }
 
     public static final Config CONFIG = new Config();
-
 
 
 }

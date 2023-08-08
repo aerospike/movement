@@ -39,6 +39,7 @@ public class GeneratedOutputIdDriver extends OutputIdDriver {
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
+            put(Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
         }};
     }
 
@@ -78,15 +79,11 @@ public class GeneratedOutputIdDriver extends OutputIdDriver {
 
 
     @Override
-    public boolean isThreadsafe() {
-        return true;
-    }
-
-    @Override
     public void close() throws Exception {
         closeInstance();
     }
-    public static void closeInstance(){
+
+    public static void closeInstance() {
         initialized.set(false);
         INSTANCE.set(null);
     }

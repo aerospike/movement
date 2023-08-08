@@ -9,6 +9,7 @@ import com.aerospike.movement.emitter.generator.schema.YAMLParser;
 import com.aerospike.movement.process.core.Loadable;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.*;
+import com.aerospike.movement.test.mock.emitter.MockEmitable;
 import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.util.core.ConfigurationUtil;
 import com.aerospike.movement.util.core.RuntimeUtil;
@@ -108,10 +109,10 @@ public class Generator extends Loadable implements Emitter {
     @Override
     public Stream<Emitable> stream(final WorkChunkDriver workChunkDriver, final Runtime.PHASE phase) {
         if (phase == Runtime.PHASE.ONE) {
-            final Iterator<WorkChunk> chunks = workChunkDriver.iterator();
-            final Iterator<Long> rootIds = IteratorUtils.map(IteratorUtils.flatMap(chunks, chunk -> chunk.iterator()), workId -> (Long) workId.getId());
-            final Iterator<Emitable> emitables = IteratorUtils.map(rootIds, rootId -> new GeneratedVertex(rootId, new VertexContext(graphSchema, rootVertexSchema, outputIdDriver)));
-            return IteratorUtils.stream(emitables);
+            final Stream<Long> rootIds = Stream.iterate(workChunkDriver.getNext(), Optional::isPresent, i -> workChunkDriver.getNext())
+                    .flatMap(wc -> IteratorUtils.stream(wc.get().iterator()))
+                    .map(id -> (Long) id.getId());
+            return rootIds.map(rootId -> new GeneratedVertex(rootId, new VertexContext(graphSchema, rootVertexSchema, outputIdDriver)));
         } else {
             return Stream.empty();
         }

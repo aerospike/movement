@@ -70,6 +70,7 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
 
         final Configuration config = ConfigurationUtil.configurationWithOverrides(graphTransferConfig, new MapConfiguration(new HashMap<>() {{
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName());
+            put(THREADS, 1); //TinkerGraph is single threaded
         }}));
 
 

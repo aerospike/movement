@@ -86,11 +86,11 @@ public class SourceGraph extends Loadable implements Emitter {
 
     @Override
     public Stream<Emitable> stream(final WorkChunkDriver workChunkDriver, final Runtime.PHASE phase) {
-//        final List<WorkChunk> debugWorkUnits = IteratorUtils.list(workChunkDriver);
-//        final Iterator<WorkChunk> chunks = IteratorUtils.map(workChunkDriver, workChunk -> workChunk);
-        final Iterator<List<Object>> chunks = IteratorUtils.map(workChunkDriver.iterator(), workChunk -> IteratorUtils.list(IteratorUtils.map(workChunk.iterator(), WorkChunkId::getId)));
-
-        return IteratorUtils.stream(chunks).flatMap(listOfIds -> {
+        final Stream<List<Object>> chunks = Stream.iterate(workChunkDriver.getNext(), Optional::isPresent, i -> workChunkDriver.getNext())
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(wc -> IteratorUtils.list(IteratorUtils.map(wc, wcele -> wcele.getId())));
+        return chunks.flatMap(listOfIds -> {
             if (phase.equals(Runtime.PHASE.ONE)) {
                 return IteratorUtils.stream(graph.vertices(listOfIds.toArray())).map(TinkerPopVertex::new);
             } else if (phase.equals(Runtime.PHASE.TWO)) {
