@@ -1,8 +1,14 @@
 package com.aerospike.movement.emitter.generator;
 
 
+import com.aerospike.movement.logging.core.Logger;
+import com.aerospike.movement.util.core.RuntimeUtil;
+import com.github.javafaker.Faker;
+
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
@@ -13,6 +19,8 @@ public abstract class ValueGenerator<T> {
             return RandomBoolean.INSTANCE;
         } else if (valueGenerator.impl.equals(RandomString.class.getSimpleName())) {
             return RandomString.INSTANCE;
+        } else if (valueGenerator.impl.equals(JFaker.class.getSimpleName())) {
+            return JFaker.INSTANCE;
         } else if (valueGenerator.impl.equals(RandomDigitSequence.class.getSimpleName())) {
             return RandomDigitSequence.INSTANCE;
         } else if (valueGenerator.impl.equals(FormattedRandomSSN.class.getSimpleName())) {
@@ -79,15 +87,17 @@ public abstract class ValueGenerator<T> {
 
     public static class FormattedIPV4Address extends ValueGenerator<String> {
         public static FormattedIPV4Address INSTANCE = new FormattedIPV4Address();
+
         @Override
-        public String generate(final Map<String,Object> params){
-            Long octet1 = RandomDigitSequence.INSTANCE.generate(Map.of("digits",3));
-            Long octet2 = RandomDigitSequence.INSTANCE.generate(Map.of("digits",3));
-            Long octet3 = RandomDigitSequence.INSTANCE.generate(Map.of("digits",3));
-            Long octet4 = RandomDigitSequence.INSTANCE.generate(Map.of("digits",3));
-            return String.format("%s.%s.%s.%s",octet1,octet2,octet3,octet4);
+        public String generate(final Map<String, Object> params) {
+            Long octet1 = RandomDigitSequence.INSTANCE.generate(Map.of("digits", 3));
+            Long octet2 = RandomDigitSequence.INSTANCE.generate(Map.of("digits", 3));
+            Long octet3 = RandomDigitSequence.INSTANCE.generate(Map.of("digits", 3));
+            Long octet4 = RandomDigitSequence.INSTANCE.generate(Map.of("digits", 3));
+            return String.format("%s.%s.%s.%s", octet1, octet2, octet3, octet4);
         }
     }
+
     public static class RandomDigitSequence extends ValueGenerator<Long> {
         public static RandomDigitSequence INSTANCE = new RandomDigitSequence();
 
@@ -99,6 +109,54 @@ public abstract class ValueGenerator<T> {
                 sb.append(new Random().nextInt(10));
             }
             return Long.valueOf(sb.toString());
+        }
+    }
+
+    public static class JFaker extends ValueGenerator<String> {
+        public static class Keys {
+            public static String MODULE = "module";
+            public static String METHOD = "method";
+        }
+
+        public static JFaker INSTANCE = new JFaker();
+        private final Faker faker = new Faker();
+        private final List<String> fakerModules = Arrays
+                .stream(faker.getClass().getMethods())
+                .map(Method::getName)
+                .collect(Collectors.toList());
+        private final Logger logger = RuntimeUtil.getLogger(JFaker.INSTANCE);
+        @Override
+        public String generate(final Map<String, Object> params) {
+            final Method fakerModuleGetter;
+            final Object fakerModule;
+            try {
+                fakerModuleGetter = RuntimeUtil.getMethod(faker.getClass(), (String) params.get(Keys.MODULE));
+                fakerModule = fakerModuleGetter.invoke(faker);
+            } catch (Exception e) {
+                final String errorMessage = "Faker modules available: " + fakerModules.stream().reduce((a, b) -> a + "\n" + b).orElse("");
+                logger.error(errorMessage);
+                throw RuntimeUtil.getErrorHandler(JFaker.INSTANCE)
+                        .handleFatalError(e, "Cannot find faker module " + params.get(Keys.MODULE), params);
+            }
+            final Method fakerMethodGetter;
+            final Object result;
+            try {
+                fakerMethodGetter = RuntimeUtil.getMethod(fakerModule.getClass(), (String) params.get(Keys.METHOD));
+                result = fakerMethodGetter.invoke(fakerModule);
+            } catch (Exception e) {
+                final String errorMessage =
+                        "Faker methods available on module: " +
+                                fakerModule.getClass().getSimpleName() +
+                                Arrays.stream(fakerModule.getClass().getMethods())
+                                        .map(Method::getName)
+                                        .reduce((a, b) -> a + "\n" + b)
+                                        .orElse("");
+                logger.error(errorMessage);
+                throw RuntimeUtil.getErrorHandler(JFaker.INSTANCE)
+                        .handleFatalError(e, "Cannot find or invoke faker method " + params.get(Keys.METHOD), params);
+            }
+
+            return result.toString();
         }
     }
 

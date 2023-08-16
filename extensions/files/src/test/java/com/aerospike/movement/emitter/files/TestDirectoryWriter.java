@@ -104,7 +104,7 @@ public class TestDirectoryWriter extends AbstractMovementTest {
         FileUtil.recursiveDelete(outputDirectory);
 
         final Long SCALE_FACTOR = 100L;
-        final File schemaFile = IOUtil.copyFromResourcesIntoNewTempFile("example_schema.yaml");
+        final File schemaFile = IOUtil.copyFromResourcesIntoNewTempFile("faker_schema.yaml");
 
         final Configuration testConfig = new MapConfiguration(
                 new HashMap<>() {{

@@ -71,4 +71,13 @@ public class LoggingErrorHandler implements ErrorHandler {
         });
         return new RuntimeException(t);
     }
+
+    @Override
+    public RuntimeException handleFatalError(final Throwable e, final Object... context) {
+        e.printStackTrace();
+        System.exit(1);
+        //@todo: this is unreachable code,
+        // however it feels cleaner to match the fn signature of the other error handler method
+        return new RuntimeException(e);
+    }
 }

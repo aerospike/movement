@@ -26,6 +26,14 @@ public class MockErrorHandler implements ErrorHandler {
     }
 
     @Override
+    public RuntimeException handleFatalError(final Throwable t, final Object... context) {
+        MockUtil.incrementHitCounter(this.getClass(), Methods.HANDLE_FATAL_ERROR);
+        MockUtil.onEvent(this.getClass(), Methods.HANDLE_FATAL_ERROR, this)
+                .orElse(LoggingErrorHandler.create(this, config));
+        return new RuntimeException(t);
+    }
+
+    @Override
     public ErrorHandler withTrigger(final Handler<Throwable> handler) {
         MockUtil.incrementHitCounter(this.getClass(), Methods.WITH_TRIGGER);
         return (ErrorHandler) MockUtil.onEvent(this.getClass(), Methods.WITH_TRIGGER, this, handler)
@@ -35,6 +43,7 @@ public class MockErrorHandler implements ErrorHandler {
     public static class Methods {
         public static final String WITH_TRIGGER = "withTrigger";
         public static final String HANDLE_ERROR = "handleError";
+        public static final String HANDLE_FATAL_ERROR = "handleFatalError";
     }
 
 }

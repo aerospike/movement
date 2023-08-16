@@ -12,6 +12,7 @@ public interface ErrorHandler {
     static AtomicReference<Handler<Throwable>> trigger = new AtomicReference<>(null);
 
     RuntimeException handleError(Throwable e, Object... context);
+    RuntimeException handleFatalError(Throwable e, Object... context);
 
     ErrorHandler withTrigger(Handler<Throwable> handler);
 
