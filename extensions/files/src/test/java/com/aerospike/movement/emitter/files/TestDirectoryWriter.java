@@ -104,7 +104,7 @@ public class TestDirectoryWriter extends AbstractMovementTest {
         FileUtil.recursiveDelete(outputDirectory);
 
         final Long SCALE_FACTOR = 100L;
-        final File schemaFile = IOUtil.copyFromResourcesIntoNewTempFile("faker_schema.yaml");
+        final File schemaFile = IOUtil.copyFromResourcesIntoNewTempFile("example_schema.yaml");
 
         final Configuration testConfig = new MapConfiguration(
                 new HashMap<>() {{
@@ -144,7 +144,50 @@ public class TestDirectoryWriter extends AbstractMovementTest {
         assertEquals(31, Files.walk(outputDirectory).count());
     }
 
+    @Test
+    public void gDemoSchema() throws IOException {
+        FileUtil.recursiveDelete(outputDirectory);
 
+        final Long SCALE_FACTOR = 100L;
+        final File schemaFile = IOUtil.copyFromResourcesIntoNewTempFile("gdemo_schema.yaml");
+
+        final Configuration testConfig = new MapConfiguration(
+                new HashMap<>() {{
+                    put(LocalParallelStreamRuntime.Config.Keys.THREADS, 1);
+                    put(EMITTER, Generator.class.getName());
+                    put(ENCODER, GraphCSVEncoder.class.getName());
+                    put(OUTPUT, DirectoryOutput.class.getName());
+
+                    put(YAMLParser.Config.Keys.YAML_FILE_PATH, schemaFile.getAbsolutePath());
+
+                    put(DirectoryOutput.Config.Keys.DIRECTORY, outputDirectory.toString());
+                    put(WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName());
+                    put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+
+
+                    put(SuppliedWorkChunkDriver.Config.Keys.ITERATOR_SUPPLIER, ConfiguredRangeSupplier.class.getName());
+
+                    put(SuppliedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, 0L);
+                    put(SuppliedWorkChunkDriver.Config.Keys.RANGE_TOP, SCALE_FACTOR);
+                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, SCALE_FACTOR * 10);
+                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, Long.MAX_VALUE);
+                }});
+        System.out.println(ConfigurationUtil.configurationToPropertiesFormat(testConfig));
+
+
+        final Runtime runtime = LocalParallelStreamRuntime.open(testConfig);
+        final Iterator<RunningPhase> x = runtime.runPhases(List.of(Runtime.PHASE.ONE), testConfig);
+        while (x.hasNext()) {
+            final RunningPhase y = x.next();
+            y.get();
+            y.close();
+        }
+        runtime.close();
+        assertTrue(outputDirectory.resolve("edges").toFile().isDirectory());
+        assertTrue(outputDirectory.resolve("vertices").toFile().isDirectory());
+//        assertEquals(2, Files.list(outputDirectory).count());
+//        assertEquals(31, Files.walk(outputDirectory).count());
+    }
     @Test
     @Ignore
     public void testGenerateToCSV() throws IOException {

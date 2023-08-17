@@ -1,0 +1,77 @@
+entrypointVertexType: Person
+
+
+
+vertexTypes:
+  - name: Person
+    outEdges:
+      - name: UsedDevice
+        likelihood: 1.0
+        chancesToCreate: 3
+#      - name: HasContactMedium
+#        likelihood: 1.0
+#        chancesToCreate: 1
+#      - name: ResolvesToIndividual
+#        likelihood: 1.0
+#        chancesToCreate: 1
+    properties:
+      - name: demographic-race
+        type: String
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: demographic
+            method: race
+      - name: demographic-sex
+        type: String
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: demographic
+            method: sex
+      - name: demographic-demonym
+        type: String
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: demographic
+            method: demonym
+      - name: demographic-educationalAttainment
+        type: String
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: demographic
+            method: educationalAttainment
+      - name: demographic-maritalStatus
+        type: String
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: demographic
+            method: maritalStatus
+  - name: Device
+    outEdges: []
+    properties:
+      - name: brand
+        likelihood: 1.0
+        valueGenerator:
+          impl: ChoiceFromList
+          args:
+            choices: ["apple-iphone", "google-pixel"]
+      - name: equipment
+        likelihood: 1.0
+        valueGenerator:
+          impl: ChoiceFromList
+          args:
+            choices: ["6", "7", "8"]
+edgeTypes:
+  - name: UsedDevice
+    inVertex: Device
+    outVertex: Person
+    properties: []
