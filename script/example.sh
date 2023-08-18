@@ -4,4 +4,6 @@ java -cp core/target/core-1.0.0-SNAPSHOT.jar:extensions/tinkerpop/target/tinkerp
   task=Generate \
   -d \
   -c conf/generator/example_gdemo.properties \
-  -s generator.schema.yaml.path=conf/generator/gdemo_schema.yaml
+  -s generator.schema.yaml.path=conf/generator/gdemo_schema.yaml \
+  -s traversalSource.host=localhost \
+  -s traversalSource.port=8182
