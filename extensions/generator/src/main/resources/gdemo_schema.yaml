@@ -352,7 +352,7 @@ vertexTypes:
       - name: Contains
         likelihood: 1.0
         chancesToCreate: 2
-      - name: Device
+      - name: Hosts
         likelihood: 1.0
         chancesToCreate: 1
 

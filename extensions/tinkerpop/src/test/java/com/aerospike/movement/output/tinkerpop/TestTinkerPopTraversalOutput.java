@@ -1,8 +1,16 @@
 package com.aerospike.movement.output.tinkerpop;
 
+import com.aerospike.movement.emitter.generator.Generator;
+import com.aerospike.movement.emitter.generator.schema.YAMLParser;
+import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
+import com.aerospike.movement.runtime.core.local.RunningPhase;
+import com.aerospike.movement.tinkerpop.common.RemoteGraphTraversalProvider;
 import com.aerospike.movement.tinkerpop.common.instrumentation.TinkerPopGraphProvider;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.runtime.core.Runtime;
+import com.aerospike.movement.util.core.IOUtil;
+import com.aerospike.movement.util.core.iterator.ConfiguredRangeSupplier;
+import com.aerospike.movement.util.core.iterator.IteratorUtils;
 import com.aerospike.movement.util.core.iterator.OneShotSupplier;
 import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
@@ -20,13 +28,18 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
+import static com.aerospike.movement.config.core.ConfigurationBase.Keys.*;
 import static com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime.Config.Keys.THREADS;
 import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
     final int THREAD_COUNT = 1; //TinkerGraph is single threaded
@@ -134,5 +147,55 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
             setup();
         });
     }
+
+
+    @Test
+    public void gDemoSchema() throws IOException {
+        final Long SCALE_FACTOR = 100L;
+        final File schemaFile = IOUtil.copyFromResourcesIntoNewTempFile("gdemo_schema.yaml");
+
+        final Configuration testConfig = new MapConfiguration(
+                new HashMap<>() {{
+                    put(YAMLParser.Config.Keys.YAML_FILE_PATH, schemaFile.getAbsolutePath());
+                    put(LocalParallelStreamRuntime.Config.Keys.BATCH_SIZE, 1);
+                    put(LocalParallelStreamRuntime.Config.Keys.THREADS, 1);
+                    put(EMITTER, Generator.class.getName());
+                    put(ConfigurationBase.Keys.ENCODER, TraversalEncoder.class.getName());
+                    put(TraversalEncoder.Config.Keys.TRAVERSAL_PROVIDER, RemoteGraphTraversalProvider.class.getName());
+                    put(ConfigurationBase.Keys.OUTPUT, TraversalOutput.class.getName());
+
+                    put(RemoteGraphTraversalProvider.Config.Keys.HOST, "localhost");
+                    put(RemoteGraphTraversalProvider.Config.Keys.PORT, "8182");
+
+
+                    put(WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName());
+                    put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+
+
+                    put(SuppliedWorkChunkDriver.Config.Keys.ITERATOR_SUPPLIER, ConfiguredRangeSupplier.class.getName());
+
+                    put(SuppliedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, 0L);
+                    put(SuppliedWorkChunkDriver.Config.Keys.RANGE_TOP, SCALE_FACTOR);
+                    put(ConfiguredRangeSupplier.Config.Keys.RANGE_BOTTOM, 0L);
+                    put(ConfiguredRangeSupplier.Config.Keys.RANGE_TOP, SCALE_FACTOR);
+                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, SCALE_FACTOR * 10);
+                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, Long.MAX_VALUE);
+                }});
+
+        System.out.println(ConfigurationUtil.configurationToPropertiesFormat(testConfig));
+
+
+        final Runtime runtime = LocalParallelStreamRuntime.open(testConfig);
+        final Iterator<RunningPhase> x = runtime.runPhases(List.of(Runtime.PHASE.ONE), testConfig);
+        while (x.hasNext()) {
+            final RunningPhase y = x.next();
+            IteratorUtils.iterate(y);
+            y.get();
+            y.close();
+        }
+        runtime.close();
+
+    }
+
 
 }

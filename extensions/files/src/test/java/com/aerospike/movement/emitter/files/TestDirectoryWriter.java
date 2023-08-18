@@ -185,9 +185,8 @@ public class TestDirectoryWriter extends AbstractMovementTest {
         runtime.close();
         assertTrue(outputDirectory.resolve("edges").toFile().isDirectory());
         assertTrue(outputDirectory.resolve("vertices").toFile().isDirectory());
-//        assertEquals(2, Files.list(outputDirectory).count());
-//        assertEquals(31, Files.walk(outputDirectory).count());
     }
+
     @Test
     @Ignore
     public void testGenerateToCSV() throws IOException {
