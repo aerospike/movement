@@ -146,7 +146,7 @@ public abstract class ValueGenerator<T> {
             } catch (Exception e) {
                 final String errorMessage =
                         "Faker methods available on module: " +
-                                fakerModule.getClass().getSimpleName() +
+                                fakerModule.getClass().getSimpleName() + " are: \n" +
                                 Arrays.stream(fakerModule.getClass().getMethods())
                                         .map(Method::getName)
                                         .reduce((a, b) -> a + "\n" + b)

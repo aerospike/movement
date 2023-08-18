@@ -8,12 +8,21 @@ vertexTypes:
       - name: UsedDevice
         likelihood: 1.0
         chancesToCreate: 3
-#      - name: HasContactMedium
-#        likelihood: 1.0
-#        chancesToCreate: 1
-#      - name: ResolvesToIndividual
-#        likelihood: 1.0
-#        chancesToCreate: 1
+      - name: LikesBeer
+        likelihood: 1.0
+        chancesToCreate: 1
+      - name: LikesCoffee
+        likelihood: 1.0
+        chancesToCreate: 1
+      - name: LikesDessert
+        likelihood: 1.0
+        chancesToCreate: 1
+      - name: HasCat
+        likelihood: 1.0
+        chancesToCreate: 1
+      - name: HasDog
+        likelihood: 1.0
+        chancesToCreate: 1
     properties:
       - name: demographic-race
         type: String
@@ -56,22 +65,162 @@ vertexTypes:
             module: demographic
             method: maritalStatus
   - name: Device
-    outEdges: []
+    outEdges: [ ]
     properties:
       - name: brand
         likelihood: 1.0
         valueGenerator:
           impl: ChoiceFromList
           args:
-            choices: ["apple-iphone", "google-pixel"]
+            choices: [ "apple-iphone", "google-pixel" ]
       - name: equipment
         likelihood: 1.0
         valueGenerator:
           impl: ChoiceFromList
           args:
-            choices: ["6", "7", "8"]
+            choices: [ "6", "7", "8" ]
+  - name: Beer
+    outEdges: [ ]
+    properties:
+      - name: brand
+        likelihood: 1.0
+        valueGenerator:
+          impl: ChoiceFromList
+          args:
+            choices: [ "Budweiser", "Coors", "Heineken","Sam Adams", "Yuengling" ]
+      - name: name
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: beer
+            method: name
+      - name: style
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: beer
+            method: style
+  - name: Coffee
+    outEdges: [ ]
+    properties:
+      - name: country
+        likelihood: 1.0
+        valueGenerator:
+          impl: ChoiceFromList
+          args:
+            choices: [ "Peru", "Ecuador", "Columbia", "Ethiopia", "Somalia" ]
+      - name: intensifer
+        likelihood: 1.0
+        valueGenerator:
+          impl: ChoiceFromList
+          args:
+            choices: ["muted", "dull", "mild", "structured", "balanced", "rounded", "soft", "faint", "delicate", "dry", "astringent", "quick", "clean", "crisp", "bright", "vibrant", "tart", "wild", "unbalanced", "sharp", "pointed", "dense", "deep", "complex", "juicy", "lingering", "dirty"]
+      - name: body
+        likelihood: 1.0
+        valueGenerator:
+          impl: ChoiceFromList
+          args:
+            choices: ["watery", "tea-like", "silky", "slick", "juicy", "smooth", "syrupy", "round", "creamy", "full", "velvety", "big", "chewy", "coating"]
+  - name: Dessert
+    outEdges: [ ]
+    properties:
+      - name: variety
+        likelihood: 1.0
+        valueGenerator:
+          impl: ChoiceFromList
+          args:
+            choices: ["Cake", "Cookie", "Pie", "Ice Cream", "Pudding", "Sweet Bread", "Cupcake", "Cheesecake", "Brownie", "Cobbler", "Ice Cream Cake", "Doughnut", "Frozen Yogurt", "Parfait", "Sundae", "Trifle", "Cake Pop", "Fruit Cake", "Coffee Cake", "Key Lime Pie", "Upside Down Pineapple Cake"]
+      - name: topping
+        likelihood: 1.0
+        valueGenerator:
+          impl: ChoiceFromList
+          args:
+            choices: ["Rainbow Sprinkles", "Chocolate Chips", "Whipped Cream", "Frosting", "Peanut Butter", "Gummy Bears", "Mocha Drizzle", "Caramel", "Bacon", "Chocolate Syrup", "Chocolate Sprinkles", "Cookie Dough", "Peanuts", "Butterscotch Syrup", "Marshmallows", "Cheesecake Bites", "Walnuts", "Granola", "Toffee Bits", "Berry Compote", "Glaze", "Powdered Sugar", "Cinnamon"]
+      - name: flavor
+        likelihood: 1.0
+        valueGenerator:
+          impl: ChoiceFromList
+          args:
+            choices: ["Vanilla", "Chocolate", "Strawberry", "Birthday Cake", "Salted Caramel", "Banana", "Butter Pecan", "Cookies 'n Cream", "Caramel", "Apple", "Butterscotch", "Mint Chocolate Chip", "Espresso", "Butter Pecan", "Cherry", "Coconut", "Chocolate Chip Cookie Dough", "French Vanilla", "Neapolitan", "Pistachio", "Rocky Road", "Peanut Butter", "Almond", "Green Tea", "Cheesecake", "Funfetti", "Lemon", "Oatmeal", "Pumpkin", "Red Velvet", "Blondie"]
+  - name: Cat
+    outEdges: [ ]
+    properties:
+      - name: name
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: cat
+            method: name
+      - name: breed
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: cat
+            method: breed
+  - name: Dog
+    outEdges: [ ]
+    properties:
+      - name: name
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: dog
+            method: name
+      - name: breed
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: dog
+            method: breed
+      - name: age
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: dog
+            method: age
+      - name: size
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: dog
+            method: size
+      - name: coatLength
+        likelihood: 1.0
+        valueGenerator:
+          impl: JFaker
+          args:
+            module: dog
+            method: coatLength
 edgeTypes:
   - name: UsedDevice
     inVertex: Device
     outVertex: Person
-    properties: []
+    properties: [ ]
+  - name: LikesCoffee
+    inVertex: Coffee
+    outVertex: Person
+    properties: [ ]
+  - name: LikesBeer
+    inVertex: Beer
+    outVertex: Person
+    properties: [ ]
+  - name: LikesDessert
+    inVertex: Dessert
+    outVertex: Person
+    properties: [ ]
+  - name: HasCat
+    inVertex: Cat
+    outVertex: Person
+    properties: [ ]
+  - name: HasDog
+    inVertex: Dog
+    outVertex: Person
+    properties: [ ]
