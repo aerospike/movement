@@ -55,6 +55,9 @@ public class CLI {
             e.printStackTrace();
             System.exit(1);
         }
+        if (!Arrays.asList(args).contains(MovementCLI.Args.TEST_MODE)) {
+            System.exit(0);
+        }
     }
 
     protected static Optional<CLIPlugin> parseAndLoadPlugin(final String[] args) throws Exception {
@@ -96,6 +99,7 @@ public class CLI {
             public static final String DEBUG_LONG = "--debug";
             public static final String LIST_TASKS = "--list-tasks";
             public static final String LIST_COMPONENTS = "--list-components";
+            public static final String TEST_MODE = "--test-mode";
 
 
         }
@@ -113,10 +117,11 @@ public class CLI {
         protected String configPath;
         @CommandLine.Option(names = {Args.SET_SHORT, Args.SET_LONG}, description = "Set or override configuration key")
         protected Map<String, String> overrides;
+        @CommandLine.Option(names = {Args.TEST_MODE}, description = "Test Mode")
+        protected Boolean testMode = false;
 
         @CommandLine.Option(names = {Args.DEBUG_SHORT, Args.DEBUG_LONG}, description = "Debug")
         protected Boolean debug = false;
-
 
         public boolean help() {
             return Optional.ofNullable(help).orElse(false);

@@ -47,9 +47,15 @@ public class RemoteGraphTraversalProvider {
         final String host = Config.INSTANCE.getOrDefault(Config.Keys.HOST, config);
         final String port = Config.INSTANCE.getOrDefault(Config.Keys.PORT, config);
         final String remoteTraversalSourceName = Config.INSTANCE.getOrDefault(Config.Keys.REMOTE_TRAVERSAL_SOURCE_NAME, config);
-        return AnonymousTraversalSource
+        final GraphTraversalSource g = AnonymousTraversalSource
                 .traversal()
                 .withRemote(DriverRemoteConnection
                         .using(host, Integer.parseInt(port), remoteTraversalSourceName));
+        synchronized (RemoteGraphTraversalProvider.class) {
+            if (Boolean.parseBoolean(Config.INSTANCE.getOrDefault(TraversalEncoder.Config.Keys.CLEAR, config))) {
+                g.V().drop().iterate();
+            }
+        }
+        return g;
     }
 }

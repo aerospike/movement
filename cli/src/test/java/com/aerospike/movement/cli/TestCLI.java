@@ -66,7 +66,8 @@ public class TestCLI extends AbstractMovementTest {
         final Map<String, Class<? extends Task>> tasks = RuntimeUtil.getTasks();
         assertTrue(tasks.containsKey(MockTask.class.getSimpleName()));
 
-        String[] args = {CLI.MovementCLI.Args.LIST_TASKS};
+        String[] args = {CLI.MovementCLI.Args.TEST_MODE,
+                CLI.MovementCLI.Args.LIST_TASKS};
         final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);
         assertTrue(x.isPresent());
         final List<Object> y = IteratorUtils.list(x.get().call());
@@ -83,7 +84,7 @@ public class TestCLI extends AbstractMovementTest {
         final Map<String, Class<? extends Task>> tasks = RuntimeUtil.getTasks();
         assertTrue(tasks.containsKey(MockTask.class.getSimpleName()));
 
-        final String[] args = {CLI.MovementCLI.Args.LIST_COMPONENTS};
+        final String[] args = {CLI.MovementCLI.Args.TEST_MODE,CLI.MovementCLI.Args.LIST_COMPONENTS};
         final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);
         assertTrue(x.isPresent());
         final List<Object> y = IteratorUtils.list(x.get().call());
@@ -110,6 +111,7 @@ public class TestCLI extends AbstractMovementTest {
         Files.write(tmpConfig, configString.getBytes());
 
         final String[] args = {
+                CLI.MovementCLI.Args.TEST_MODE,
                 CLI.MovementCLI.Args.TASK, Generate.class.getSimpleName(),
                 CLI.MovementCLI.Args.CONFIG_SHORT, tmpConfig.toString(),
                 CLI.MovementCLI.Args.SET_SHORT, override(THREADS, "1"),
@@ -149,6 +151,7 @@ public class TestCLI extends AbstractMovementTest {
 
 
         final String[] args = {
+                CLI.MovementCLI.Args.TEST_MODE,
                 CLI.MovementCLI.Args.TASK, MockTask.class.getSimpleName(),
                 CLI.MovementCLI.Args.CONFIG_SHORT, tmpConfig.toString(),
                 CLI.MovementCLI.Args.DEBUG_SHORT,
@@ -185,6 +188,8 @@ public class TestCLI extends AbstractMovementTest {
         final Path exampleConfig = Path.of("../conf/generator/example.properties");
 
         final String[] args = {
+                CLI.MovementCLI.Args.TEST_MODE,
+
                 CLI.MovementCLI.Args.TASK, MockTask.class.getSimpleName(),
                 CLI.MovementCLI.Args.CONFIG_SHORT, exampleConfig.toString(),
                 CLI.MovementCLI.Args.DEBUG_SHORT,
