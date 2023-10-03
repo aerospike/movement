@@ -162,7 +162,7 @@ public class DirectoryOutput extends Loadable implements Output {
                         Map<String, Object> x = new HashMap<>();
                         x.putAll(a);
                         x.putAll(b);
-                        return x;
+                         return x;
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
