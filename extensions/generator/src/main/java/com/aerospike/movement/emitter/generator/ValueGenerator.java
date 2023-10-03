@@ -4,6 +4,7 @@ package com.aerospike.movement.emitter.generator;
 import com.aerospike.movement.logging.core.Logger;
 import com.aerospike.movement.util.core.RuntimeUtil;
 import com.github.javafaker.Faker;
+import org.apache.commons.configuration2.Configuration;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -49,7 +50,7 @@ public abstract class ValueGenerator<T> {
         }
     }
 
-    abstract public T generate(Map<String, Object> params);
+    abstract public T generate(final Map<String, Object> params);
 
     public static class RandomBoolean extends ValueGenerator<Boolean> {
         public static RandomBoolean INSTANCE = new RandomBoolean();
@@ -58,6 +59,18 @@ public abstract class ValueGenerator<T> {
         public Boolean generate(final Map<String, Object> params) {
             return new Random().nextBoolean();
         }
+    }
+
+    public static Object getOrThrow(final Class<? extends ValueGenerator<?>> generator,
+                                    final String configKey,
+                                    final Map<String, Object> generatorConfig) {
+        return Optional.ofNullable(generatorConfig.get(configKey))
+                .orElseThrow(() ->
+                        RuntimeUtil.getErrorHandler(generator).handleFatalError(
+                                new RuntimeException(String.format(
+                                        "missing configuration key %s for ValueGenerator %s",
+                                        configKey,
+                                        generator.getSimpleName()))));
     }
 
     public static class RandomString extends ValueGenerator<String> {
@@ -72,15 +85,15 @@ public abstract class ValueGenerator<T> {
             return sb.toString();
         }
 
-        public String generate(Map<String, Object> params) {
-            return randomString((Integer) params.get("length"));
+        public String generate(final Map<String, Object> params) {
+            return randomString((Integer) getOrThrow(this.getClass(), "length", params));
         }
     }
 
     public static class RandomUUID extends ValueGenerator<String> {
         public static RandomString INSTANCE = new RandomString();
 
-        public String generate(Map<String, Object> params) {
+        public String generate(final Map<String, Object> params) {
             return UUID.randomUUID().toString();
         }
     }
@@ -103,7 +116,7 @@ public abstract class ValueGenerator<T> {
 
         @Override
         public Long generate(final Map<String, Object> params) {
-            int digits = (Integer) params.get("digits");
+            int digits = (Integer) getOrThrow(this.getClass(), "digits", params);
             StringBuilder sb = new StringBuilder(digits);
             for (int i = 0; i < digits; i++) {
                 sb.append(new Random().nextInt(10));
@@ -125,23 +138,24 @@ public abstract class ValueGenerator<T> {
                 .map(Method::getName)
                 .collect(Collectors.toList());
         private final Logger logger = RuntimeUtil.getLogger(JFaker.INSTANCE);
+
         @Override
         public String generate(final Map<String, Object> params) {
             final Method fakerModuleGetter;
             final Object fakerModule;
             try {
-                fakerModuleGetter = RuntimeUtil.getMethod(faker.getClass(), (String) params.get(Keys.MODULE));
+                fakerModuleGetter = RuntimeUtil.getMethod(faker.getClass(), (String) getOrThrow(this.getClass(), Keys.MODULE, params));
                 fakerModule = fakerModuleGetter.invoke(faker);
             } catch (Exception e) {
                 final String errorMessage = "Faker modules available: " + fakerModules.stream().reduce((a, b) -> a + "\n" + b).orElse("");
                 logger.error(errorMessage);
                 throw RuntimeUtil.getErrorHandler(JFaker.INSTANCE)
-                        .handleFatalError(e, "Cannot find faker module " + params.get(Keys.MODULE), params);
+                        .handleFatalError(e, "Cannot find faker module " + getOrThrow(this.getClass(), Keys.MODULE, params), params);
             }
             final Method fakerMethodGetter;
             final Object result;
             try {
-                fakerMethodGetter = RuntimeUtil.getMethod(fakerModule.getClass(), (String) params.get(Keys.METHOD));
+                fakerMethodGetter = RuntimeUtil.getMethod(fakerModule.getClass(), (String) getOrThrow(this.getClass(), Keys.METHOD, params));
                 result = fakerMethodGetter.invoke(fakerModule);
             } catch (Exception e) {
                 final String errorMessage =
@@ -153,7 +167,7 @@ public abstract class ValueGenerator<T> {
                                         .orElse("");
                 logger.error(errorMessage);
                 throw RuntimeUtil.getErrorHandler(JFaker.INSTANCE)
-                        .handleFatalError(e, "Cannot find or invoke faker method " + params.get(Keys.METHOD), params);
+                        .handleFatalError(e, "Cannot find or invoke faker method " + getOrThrow(this.getClass(), Keys.METHOD, params), params);
             }
 
             return result.toString();
@@ -163,7 +177,7 @@ public abstract class ValueGenerator<T> {
     public static class FormattedRandomSSN extends ValueGenerator<String> {
         public static FormattedRandomSSN INSTANCE = new FormattedRandomSSN();
 
-        public String generate(Map<String, Object> params) {
+        public String generate(final Map<String, Object> params) {
             return String.format("%03d-%02d-%04d",
                     new Random().nextInt(1000),
                     new Random().nextInt(100),
@@ -174,7 +188,7 @@ public abstract class ValueGenerator<T> {
     public static class FormattedRandomUSPhone extends ValueGenerator<String> {
         public static FormattedRandomUSPhone INSTANCE = new FormattedRandomUSPhone();
 
-        public String generate(Map<String, Object> params) {
+        public String generate(final Map<String, Object> params) {
             return String.format("+1 (%03d) %03d-%04d",
                     new Random().nextInt(1000),
                     new Random().nextInt(1000),
@@ -185,7 +199,7 @@ public abstract class ValueGenerator<T> {
     public static class FormattedRandomUSZip extends ValueGenerator<String> {
         public static FormattedRandomUSZip INSTANCE = new FormattedRandomUSZip();
 
-        public String generate(Map<String, Object> params) {
+        public String generate(final Map<String, Object> params) {
             return String.format("%05d",
                     new Random().nextInt(100000));
         }
@@ -194,7 +208,7 @@ public abstract class ValueGenerator<T> {
     public static class FormattedDateTime extends ValueGenerator<String> {
         public static FormattedDateTime INSTANCE = new FormattedDateTime();
 
-        public String generate(Map<String, Object> params) {
+        public String generate(final Map<String, Object> params) {
             return Date.from(new Date().toInstant().plusSeconds(new Random().nextInt(1000000))).toString();
         }
     }
@@ -205,7 +219,7 @@ public abstract class ValueGenerator<T> {
         private Set<String> streetSuffix = Set.of("ln", "ct", "st", "cir", "sq", "dr", "ave", "rd", "blvd", "way", "pl", "ter", "trl", "pkwy", "hwy");
         public static FormattedRandomUSAddress INSTANCE = new FormattedRandomUSAddress();
 
-        public String generate(Map<String, Object> params) {
+        public String generate(final Map<String, Object> params) {
             return String.format("%d %s %s",
                     new Random().nextInt(10000),
                     streetNames.stream().skip(new Random().nextInt(streetNames.size())).findFirst().get(),
@@ -216,8 +230,8 @@ public abstract class ValueGenerator<T> {
     public static class ChoiceFromList extends ValueGenerator<String> {
         public static ChoiceFromList INSTANCE = new ChoiceFromList();
 
-        public String generate(Map<String, Object> params) {
-            List<String> choices = (List<String>) params.get("choices");
+        public String generate(final Map<String, Object> params) {
+            List<String> choices = (List<String>) getOrThrow(this.getClass(), "choices", params);
             return choices.stream().skip(new Random().nextInt(choices.size())).findFirst().get();
         }
     }
