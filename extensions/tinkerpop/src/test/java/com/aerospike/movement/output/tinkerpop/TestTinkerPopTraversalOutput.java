@@ -155,6 +155,42 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
 
     @Test
     @Ignore
+    public void testExternalConfig() throws IOException {
+        final Long SCALE_FACTOR = 100L;
+        final File schemaFile = new File("/home/g/ext_code/movement/scratchpad/ews_original_schema_v3.yaml");
+
+        final Configuration testConfig = ConfigurationUtil.configurationWithOverrides(ConfigurationUtil.load("/home/g/ext_code/movement/scratchpad/ews_demo.properties"),
+                new HashMap<>() {{
+                    put(YAMLParser.Config.Keys.YAML_FILE_PATH, (String) schemaFile.getAbsolutePath());
+                    put(RemoteGraphTraversalProvider.Config.Keys.HOST, "localhost");
+                    put(RemoteGraphTraversalProvider.Config.Keys.PORT, 8182);
+                }});
+        System.out.println(ConfigurationUtil.configurationToPropertiesFormat(testConfig));
+
+        final GraphTraversalSource g = AnonymousTraversalSource
+                .traversal()
+                .withRemote(DriverRemoteConnection
+                        .using(testConfig.getString(RemoteGraphTraversalProvider.Config.Keys.HOST),
+                                Integer.parseInt(testConfig.getString(RemoteGraphTraversalProvider.Config.Keys.PORT)),
+                                "g"));
+        g.V().drop().iterate();
+
+
+        final Runtime runtime = LocalParallelStreamRuntime.open(testConfig);
+        final Iterator<RunningPhase> x = runtime.runPhases(List.of(Runtime.PHASE.ONE), testConfig);
+        while (x.hasNext()) {
+            final RunningPhase y = x.next();
+            IteratorUtils.iterate(y);
+            y.get();
+            y.close();
+        }
+        runtime.close();
+//        assertEquals(1700L, g.V().count().next().longValue());
+//        assertEquals(1600L, g.E().count().next().longValue());
+    }
+
+    @Test
+    @Ignore
     public void remoteGDemoSchema() throws IOException {
         final Long SCALE_FACTOR = 100L;
         final File schemaFile = IOUtil.copyFromResourcesIntoNewTempFile("gdemo_schema.yaml");
