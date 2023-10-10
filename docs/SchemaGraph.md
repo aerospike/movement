@@ -4,7 +4,7 @@ types and ranges of values of another graph.
 A schema graph is very similar to a UML diagram.
 The DDL for the Schema Graph is the Gremlin language.
 
-Lets start with the simplest graph: 
+Lets start with the simplest schema: 
 
 (Vertex A) -(Edge E)-> (Vertex B)
 
