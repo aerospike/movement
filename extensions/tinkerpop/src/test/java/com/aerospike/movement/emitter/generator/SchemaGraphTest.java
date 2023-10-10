@@ -23,8 +23,6 @@ import static org.junit.Assert.assertTrue;
   7/18/23
 */
 public class SchemaGraphTest extends AbstractMovementTest {
-
-
     @Test
     public void testYamlYamlEquality() {
         final File schemaFile = IOUtil.copyFromResourcesIntoNewTempFile("example_schema.yaml");
@@ -70,7 +68,7 @@ public class SchemaGraphTest extends AbstractMovementTest {
     }
 
     @Test
-    public void testGraphMlSeralization() {
+    public void testGraphSONSeralization() {
         final File schemaFile = IOUtil.copyFromResourcesIntoNewTempFile("example_schema.yaml");
         SharedEmptyTinkerGraphGraphProvider.getInstance().traversal().V().drop().iterate();
         final Configuration config = new MapConfiguration(new HashMap<>() {{
@@ -87,17 +85,16 @@ public class SchemaGraphTest extends AbstractMovementTest {
         graph.traversal().io("target/example_schema.json").write().iterate();
         graph.traversal().V().drop().iterate();
         graph.traversal().io("target/example_schema.json").read().iterate();
-        final Configuration graphMlConfig = new MapConfiguration(new HashMap<>() {{
-            put(SchemaGraphParser.Config.Keys.GRAPHML_FILE, "target/example_schema.json");
+        final Configuration GraphSONConfig = new MapConfiguration(new HashMap<>() {{
+            put(SchemaGraphParser.Config.Keys.GRAPHSON_FILE, "target/example_schema.json");
         }});
 
 
         //parse the graph instance back into a GraphSchema
-        GraphSchema fromGraph = SchemaGraphParser.open(graphMlConfig).parse();
+        GraphSchema fromGraph = SchemaGraphParser.open(GraphSONConfig).parse();
 
         //compare the two GraphSchema instances, deep equality is implemented by each schema def class
         assertTrue(fromGraph.equals(fromYaml));
     }
-
 
 }

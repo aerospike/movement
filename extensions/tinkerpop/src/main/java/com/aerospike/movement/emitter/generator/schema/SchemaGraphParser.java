@@ -42,7 +42,7 @@ public class SchemaGraphParser implements Parser {
         }
 
         public static class Keys {
-            public static final String GRAPHML_FILE = "generator.schema.motif.graphml.file";
+            public static final String GRAPHSON_FILE = "generator.schema.motif.graphml.file";
             public static final String GRAPH_PROVIDER = "generator.schema.motif.graph.provider";
         }
 
@@ -59,8 +59,8 @@ public class SchemaGraphParser implements Parser {
 
     private static Graph openSchemaGraph(final Configuration config) {
         final Graph graph;
-        if (config.containsKey(Config.Keys.GRAPHML_FILE)) {
-            final File file = new File(config.getString(Config.Keys.GRAPHML_FILE));
+        if (config.containsKey(Config.Keys.GRAPHSON_FILE)) {
+            final File file = new File(config.getString(Config.Keys.GRAPHSON_FILE));
             graph = TinkerGraph.open();
             graph.traversal().io(file.getAbsolutePath()).read().iterate();
 

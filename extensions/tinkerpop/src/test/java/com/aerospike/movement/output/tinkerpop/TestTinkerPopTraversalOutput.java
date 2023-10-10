@@ -57,6 +57,17 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
     }
 
 
+    @Before
+    public void setup() {
+        super.setup();
+    }
+
+    @After
+    public void cleanup() {
+        super.cleanup();
+    }
+
+
     final Configuration graphTransferConfig = new MapConfiguration(new HashMap<>() {{
         put(THREADS, String.valueOf(THREAD_COUNT));
         put(ConfigurationBase.Keys.EMITTER, SourceGraph.class.getName());
@@ -68,16 +79,6 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
         put(ConfigurationBase.Keys.OUTPUT, TraversalOutput.class.getName());
     }});
 
-
-    @Before
-    public void setup() {
-        super.setup();
-    }
-
-    @After
-    public void cleanup() {
-        super.cleanup();
-    }
 
     @Test
     public void testWillTransferVerticesFromGraphAToGraphBbyTraversal() {
@@ -189,59 +190,5 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
 //        assertEquals(1600L, g.E().count().next().longValue());
     }
 
-    @Test
-    @Ignore
-    public void remoteGDemoSchema() throws IOException {
-        final Long SCALE_FACTOR = 100L;
-        final File schemaFile = IOUtil.copyFromResourcesIntoNewTempFile("gdemo_schema.yaml");
 
-        final Configuration testConfig = new MapConfiguration(
-                new HashMap<>() {{
-                    put(YAMLParser.Config.Keys.YAML_FILE_PATH, schemaFile.getAbsolutePath());
-                    put(LocalParallelStreamRuntime.Config.Keys.BATCH_SIZE, 1);
-                    put(EMITTER, Generator.class.getName());
-                    put(ConfigurationBase.Keys.ENCODER, TraversalEncoder.class.getName());
-                    put(TraversalEncoder.Config.Keys.TRAVERSAL_PROVIDER, RemoteGraphTraversalProvider.class.getName());
-                    put(ConfigurationBase.Keys.OUTPUT, TraversalOutput.class.getName());
-
-                    put(RemoteGraphTraversalProvider.Config.Keys.HOST, "localhost");
-                    put(RemoteGraphTraversalProvider.Config.Keys.PORT, "8182");
-
-
-                    put(WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName());
-                    put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
-
-
-                    put(SuppliedWorkChunkDriver.Config.Keys.ITERATOR_SUPPLIER, ConfiguredRangeSupplier.class.getName());
-
-                    put(SuppliedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, 0L);
-                    put(SuppliedWorkChunkDriver.Config.Keys.RANGE_TOP, SCALE_FACTOR);
-                    put(ConfiguredRangeSupplier.Config.Keys.RANGE_BOTTOM, 0L);
-                    put(ConfiguredRangeSupplier.Config.Keys.RANGE_TOP, SCALE_FACTOR);
-                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, SCALE_FACTOR * 10);
-                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, Long.MAX_VALUE);
-                }});
-        System.out.println(ConfigurationUtil.configurationToPropertiesFormat(testConfig));
-
-        final GraphTraversalSource g = AnonymousTraversalSource
-                .traversal()
-                .withRemote(DriverRemoteConnection
-                        .using(testConfig.getString(RemoteGraphTraversalProvider.Config.Keys.HOST),
-                                Integer.parseInt(testConfig.getString(RemoteGraphTraversalProvider.Config.Keys.PORT)),
-                                "g"));
-        g.V().drop().iterate();
-
-
-        final Runtime runtime = LocalParallelStreamRuntime.open(testConfig);
-        final Iterator<RunningPhase> x = runtime.runPhases(List.of(Runtime.PHASE.ONE), testConfig);
-        while (x.hasNext()) {
-            final RunningPhase y = x.next();
-            IteratorUtils.iterate(y);
-            y.get();
-            y.close();
-        }
-        runtime.close();
-        assertEquals(1700L, g.V().count().next().longValue());
-        assertEquals(1600L, g.E().count().next().longValue());
-    }
 }
