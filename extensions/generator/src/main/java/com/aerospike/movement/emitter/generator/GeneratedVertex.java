@@ -84,6 +84,9 @@ public class GeneratedVertex implements Emitable, EmittedVertex {
         try {
             return IteratorUtils.stream(new Paths(this, outEdges.stream()
                     .flatMap(outEdgeSpec -> {
+                        if(outEdgeSpec.toEdgeSchema(context.graphSchema).inVertex.equals(this.label())){
+                            throw new RuntimeException("Defining an OUT edge that refers to the same Vertex type as IN is not currently supported.");
+                        }
                         final EdgeSchema edgeSchema;
                         final Double likelihood;
                         final Integer chancesToCreate;
