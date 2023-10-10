@@ -3,6 +3,8 @@ package com.aerospike.movement.emitter.generator.schema;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.generator.ValueGeneratorConfig;
 import com.aerospike.movement.emitter.generator.schema.def.*;
+import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphGraphProvider;
+import com.aerospike.movement.tinkerpop.common.GraphProvider;
 import com.aerospike.movement.util.core.ConfigurationUtil;
 import com.aerospike.movement.util.core.RuntimeUtil;
 import com.aerospike.movement.util.tinkerpop.SchemaGraphUtil;
@@ -11,6 +13,7 @@ import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.*;
 
 
@@ -60,14 +63,12 @@ public class SchemaGraphParser implements Parser {
     private static Graph openSchemaGraph(final Configuration config) {
         final Graph graph;
         if (config.containsKey(Config.Keys.GRAPHSON_FILE)) {
-            final File file = new File(config.getString(Config.Keys.GRAPHSON_FILE));
-            graph = TinkerGraph.open();
-            graph.traversal().io(file.getAbsolutePath()).read().iterate();
-
+            graph = readGraphSON(Path.of(config.getString(Config.Keys.GRAPHSON_FILE)));
         } else if (config.containsKey(Config.Keys.GRAPH_PROVIDER)) {
-            graph = (Graph) RuntimeUtil.openClassRef(config.getString(Config.Keys.GRAPH_PROVIDER), config);
+            //@todo fix graph provider returns Graph
+            graph = ((Graph) RuntimeUtil.openClassRef(config.getString(Config.Keys.GRAPH_PROVIDER), config));
         } else {
-            throw new IllegalArgumentException("No graphml file or graph provider specified");
+            throw new IllegalArgumentException("No GraphSON file or graph provider specified");
         }
         return graph;
     }
@@ -176,5 +177,28 @@ public class SchemaGraphParser implements Parser {
             builder.withEdgeType(edgeSchema);
         });
         return builder.build(schemaGraph.traversal().V().has(SchemaBuilder.Keys.ENTRYPOINT, true).next().id().toString());
+    }
+
+    public static void writeGraphSON(final GraphSchema schema, final Path output) {
+        final Graph graph = TinkerGraph.open();
+        SchemaGraphUtil.writeToGraph(graph, schema);
+        graph.traversal().io(output.toAbsolutePath().toString()).write().iterate();
+    }
+
+    public static Graph readGraphSON(final Path graphSonPath) {
+        if (!graphSonPath.toFile().exists()) {
+            throw new RuntimeException(graphSonPath + " file does not exist.");
+        }
+        final Graph graph = TinkerGraph.open();
+        graph.traversal().io(graphSonPath.toAbsolutePath().toString()).read().iterate();
+        return graph;
+    }
+
+    public static GraphSchema fromGraph(final Graph graph) {
+        return new SchemaGraphParser(graph).parse();
+    }
+
+    public static GraphSchema fromGraphSON(final Path graphSonPath) {
+        return fromGraph(readGraphSON(graphSonPath));
     }
 }

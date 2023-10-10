@@ -1,7 +1,9 @@
 package com.aerospike.movement.emitter.generator;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
+import com.aerospike.movement.emitter.generator.schema.SchemaGraphParser;
 import com.aerospike.movement.emitter.generator.schema.YAMLParser;
+import com.aerospike.movement.emitter.generator.schema.def.GraphSchema;
 import com.aerospike.movement.encoding.tinkerpop.TraversalEncoder;
 import com.aerospike.movement.output.tinkerpop.TraversalOutput;
 import com.aerospike.movement.runtime.core.Runtime;
@@ -21,6 +23,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -30,12 +33,12 @@ import static junit.framework.TestCase.assertEquals;
 
 public class SchemaGraphIntegration {
     @Test
-    public void testSimplest(){
+    public void testSimplest() {
 
     }
 
     @Test
-    public void remoteGDemoSchema() throws IOException {
+    public void simplestSchema() throws IOException {
         final Long SCALE_FACTOR = 1L;
         final File schemaFile = IOUtil.copyFromResourcesIntoNewTempFile("simplest_schema.yaml");
 
@@ -76,5 +79,8 @@ public class SchemaGraphIntegration {
         runtime.close();
         assertEquals(2L, g.V().count().next().longValue());
         assertEquals(1L, g.E().count().next().longValue());
+        GraphSchema schema = YAMLParser.from(schemaFile.toPath()).parse();
+        SchemaGraphParser.writeGraphSON(schema, Path.of("target/simplest_schema.json"));
     }
+
 }

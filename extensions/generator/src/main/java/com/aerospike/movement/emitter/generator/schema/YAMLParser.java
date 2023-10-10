@@ -42,7 +42,6 @@ public class YAMLParser implements Parser {
             return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
         }
 
-
         public static class Keys {
             public static final String YAML_FILE_URI = "generator.schema.yaml.URI";
             public static final String YAML_FILE_PATH = "generator.schema.yaml.path";
@@ -60,26 +59,33 @@ public class YAMLParser implements Parser {
 
     public static YAMLParser open(final Configuration config) {
         if (config.containsKey(Config.Keys.YAML_FILE_PATH)) {
-            final String path = config.getString(Config.Keys.YAML_FILE_PATH);
-            return new YAMLParser(Path.of(path).toFile());
+            return from(Path.of(config.getString(Config.Keys.YAML_FILE_PATH)));
+        } else if (config.containsKey(Config.Keys.YAML_FILE_URI)) {
+            return from(URI.create(Config.INSTANCE.getOrDefault(Config.Keys.YAML_FILE_URI, config)));
+        } else {
+            throw new RuntimeException("must set " + Config.Keys.YAML_FILE_PATH + " or " + Config.Keys.YAML_FILE_URI);
         }
+    }
 
-        final URI uri = URI.create(Config.INSTANCE.getOrDefault(Config.Keys.YAML_FILE_URI, config));
-        if (uri.getScheme().equals("http")) {
+    public static YAMLParser from(final URI yamlSchemaFileURI) {
+        if (yamlSchemaFileURI.getScheme().equals("http")) {
             try {
                 File tmpFile = Files.createTempFile("schema", ".yaml").toFile();
-                IOUtil.downloadFileFromURL(uri.toURL(), tmpFile);
+                IOUtil.downloadFileFromURL(yamlSchemaFileURI.toURL(), tmpFile);
                 return new YAMLParser(tmpFile);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         } else {
-            throw new RuntimeException("Unsupported URI scheme: " + uri.getScheme());
+            throw new RuntimeException("Unsupported URI scheme: " + yamlSchemaFileURI.getScheme());
         }
     }
 
-    public GraphSchema parse() {
+    public static YAMLParser from(final Path yamlSchemaPath) {
+        return new YAMLParser(yamlSchemaPath.toFile());
+    }
 
+    public GraphSchema parse() {
         try {
             final String yamlText = Files.readAllLines(file.toPath(), Charset.defaultCharset()).stream()
                     .reduce("", (a, b) -> a + "\n" + b);
@@ -89,5 +95,4 @@ public class YAMLParser implements Parser {
             throw new RuntimeException("Could not read file: " + file.toPath(), e);
         }
     }
-
 }
