@@ -26,7 +26,6 @@ vertexTypes:
     properties: []
 
 edgeTypes:
-
   - name: AtoB
     inVertex: B
     outVertex: A
@@ -87,3 +86,5 @@ graph islands.
 you can change generator.scaleFactor, for example, 100:
 
 ![Generated Graph](schemaGraph/simplestGenerated.jpg)
+
+
