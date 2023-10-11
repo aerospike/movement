@@ -49,6 +49,12 @@ public class Load extends Task {
     public static Load open(Configuration config) {
         return new Load(config);
     }
+
+    @Override
+    public Configuration getConfig(Configuration config) {
+        return config;
+    }
+
     @Override
     public Map<String, Object> getMetrics() {
         throw ErrorUtil.unimplemented();

@@ -10,6 +10,7 @@ import com.aerospike.movement.runtime.core.driver.OutputIdDriver;
 import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.util.core.ConfigurationUtil;
+import com.aerospike.movement.util.core.IOUtil;
 import com.aerospike.movement.util.core.iterator.OneShotSupplier;
 import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.test.core.AbstractMovementTest;
@@ -109,15 +110,16 @@ public class TestCLI extends AbstractMovementTest {
         final Path tmpConfig = Files.createTempFile("movement", "test").toAbsolutePath();
         final String configString = ConfigurationUtil.configurationToPropertiesFormat(getMockConfiguration(new HashMap<>()));
         Files.write(tmpConfig, configString.getBytes());
-
+        String schemaPath = IOUtil.copyFromResourcesIntoNewTempFile("example_schema.yaml").getAbsolutePath();
         final String[] args = {
                 CLI.MovementCLI.Args.TEST_MODE,
-                CLI.MovementCLI.Args.TASK, Generate.class.getSimpleName(),
+                CLI.MovementCLI.Args.TASK, MockTask.class.getSimpleName(),
                 CLI.MovementCLI.Args.CONFIG_SHORT, tmpConfig.toString(),
                 CLI.MovementCLI.Args.SET_SHORT, override(THREADS, "1"),
                 CLI.MovementCLI.Args.SET_SHORT, override(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName()),
                 CLI.MovementCLI.Args.SET_SHORT, override(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName()),
                 CLI.MovementCLI.Args.SET_SHORT, override(SCALE_FACTOR, TEST_SIZE.toString()),
+                CLI.MovementCLI.Args.SET_SHORT, override(YAMLParser.Config.Keys.YAML_FILE_PATH, schemaPath)
         };
         SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
         SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));

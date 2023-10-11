@@ -27,7 +27,7 @@ public class MockTask extends Task {
         }
 
         @Override
-        public Map<String, String> defaultConfigMap(final Map<String,Object> config) {
+        public Map<String, String> defaultConfigMap(final Map<String, Object> config) {
             return DEFAULTS;
         }
 
@@ -54,8 +54,13 @@ public class MockTask extends Task {
     }
 
     @Override
+    public Configuration getConfig(Configuration config) {
+        return config;
+    }
+
+    @Override
     public Map<String, Object> getMetrics() {
-        return Map.of("mock",1);
+        return Map.of("mock", 1);
     }
 
     @Override

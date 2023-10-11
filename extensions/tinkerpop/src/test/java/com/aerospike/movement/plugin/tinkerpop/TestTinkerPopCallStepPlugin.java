@@ -164,12 +164,12 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
         final VertexSchema rootVertexSchema = Generator.getRootVertexSchema(testConfig);
         final List<String> vertexLabels = graph.traversal().V().label().dedup().toList();
         final List<String> edgeLabels = graph.traversal().E().label().dedup().toList();
-        Generator.getGraphSchema(testConfig).vertexTypes.stream().map(vt -> vt.label()).forEach(l -> {
+        Generator.parseGraphSchema(testConfig).vertexTypes.stream().map(vt -> vt.label()).forEach(l -> {
             if (!vertexLabels.contains(l)) {
                 throw new RuntimeException("Vertex label not found: " + l);
             }
         });
-        Generator.getGraphSchema(testConfig).edgeTypes.stream().map(et -> et.label()).forEach(l -> {
+        Generator.parseGraphSchema(testConfig).edgeTypes.stream().map(et -> et.label()).forEach(l -> {
             if (!(edgeLabels.contains(l))) {
                 throw new RuntimeException("Edge label not found: " + l);
             }

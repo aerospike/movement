@@ -1,0 +1,2 @@
+{"id":"A","label":"vertexType","outE":{"edgeType":[{"id":"AtoB","inV":"B"}]},"properties":{"entrypoint":[{"id":{"@type":"g:Int64","@value":0},"value":true}]}}
+{"id":"B","label":"vertexType","inE":{"edgeType":[{"id":"AtoB","outV":"A"}]}}

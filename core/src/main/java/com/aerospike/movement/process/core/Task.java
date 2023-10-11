@@ -24,17 +24,17 @@ public abstract class Task extends Loadable {
         this.config = config;
     }
 
+//    public abstract Configuration setupConfig(final Configuration inputConfig);
+
     public static Task getTaskByAlias(final String operation, final Configuration config) {
         Class<? extends Task> task = RuntimeUtil.getTaskClassByAlias(operation);
         return (Task) RuntimeUtil.lookupOrLoad(task, config);
     }
 
-    public Configuration getConfig() {
-        return this.config;
-    }
+    public abstract Configuration getConfig(Configuration config);
 
     public static Iterator<Map<String, Object>> run(final Task task) {
-        final Configuration jobConfig = task.getConfig();
+        final Configuration jobConfig = task.getConfig(task.config);
         final LocalParallelStreamRuntime runtime = (LocalParallelStreamRuntime) LocalParallelStreamRuntime.getInstance(jobConfig);
         final List<Runtime.PHASE> p = task.getPhases();
         return p.stream()
@@ -114,5 +114,18 @@ public abstract class Task extends Loadable {
             public static final String FAILURE_CAUSE = "failure_cause";
         }
     }
+
     public abstract List<Runtime.PHASE> getPhases();
+
+
+
+    public static Configuration taskConfig(final String taskImplClassName, final Configuration config) {
+        final Task taskInstance = (Task) RuntimeUtil.openClassRef(taskImplClassName, config);
+        return taskInstance.getConfig(taskInstance.config);
+    }
+
+    public static Task getTask(final String taskName, final Configuration config) {
+        final String taskImplClassName = RuntimeUtil.getTaskClassByAlias(taskName).getName();
+        return (Task) RuntimeUtil.openClassRef(taskImplClassName, config);
+    }
 }

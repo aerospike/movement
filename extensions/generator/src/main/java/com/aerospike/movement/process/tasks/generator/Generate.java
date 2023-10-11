@@ -53,17 +53,7 @@ public class Generate extends Task {
 
         @Override
         public Map<String, String> defaultConfigMap(final Map<String, Object> config) {
-            final long workPerProcessor = Long.parseLong(Generator.Config.INSTANCE.getOrDefault(Generator.Config.Keys.SCALE_FACTOR, config)) / getAvailableProcessors();
-            final long scaleFactor = Long.parseLong(Generator.Config.INSTANCE.getOrDefault(Generator.Config.Keys.SCALE_FACTOR, config));
-            return new HashMap<>() {{
-                put(ConfigurationBase.Keys.EMITTER, Generator.class.getName());
-                //alias driver range to generator scale factor
-                put(SuppliedWorkChunkDriver.Config.Keys.RANGE_TOP, Generator.Config.INSTANCE.getOrDefault(Generator.Config.Keys.SCALE_FACTOR, config));
-                put(SuppliedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(0L));
-                put(BATCH_SIZE, String.valueOf(Math.min(workPerProcessor, Math.min(scaleFactor / getAvailableProcessors(), 100_000))));
-                put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(scaleFactor + 1));
-                put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
-            }};
+            return new HashMap<>();
         }
 
         @Override
@@ -89,6 +79,35 @@ public class Generate extends Task {
         return new Generate(config);
     }
 
+
+//    @Override
+//    public Configuration setupConfig(final Configuration inputConfig) {
+//        return null;
+//    }
+
+    @Override
+    public Configuration getConfig(final Configuration config) {
+        final long workPerProcessor = Long.parseLong(Generator.Config.INSTANCE.getOrDefault(Generator.Config.Keys.SCALE_FACTOR, config)) / getAvailableProcessors();
+        final long scaleFactor = Long.parseLong(Generator.Config.INSTANCE.getOrDefault(Generator.Config.Keys.SCALE_FACTOR, config));
+
+        /**
+         * todo this is a hack
+         */
+        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotSupplier.of(() -> PrimitiveIteratorWrap.wrap(LongStream.range(0, scaleFactor).iterator())));
+        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotSupplier.of(() -> PrimitiveIteratorWrap.wrap(LongStream.range(0, scaleFactor).iterator())));
+        return ConfigurationUtil.configurationWithOverrides(config, new HashMap<>() {{
+            put(ConfigurationBase.Keys.EMITTER, Generator.class.getName());
+            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName());
+            put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER,GeneratedOutputIdDriver.class.getName());
+            //alias driver range to generator scale factor
+            put(SuppliedWorkChunkDriver.Config.Keys.RANGE_TOP, Generator.Config.INSTANCE.getOrDefault(Generator.Config.Keys.SCALE_FACTOR, config));
+            put(SuppliedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(0L));
+            put(BATCH_SIZE, String.valueOf(Math.min(scaleFactor, 1000)));
+            put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(scaleFactor + 1));
+            put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
+        }});
+
+    }
 
     @Override
     public Map<String, Object> getMetrics() {

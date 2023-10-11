@@ -23,7 +23,7 @@ import java.util.Map;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class YAMLParser implements Parser {
+public class YAMLParser implements GraphSchemaParser {
 
     public static class Config extends ConfigurationBase {
         public static final Config INSTANCE = new Config();

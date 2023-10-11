@@ -4,24 +4,26 @@ package com.aerospike.movement.emitter.generator;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.emitter.core.Emitter;
-import com.aerospike.movement.emitter.generator.schema.Parser;
+import com.aerospike.movement.emitter.generator.schema.GraphSchemaParser;
 import com.aerospike.movement.emitter.generator.schema.YAMLParser;
+import com.aerospike.movement.emitter.generator.schema.def.GraphSchema;
+import com.aerospike.movement.emitter.generator.schema.def.VertexSchema;
 import com.aerospike.movement.process.core.Loadable;
 import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.runtime.core.driver.*;
-import com.aerospike.movement.test.mock.emitter.MockEmitable;
+import com.aerospike.movement.runtime.core.driver.OutputIdDriver;
+import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.util.core.ConfigurationUtil;
 import com.aerospike.movement.util.core.RuntimeUtil;
 import com.aerospike.movement.util.core.iterator.IteratorUtils;
-import com.aerospike.movement.emitter.generator.schema.def.GraphSchema;
-import com.aerospike.movement.emitter.generator.schema.def.VertexSchema;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static com.aerospike.movement.process.tasks.generator.Generate.Config.Keys.EMITTER;
 
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
@@ -56,10 +58,13 @@ public class Generator extends Loadable implements Emitter {
         public static class Keys {
             public static final String SCALE_FACTOR = "generator.scaleFactor";
             public static final String CHANCE_TO_JOIN = "generator.chanceToJoin";
+            public static final String SCHEMA_PARSER = "generator.schemaParser";
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
+            put(EMITTER, Generator.class.getName());
             put(Keys.SCALE_FACTOR, "100");
+            put(Keys.SCHEMA_PARSER, YAMLParser.class.getName());
         }};
     }
 
@@ -82,7 +87,7 @@ public class Generator extends Loadable implements Emitter {
         super(MockOutput.Config.INSTANCE, config);
         this.config = config;
         this.rootVertexSchema = getRootVertexSchema(config);
-        this.graphSchema = getGraphSchema(config);
+        this.graphSchema = parseGraphSchema(config);
         this.scaleFactor = Long.valueOf(Config.INSTANCE.getOrDefault(Config.Keys.SCALE_FACTOR, config));
         this.outputIdDriver = outputIdDriver;
     }
@@ -146,13 +151,14 @@ public class Generator extends Loadable implements Emitter {
     }
 
 
-    public static GraphSchema getGraphSchema(final Configuration config) {
-        final Parser yamlParser = (Parser) RuntimeUtil.openClassRef(YAMLParser.class.getName(), config);
-        return yamlParser.parse();
+    public static GraphSchema parseGraphSchema(final Configuration config) {
+        final String graphSchemaParserImpl = Config.INSTANCE.getOrDefault(Config.Keys.SCHEMA_PARSER, config);
+        final GraphSchemaParser parser = (GraphSchemaParser) RuntimeUtil.openClassRef(graphSchemaParserImpl, config);
+        return parser.parse();
     }
 
     public static VertexSchema getRootVertexSchema(final Configuration config) {
-        final GraphSchema schema = getGraphSchema(config);
+        final GraphSchema schema = parseGraphSchema(config);
         return getRootVertexSchema(schema);
     }
 
@@ -181,6 +187,7 @@ public class Generator extends Loadable implements Emitter {
     //Close methods twelfth.
     @Override
     public void close() {
+        System.out.println("close Generator");
 
     }
 

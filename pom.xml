@@ -14,7 +14,6 @@
         <module>core</module>
         <module>plugin</module>
         <module>extensions</module>
-        <module>extensions/performance</module>
     </modules>
 
     <properties>

@@ -162,8 +162,8 @@ public class RuntimeUtil {
         return it;
     }
 
-    public static Object load(final String configName, final Configuration config) {
-        final String driverName = Optional.ofNullable(config.getString(configName)).orElseThrow(() -> new RuntimeException("No work chunk driver specified"));
+    public static Object load(final String configKey, final Configuration config) {
+        final String driverName = Optional.ofNullable(config.getString(configKey)).orElseThrow(() -> new RuntimeException("config key not found: " + configKey));
         return openClassRef(driverName, config);
     }
 

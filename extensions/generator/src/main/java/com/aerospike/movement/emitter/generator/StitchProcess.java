@@ -44,7 +44,7 @@ public class StitchProcess extends Loadable implements Emitter {
     private StitchProcess(final Configuration config) {
         super(MockOutput.Config.INSTANCE, config);
         this.config = config;
-        this.graphSchema = Generator.getGraphSchema(config);
+        this.graphSchema = Generator.parseGraphSchema(config);
         this.output = RuntimeUtil.loadOutput(config);
     }
 

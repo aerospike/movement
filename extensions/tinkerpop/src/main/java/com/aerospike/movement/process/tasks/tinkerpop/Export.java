@@ -62,6 +62,12 @@ public class Export extends Task {
     public static Export open(Configuration config) {
         return new Export(config);
     }
+
+    @Override
+    public Configuration getConfig(Configuration config) {
+        return config;
+    }
+
     @Override
     public Map<String, Object> getMetrics() {
         throw ErrorUtil.unimplemented();

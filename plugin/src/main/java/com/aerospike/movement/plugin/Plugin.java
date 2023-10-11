@@ -66,6 +66,7 @@ public abstract class Plugin extends Loadable implements PluginInterface {
     public Optional<Iterator<Object>> runTask(final Task task, final Configuration config) {
         final Configuration taskBaseConfig = ConfigurationUtil.getConfigurationMeta(task.getClass()).defaults();
         final Configuration taskConfig = ConfigurationUtil.configurationWithOverrides(taskBaseConfig, config);
+
         task.init(config);
         try {
             return Optional.of((Iterator<Object>) IteratorUtils.wrap(LocalParallelStreamRuntime.open(taskConfig).runTask(task)));

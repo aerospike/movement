@@ -48,7 +48,36 @@ Pretty straightforward.
 
 Lets start from an empty Graph, define a schema, then generate some data.
 
+Open an empty Graph in Gremlin Console, and define the schema, then write it to a file. \
+In this example, we will put it in `/tmp/schema.json`. Your system may have a different temp directory. 
 
+```groovy
+gremlin> graph = TinkerGraph.open()
+==>tinkergraph[vertices:0 edges:0]
+gremlin> g = graph.traversal()
+==>graphtraversalsource[tinkergraph[vertices:0 edges:0], standard]
+gremlin> g.addV('vertexType').as('A').property(single,'entrypoint',true).addV('vertexType').as('B').addE('edgeType').from('A').to('B')
+==>e[3][0-edgeType->2]
+gremlin> g.io("/tmp/schema.json").write().iterate();
+```
 
+Now lets use our new schema.  For `Direct Write` You need to have gremlin server setup and listening. \
+In this example, it is setup and listening on `localhost:8182`. \
+It is also possiable to write to CSV files.
+```shell
+java -cp core/target/core-1.0.0-SNAPSHOT.jar:extensions/tinkerpop/target/tinkerpop-1.0.0-SNAPSHOT.jar:cli/target/cli-1.0.0-SNAPSHOT.jar \
+  com.aerospike.movement.cli.CLI \
+  task=Generate \
+  -d \
+  -c conf/generator/simplest.properties \
+  -s generator.schema.graphschema.graphson.file=conf/generator/simplest_schema.json \
+  -s traversalSource.host=localhost \
+  -s traversalSource.port=8182
+...
+Processed 300 elements in 1.332000 seconds (225.225225 elements per second)
+```
 
+Now, if you connect to your Gremlin server with a visualization tool, you can see we have created 100 minimum A->B 
+graph islands.
 
+![Generated Graph](schemaGraph/simplestGenerated.jpg)
