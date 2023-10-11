@@ -72,12 +72,18 @@ java -cp core/target/core-1.0.0-SNAPSHOT.jar:extensions/tinkerpop/target/tinkerp
   -c conf/generator/simplest.properties \
   -s generator.schema.graphschema.graphson.file=conf/generator/simplest_schema.json \
   -s traversalSource.host=localhost \
-  -s traversalSource.port=8182
+  -s traversalSource.port=8182 \
+  -s generator.scaleFactor=3
+
 ...
 Processed 300 elements in 1.332000 seconds (225.225225 elements per second)
 ```
 
-Now, if you connect to your Gremlin server with a visualization tool, you can see we have created 100 minimum A->B 
+Now, if you connect to your Gremlin server with a visualization tool, you can see we have created 3 minimum A->B 
 graph islands.
+
+![Generated Graph](schemaGraph/threeislands.jpg)
+
+you can change generator.scaleFactor, for example, 100:
 
 ![Generated Graph](schemaGraph/simplestGenerated.jpg)
