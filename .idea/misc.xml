@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
+  <component name="MavenProjectsManager">
+    <option name="originalFiles">
+      <list>
+        <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/extensions/generator/pom.xml" />
+        <option value="$PROJECT_DIR$/extensions/files/pom.xml" />
+        <option value="$PROJECT_DIR$/core/cli/pom.xml" />
+        <option value="$PROJECT_DIR$/extensions/tinkerpop/pom.xml" />
+        <option value="$PROJECT_DIR$/cli/pom.xml" />
+      </list>
+    </option>
+    <option name="ignoredFiles">
+      <set>
+        <option value="$PROJECT_DIR$/extensions/aws/pom.xml" />
+        <option value="$PROJECT_DIR$/extensions/gcp/pom.xml" />
+        <option value="$PROJECT_DIR$/extensions/performance/pom.xml" />
+        <option value="$PROJECT_DIR$/extensions/vert-x/pom.xml" />
+      </set>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="corretto-20" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
+</project>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/cli/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/cli/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/core/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/core/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/aws/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/aws/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/files/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/files/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/gcp/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/gcp/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/generator/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/generator/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/performance/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/performance/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/tinkerpop/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/tinkerpop/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/vert-x/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/extensions/vert-x/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/plugin/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/plugin/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
+  </component>
+</project>
