@@ -1,3 +1,4 @@
+cli/src/test/java/com/aerospike/movement/cli/TestDemo.java
 sandbox/
 demo/
 oldrun.txt
