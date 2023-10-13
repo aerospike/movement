@@ -74,7 +74,7 @@ public class TestCLI extends AbstractMovementTest {
         final List<Object> y = IteratorUtils.list(x.get().call());
         final List<String> z = RuntimeUtil.findAvailableSubclasses(Task.class)
                 .stream().map(Class::getName).collect(Collectors.toList());
-        assertEquals(2, z.size());
+        assertEquals(5, z.size());
         assertEquals(z.size(), y.size());
         CLI.main(args);
     }
