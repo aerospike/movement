@@ -86,6 +86,10 @@ public class CLI {
                 .collect(Collectors.toList());
     }
 
+    public static String setEquals(final String key, final String value) {
+        return String.format("%s=%s", key, value);
+    }
+
     public static class MovementCLI {
         public static class Args {
             public static final String TASK = "task";

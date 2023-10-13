@@ -3,8 +3,10 @@ package com.aerospike.movement.tinkerpop.common;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.util.core.ConfigurationUtil;
 import com.aerospike.movement.encoding.tinkerpop.TraversalEncoder;
+import com.aerospike.movement.util.core.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
+import org.apache.tinkerpop.gremlin.process.remote.RemoteConnectionException;
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
@@ -51,6 +53,12 @@ public class RemoteGraphTraversalProvider {
                 .traversal()
                 .withRemote(DriverRemoteConnection
                         .using(host, Integer.parseInt(port), remoteTraversalSourceName));
+        try {
+            //test connection
+            g.V().limit(1).hasNext();
+        } catch (final Exception cannotConnect) {
+            throw RuntimeUtil.getErrorHandler(GraphTraversalSource.class).handleFatalError(cannotConnect, config);
+        }
         synchronized (RemoteGraphTraversalProvider.class) {
             if (Boolean.parseBoolean(Config.INSTANCE.getOrDefault(TraversalEncoder.Config.Keys.CLEAR, config))) {
                 g.V().drop().iterate();

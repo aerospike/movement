@@ -96,10 +96,6 @@ public class TestCLI extends AbstractMovementTest {
         CLI.main(args);
     }
 
-    private String override(final String key, final String value) {
-        return String.format("%s=%s", key, value);
-    }
-
     private final Integer TEST_SIZE = 10_000;
 
 
@@ -115,11 +111,11 @@ public class TestCLI extends AbstractMovementTest {
                 CLI.MovementCLI.Args.TEST_MODE,
                 CLI.MovementCLI.Args.TASK, MockTask.class.getSimpleName(),
                 CLI.MovementCLI.Args.CONFIG_SHORT, tmpConfig.toString(),
-                CLI.MovementCLI.Args.SET_SHORT, override(THREADS, "1"),
-                CLI.MovementCLI.Args.SET_SHORT, override(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName()),
-                CLI.MovementCLI.Args.SET_SHORT, override(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName()),
-                CLI.MovementCLI.Args.SET_SHORT, override(SCALE_FACTOR, TEST_SIZE.toString()),
-                CLI.MovementCLI.Args.SET_SHORT, override(YAMLParser.Config.Keys.YAML_FILE_PATH, schemaPath)
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(THREADS, "1"),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName()),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName()),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(SCALE_FACTOR, TEST_SIZE.toString()),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(YAMLParser.Config.Keys.YAML_FILE_PATH, schemaPath)
         };
         SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
         SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
@@ -157,10 +153,10 @@ public class TestCLI extends AbstractMovementTest {
                 CLI.MovementCLI.Args.TASK, MockTask.class.getSimpleName(),
                 CLI.MovementCLI.Args.CONFIG_SHORT, tmpConfig.toString(),
                 CLI.MovementCLI.Args.DEBUG_SHORT,
-                CLI.MovementCLI.Args.SET_SHORT, override(THREADS, "1"),
-                CLI.MovementCLI.Args.SET_SHORT, override(BATCH_SIZE, String.valueOf(TEST_SIZE / getAvailableProcessors() / 8)),
-                CLI.MovementCLI.Args.SET_SHORT, override(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName()),
-                CLI.MovementCLI.Args.SET_SHORT, override(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName()),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(THREADS, "1"),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(BATCH_SIZE, String.valueOf(TEST_SIZE / getAvailableProcessors() / 8)),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName()),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName()),
         };
         SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
         SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
@@ -184,7 +180,7 @@ public class TestCLI extends AbstractMovementTest {
     }
 
     @Test
-    public void testRunexampleConfig() {
+    public void testRunExampleConfigurationGenerate() {
         long TEST_SIZE = 40000;
         RuntimeUtil.loadClass(MockTask.class.getName());
         final Path exampleConfig = Path.of("../conf/generator/example.properties");
@@ -194,10 +190,10 @@ public class TestCLI extends AbstractMovementTest {
                 CLI.MovementCLI.Args.TASK, Generate.class.getSimpleName(),
                 CLI.MovementCLI.Args.CONFIG_SHORT, exampleConfig.toString(),
                 CLI.MovementCLI.Args.DEBUG_SHORT,
-                CLI.MovementCLI.Args.SET_SHORT, override(THREADS, "8"),
-                CLI.MovementCLI.Args.SET_SHORT, override(SCALE_FACTOR, String.valueOf(TEST_SIZE)),
-                CLI.MovementCLI.Args.SET_SHORT, override(YAMLParser.Config.Keys.YAML_FILE_PATH, "../extensions/generator/src/main/resources/example_schema.yaml"),
-                CLI.MovementCLI.Args.SET_SHORT, override(DirectoryOutput.Config.Keys.DIRECTORY, "/tmp/generate")
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(THREADS, "8"),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(SCALE_FACTOR, String.valueOf(TEST_SIZE)),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(YAMLParser.Config.Keys.YAML_FILE_PATH, "../extensions/generator/src/main/resources/example_schema.yaml"),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(DirectoryOutput.Config.Keys.DIRECTORY, "/tmp/generate")
         };
 
         MockUtil.setDefaultMockCallbacks();
