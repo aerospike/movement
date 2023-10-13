@@ -2,11 +2,11 @@ package com.aerospike.movement.cli;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.generator.schema.YAMLParser;
+import com.aerospike.movement.output.files.DirectoryOutput;
 import com.aerospike.movement.plugin.cli.CLIPlugin;
 import com.aerospike.movement.process.core.Task;
 import com.aerospike.movement.process.tasks.generator.Generate;
 import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.runtime.core.driver.OutputIdDriver;
 import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.util.core.ConfigurationUtil;
@@ -85,7 +85,7 @@ public class TestCLI extends AbstractMovementTest {
         final Map<String, Class<? extends Task>> tasks = RuntimeUtil.getTasks();
         assertTrue(tasks.containsKey(MockTask.class.getSimpleName()));
 
-        final String[] args = {CLI.MovementCLI.Args.TEST_MODE,CLI.MovementCLI.Args.LIST_COMPONENTS};
+        final String[] args = {CLI.MovementCLI.Args.TEST_MODE, CLI.MovementCLI.Args.LIST_COMPONENTS};
         final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);
         assertTrue(x.isPresent());
         final List<Object> y = IteratorUtils.list(x.get().call());
@@ -184,30 +184,21 @@ public class TestCLI extends AbstractMovementTest {
     }
 
     @Test
-    public void testRunMockTaskMain() throws Exception {
+    public void testRunexampleConfig() {
         long TEST_SIZE = 40000;
         RuntimeUtil.loadClass(MockTask.class.getName());
         final Path exampleConfig = Path.of("../conf/generator/example.properties");
 
         final String[] args = {
                 CLI.MovementCLI.Args.TEST_MODE,
-
-                CLI.MovementCLI.Args.TASK, MockTask.class.getSimpleName(),
+                CLI.MovementCLI.Args.TASK, Generate.class.getSimpleName(),
                 CLI.MovementCLI.Args.CONFIG_SHORT, exampleConfig.toString(),
                 CLI.MovementCLI.Args.DEBUG_SHORT,
-
                 CLI.MovementCLI.Args.SET_SHORT, override(THREADS, "8"),
                 CLI.MovementCLI.Args.SET_SHORT, override(SCALE_FACTOR, String.valueOf(TEST_SIZE)),
                 CLI.MovementCLI.Args.SET_SHORT, override(YAMLParser.Config.Keys.YAML_FILE_PATH, "../extensions/generator/src/main/resources/example_schema.yaml"),
-                CLI.MovementCLI.Args.SET_SHORT, override(BATCH_SIZE, String.valueOf(10000)),
-                CLI.MovementCLI.Args.SET_SHORT, override(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(TEST_SIZE + 1)),
-                CLI.MovementCLI.Args.SET_SHORT, override(SuppliedWorkChunkDriver.Config.Keys.RANGE_TOP, String.valueOf(TEST_SIZE)),
-                CLI.MovementCLI.Args.SET_SHORT, override(ConfigurationBase.Keys.WORK_CHUNK_DRIVER, SuppliedWorkChunkDriver.class.getName()),
-                CLI.MovementCLI.Args.SET_SHORT, override(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName()),
+                CLI.MovementCLI.Args.SET_SHORT, override(DirectoryOutput.Config.Keys.DIRECTORY, "/tmp/generate")
         };
-
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
-//        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
 
         MockUtil.setDefaultMockCallbacks();
 
