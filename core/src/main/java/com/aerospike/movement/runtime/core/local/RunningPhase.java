@@ -61,6 +61,7 @@ public class RunningPhase implements Iterator<Map<String, Object>> {
 
             @Override
             public Map<String, Object> next() {
+                RuntimeUtil.stall(100L);
                 final Map<String, Object> status = new HashMap<>();
                 for (Output output : LocalParallelStreamRuntime.outputs) {
                     output.getMetrics().forEach((k, v) -> {

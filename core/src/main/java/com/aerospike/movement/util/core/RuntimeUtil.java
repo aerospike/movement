@@ -247,16 +247,20 @@ public class RuntimeUtil {
         RuntimeUtil.lookup(clazz).forEachRemaining(it -> RuntimeUtil.closeWrap(((Loadable) it)));
     }
 
-    private static void delay(final DelayType type, final Configuration config) {
+    public static void delay(final DelayType type, final Configuration config) {
         switch (type) {
             case IO_THREAD_INIT:
-                try {
-                    Thread.sleep(Long.parseLong(LocalParallelStreamRuntime.CONFIG
-                            .getOrDefault(LocalParallelStreamRuntime.Config.Keys.DELAY_MS, config)));
-                } catch (InterruptedException e) {
-                    throw RuntimeUtil.getErrorHandler(RuntimeUtil.class, config).handleError(new RuntimeException(e));
-                }
+                stall(Long.parseLong(LocalParallelStreamRuntime.CONFIG
+                        .getOrDefault(LocalParallelStreamRuntime.Config.Keys.DELAY_MS, config)));
                 break;
+        }
+    }
+
+    public static void stall(final long sleepTimeMs) {
+        try {
+            Thread.sleep(sleepTimeMs);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
