@@ -15,7 +15,6 @@ import com.aerospike.movement.runtime.core.driver.WorkChunk;
 import com.aerospike.movement.runtime.core.driver.impl.PassthroughOutputIdDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.runtime.core.local.RunningPhase;
-import com.aerospike.movement.test.tinkerpop.ClassicGraphProvider;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphGraphProvider;
 import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
@@ -37,7 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.aerospike.movement.config.core.ConfigurationBase.Keys.*;
-import static com.aerospike.movement.emitter.files.TestDirectoryWriter.runDirectoryWriter;
+import static com.aerospike.movement.test.files.FileTestUtil.writeClassicGraphToDirectory;
 import static com.aerospike.movement.test.core.AbstractMovementTest.iteratePhasesAndCloseRuntime;
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -53,21 +52,21 @@ public class TestDirectoryLoader {
         final Path outputDirectory = Path.of(System.getProperty("java.io.tmpdir")).resolve("generate");
         FileUtil.recursiveDelete(outputDirectory);
 
-        runDirectoryWriter(2L,  outputDirectory);
+        writeClassicGraphToDirectory(outputDirectory);
 
         final Configuration testConfig = new MapConfiguration(
                 new HashMap<>() {{
                     put(LocalParallelStreamRuntime.Config.Keys.THREADS, 1);
-                    put(EMITTER, DirectoryLoader.class.getName());
+                    put(EMITTER, DirectoryEmitter.class.getName());
                     put(DECODER, GraphCSVDecoder.class.getName());
                     put(ENCODER, TinkerPopGraphEncoder.class.getName());
                     put(OUTPUT, TinkerPopGraphOutput.class.getName());
                     put(TinkerPopGraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
-                    put(DirectoryLoader.Config.Keys.BASE_PATH, "/tmp/generate");
-                    put(DirectoryLoader.Config.Keys.PHASE_ONE_SUBDIR, "vertices");
-                    put(DirectoryLoader.Config.Keys.PHASE_TWO_SUBDIR, "edges");
-                    put(WORK_CHUNK_DRIVER_PHASE_ONE, RecursiveDirectoryTraversal.class.getName());
-                    put(WORK_CHUNK_DRIVER_PHASE_TWO, RecursiveDirectoryTraversal.class.getName());
+                    put(DirectoryEmitter.Config.Keys.BASE_PATH, "/tmp/generate");
+                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, "vertices");
+                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, "edges");
+                    put(WORK_CHUNK_DRIVER_PHASE_ONE, RecursiveDirectoryTraversalDriver.class.getName());
+                    put(WORK_CHUNK_DRIVER_PHASE_TWO, RecursiveDirectoryTraversalDriver.class.getName());
                     put(OUTPUT_ID_DRIVER, PassthroughOutputIdDriver.class.getName());
                 }});
         Configuration phaseOneConfig = ConfigurationUtil.configurationWithOverrides(testConfig, new HashMap<>() {{
@@ -77,7 +76,7 @@ public class TestDirectoryLoader {
             put(INTERNAL_PHASE_INDICATOR, "TWO");
         }});
 
-        RecursiveDirectoryTraversal driver = RecursiveDirectoryTraversal.open(phaseOneConfig);
+        RecursiveDirectoryTraversalDriver driver = RecursiveDirectoryTraversalDriver.open(phaseOneConfig);
         driver.init(phaseOneConfig);
         assertTrue(driver.getInitialized().get());
 
@@ -88,7 +87,7 @@ public class TestDirectoryLoader {
 
 
         long driverElementCount = IteratorUtils.count(IteratorUtils.flatMap(chunks.iterator(), chunk -> ((Emitable) chunk).emit(RuntimeUtil.loadOutput(testConfig)).iterator()));
-        long fileDataRowCount = Files.walk(DirectoryLoader.getPhasePath(Runtime.PHASE.ONE, testConfig))
+        long fileDataRowCount = Files.walk(DirectoryEmitter.getPhasePath(Runtime.PHASE.ONE, testConfig))
                 .filter(it -> !it.toFile().isDirectory())
                 .flatMap(it -> {
                     try {
@@ -109,21 +108,21 @@ public class TestDirectoryLoader {
         final Path outputDirectory = Path.of(System.getProperty("java.io.tmpdir")).resolve("generate");
         FileUtil.recursiveDelete(outputDirectory);
 
-        runDirectoryWriter(ClassicGraphProvider.getInstance().traversal().V().count().next(), outputDirectory);
+        writeClassicGraphToDirectory(outputDirectory);
 
         final Configuration testConfig = new MapConfiguration(
                 new HashMap<>() {{
                     put(LocalParallelStreamRuntime.Config.Keys.THREADS, 1);
-                    put(EMITTER, DirectoryLoader.class.getName());
+                    put(EMITTER, DirectoryEmitter.class.getName());
                     put(DECODER, GraphCSVDecoder.class.getName());
                     put(ENCODER, TinkerPopGraphEncoder.class.getName());
                     put(OUTPUT, TinkerPopGraphOutput.class.getName());
                     put(TinkerPopGraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
-                    put(DirectoryLoader.Config.Keys.BASE_PATH, "/tmp/generate");
-                    put(DirectoryLoader.Config.Keys.PHASE_ONE_SUBDIR, "vertices");
-                    put(DirectoryLoader.Config.Keys.PHASE_TWO_SUBDIR, "edges");
-                    put(WORK_CHUNK_DRIVER_PHASE_ONE, RecursiveDirectoryTraversal.class.getName());
-                    put(WORK_CHUNK_DRIVER_PHASE_TWO, RecursiveDirectoryTraversal.class.getName());
+                    put(DirectoryEmitter.Config.Keys.BASE_PATH, "/tmp/generate");
+                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, "vertices");
+                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, "edges");
+                    put(WORK_CHUNK_DRIVER_PHASE_ONE, RecursiveDirectoryTraversalDriver.class.getName());
+                    put(WORK_CHUNK_DRIVER_PHASE_TWO, RecursiveDirectoryTraversalDriver.class.getName());
                     put(OUTPUT_ID_DRIVER, PassthroughOutputIdDriver.class.getName());
                 }});
 

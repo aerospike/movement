@@ -47,6 +47,7 @@
             <scope>compile</scope>
         </dependency>
 
+
         <dependency>
             <groupId>com.aerospike.movement</groupId>
             <artifactId>plugin</artifactId>
@@ -82,6 +83,7 @@
             <artifactId>guava</artifactId>
             <version>32.1.2-jre</version>
         </dependency>
+
     </dependencies>
     <build>
         <plugins>

@@ -22,6 +22,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+/*
+A work chunk driver should return groups of work (Work Chunks) from the source on the left hand side.
+These chunks may either be groups of Ids that indicate what to read the source, or they may wrap the actual
+input elements (pass through)
+Pass through is more efficient (avoids double read), but some cases may require ids (distributed mode)
+ */
 public abstract class WorkChunkDriver extends Loadable implements PotentialSequence<WorkChunk> {
     private static final AtomicReference<WorkChunkDriver> INSTANCE = new AtomicReference<>();
     protected final Configuration config;
@@ -38,7 +44,9 @@ public abstract class WorkChunkDriver extends Loadable implements PotentialSeque
         this.errorHandler = RuntimeUtil.getErrorHandler(this, config);
     }
 
-
+    /*
+      note: acknowledging the WorkList has been consumed by the emitter is not the same as the output acknowledging it has processed them all
+    */
     public void acknowledgeComplete(final UUID workChunkId) {
 //        if (!outstanding.remove(workChunkId))
 //            throw new RuntimeException(String.format("workChunkId %s is not in the outstanding queue", workChunkId));
@@ -55,9 +63,6 @@ public abstract class WorkChunkDriver extends Loadable implements PotentialSeque
     public void close() throws Exception {
         chunksAcknowledged.set(0);
         getInitialized().set(false);
-//        waitOnOutstanding(1000);
-        //@todo this may not be necessary. At any rate acknowledging the WorkList has been consumed by the emitter
-        // is not the same as the output acknowledging it has processed them all
         INSTANCE.set(null);
     }
 
@@ -78,7 +83,6 @@ public abstract class WorkChunkDriver extends Loadable implements PotentialSeque
                             outstanding.size(),
                             RuntimeUtil.getCurrentPhase(config))));
         }
-
     }
 
     public static WorkChunkDriver implicit(final Emitter emitter, final Configuration config) {

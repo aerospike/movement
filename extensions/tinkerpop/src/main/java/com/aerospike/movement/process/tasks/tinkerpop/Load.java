@@ -5,6 +5,7 @@
  */
 
 package com.aerospike.movement.process.tasks.tinkerpop;
+
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.process.core.Task;
 import com.aerospike.movement.runtime.core.Runtime;
@@ -23,6 +24,10 @@ public class Load extends Task {
     static {
         RuntimeUtil.registerTaskAlias(Load.class.getSimpleName(), Load.class);
     }
+
+    //avoid dependency loop in maven
+    public static final String RECURSIVE_DIR_TRAVERSAL_CLASS_NAME = "com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver";
+
     public static class Config extends ConfigurationBase {
         public static final Config INSTANCE = new Config();
 
@@ -31,8 +36,14 @@ public class Load extends Task {
         }
 
         @Override
-        public Map<String, String> defaultConfigMap(final Map<String,Object> config) {
-            return DEFAULTS;
+        public Map<String, String> defaultConfigMap(final Map<String, Object> config) {
+            final Map<String, String> newConfig = new HashMap<>();
+            config.entrySet().stream().forEach(entry -> {
+                newConfig.put(entry.getKey(), (String) entry.getValue());
+            });
+            newConfig.put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, RECURSIVE_DIR_TRAVERSAL_CLASS_NAME);
+            newConfig.put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, RECURSIVE_DIR_TRAVERSAL_CLASS_NAME);
+            return newConfig;
         }
 
         @Override
@@ -49,9 +60,11 @@ public class Load extends Task {
 
         }};
     }
+
     private Load(Configuration config) {
         super(Config.INSTANCE, config);
     }
+
     public static Load open(Configuration config) {
         return new Load(config);
     }

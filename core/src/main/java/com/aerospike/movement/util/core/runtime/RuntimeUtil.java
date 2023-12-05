@@ -10,14 +10,12 @@ package com.aerospike.movement.util.core.runtime;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.encoding.core.Decoder;
 import com.aerospike.movement.encoding.core.Encoder;
-import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.emitter.core.Emitter;
 import com.aerospike.movement.logging.core.Logger;
 import com.aerospike.movement.logging.core.impl.SystemLogger;
 import com.aerospike.movement.output.Metered;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.process.core.Task;
-import com.aerospike.movement.runtime.core.Handler;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.OutputIdDriver;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
@@ -28,7 +26,6 @@ import com.aerospike.movement.util.core.error.ErrorHandler;
 import com.aerospike.movement.util.core.error.LoggingErrorHandler;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.configuration2.MapConfiguration;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
 import org.reflections.util.ClasspathHelper;
@@ -40,7 +37,6 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.aerospike.movement.config.core.ConfigurationBase.Keys.*;
 import static org.reflections.scanners.Scanners.SubTypes;
@@ -62,26 +58,6 @@ public class RuntimeUtil {
         LocalParallelStreamRuntime.halt();
     }
 
-    public static void driveIndividualThreadSync(final Runtime.PHASE phase,
-                                                 final WorkChunkDriver driver,
-                                                 final Emitter emitter,
-                                                 final Output output,
-                                                 final Runnable completionHandler,
-                                                 final Handler<Throwable> errorHandler) {
-        try {
-            final Iterator<Emitable> emitableIterator = emitter.stream(driver, phase).iterator();
-            while (emitableIterator.hasNext()) {
-                processEmitable(emitableIterator.next(), output);
-            }
-        } catch (Exception e) {
-            errorHandler.handle(getErrorHandler(LocalParallelStreamRuntime.class).handleFatalError(e, output), output);
-        }
-        completionHandler.run();
-    }
-
-    public static void processEmitable(final Emitable emitable, final Output output) {
-        IteratorUtils.iterate(walk(emitable.emit(output), output));
-    }
 
     public static void stall(final long msToSleep) {
         try {
@@ -99,6 +75,10 @@ public class RuntimeUtil {
             throw getErrorHandler(providerClass).handleFatalError(e, config);
         }
 
+    }
+
+    public static int getBatchSize(final Configuration config) {
+        return Integer.parseInt(LocalParallelStreamRuntime.CONFIG.getOrDefault(LocalParallelStreamRuntime.Config.Keys.BATCH_SIZE, config));
     }
 
 
@@ -465,19 +445,6 @@ public class RuntimeUtil {
 
     public static void registerTaskAlias(final String simpleName, final Class clazz) {
         LocalParallelStreamRuntime.taskAliases.put(simpleName, clazz);
-    }
-
-    public static Iterator<Emitable> walk(final Stream<Emitable> input, final Output output) {
-        return IteratorUtils.flatMap(input.iterator(), emitable ->
-                IteratorUtils.flatMap(emitable.emit(output).iterator(),
-                        innerEmitable -> {
-                            try {
-                                return walk(innerEmitable.emit(output), output);
-                            } catch (final Exception e) {
-                                getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleError(e, output);
-                                return Collections.emptyIterator();
-                            }
-                        }));
     }
 }
 

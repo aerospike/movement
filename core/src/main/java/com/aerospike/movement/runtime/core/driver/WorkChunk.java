@@ -15,14 +15,12 @@ import java.util.Iterator;
 import java.util.UUID;
 
 /**
- * A WorkUnit should be consumed on a single thread
- * A WorkUnit represents a list of Input ids to be processed.
+ * A WorkChunk should be consumed on a single thread
+ * A WorkChunk represents a list of Work Items to be processed.
  * This may be files, ids from a source system, etc
- * <p>
- * When complete, a WorkUnit must notify the WorkUnitSupplier it has been completed
- */
-public interface WorkChunk extends Iterator<WorkChunkId> {
-    WorkChunkId next();
+ **/
+public interface WorkChunk extends Iterator<WorkItem> {
+    WorkItem next();
 
     boolean hasNext();
 
@@ -32,7 +30,7 @@ public interface WorkChunk extends Iterator<WorkChunkId> {
         ((WorkChunkDriver) RuntimeUtil.lookupOrLoad(WorkChunkDriver.class, config)).acknowledgeComplete(this.getId());
     }
 
-    default Iterator<WorkChunkId> iterator(){
+    default Iterator<WorkItem> iterator() {
         return this;
     }
 }

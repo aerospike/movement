@@ -18,6 +18,7 @@ import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.runtime.core.local.RunningPhase;
 import com.aerospike.movement.test.core.AbstractMovementTest;
+import com.aerospike.movement.test.files.FileTestUtil;
 import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.emitter.MockEmitable;
 import com.aerospike.movement.test.mock.encoder.MockEncoder;
@@ -42,7 +43,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import static com.aerospike.movement.config.core.ConfigurationBase.Keys.*;
 import static com.aerospike.movement.emitter.tinkerpop.TinkerPopGraphEmitter.Config.Keys.GRAPH_PROVIDER;
@@ -106,49 +106,12 @@ public class TestDirectoryWriter extends AbstractMovementTest {
     }
 
 
-    public static void runDirectoryWriter(Long SCALE_FACTOR, Path outputDirectory) throws IOException {
-
-        final Configuration testConfig = new MapConfiguration(
-                new HashMap<>() {{
-                    put(LocalParallelStreamRuntime.Config.Keys.THREADS, 1);
-                    put(LocalParallelStreamRuntime.Config.Keys.BATCH_SIZE, 1);
-                    put(EMITTER, TinkerPopGraphEmitter.class.getName());
-                    put(GRAPH_PROVIDER, ClassicGraphProvider.class.getName());
-                    put(ENCODER, GraphCSVEncoder.class.getName());
-                    put(OUTPUT, DirectoryOutput.class.getName());
-
-//                    put(YAMLSchemaParser.Config.Keys.YAML_FILE_PATH, schemaFile.getAbsolutePath());
-
-                    put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, outputDirectory.toString());
-                    put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-                    put(WORK_CHUNK_DRIVER_PHASE_TWO, SuppliedWorkChunkDriver.class.getName());
-                    put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
-
-
-                    put(SuppliedWorkChunkDriver.Config.Keys.ITERATOR_SUPPLIER_PHASE_ONE, ConfiguredRangeSupplier.class.getName());
-                    put(SuppliedWorkChunkDriver.Config.Keys.ITERATOR_SUPPLIER_PHASE_TWO, ConfiguredRangeSupplier.class.getName());
-
-                    put(ConfiguredRangeSupplier.Config.Keys.RANGE_BOTTOM, 0L);
-                    put(ConfiguredRangeSupplier.Config.Keys.RANGE_TOP, SCALE_FACTOR);
-                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, SCALE_FACTOR * 10);
-                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, Long.MAX_VALUE);
-                }});
-        System.out.println(ConfigurationUtil.configurationToPropertiesFormat(testConfig));
-
-
-        final Runtime runtime = LocalParallelStreamRuntime.open(testConfig);
-        final Iterator<RunningPhase> x = runtime.runPhases(List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO), testConfig);
-        iteratePhasesAndCloseRuntime(x, runtime);
-        System.out.println(Files.list(Path.of("/tmp/generate")).collect(Collectors.toList()));
-        System.out.println("eot");
-    }
-
     @Test
     public void testEmitToDirectory() throws IOException {
         FileUtil.recursiveDelete(outputDirectory);
 
         final Long SCALE_FACTOR = 100L;
-        runDirectoryWriter(SCALE_FACTOR, outputDirectory);
+        FileTestUtil.writeClassicGraphToDirectory(outputDirectory);
         assertTrue(outputDirectory.resolve("edges").toFile().isDirectory());
         assertTrue(outputDirectory.resolve("vertices").toFile().isDirectory());
         assertEquals(2, Files.list(outputDirectory).count());

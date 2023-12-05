@@ -11,7 +11,7 @@ import com.aerospike.movement.encoding.core.Decoder;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunk;
-import com.aerospike.movement.runtime.core.driver.WorkChunkId;
+import com.aerospike.movement.runtime.core.driver.WorkItem;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import org.apache.commons.configuration2.Configuration;
@@ -66,7 +66,7 @@ public class EmittableWorkChunkFile implements WorkChunk, Emitable {
     }
 
     @Override
-    public WorkChunkId next() {
+    public WorkItem next() {
         throw new IllegalStateException(EmittableWorkChunkFile.class + " is passthrough");
     }
 
@@ -100,7 +100,7 @@ public class EmittableWorkChunkFile implements WorkChunk, Emitable {
     }
 
 
-    public static class WorkFileEntryId extends WorkChunkId {
+    public static class WorkFileEntryId extends WorkItem {
         public final Path filePath;
         public final String fileLine;
 

@@ -6,6 +6,7 @@
 
 package com.aerospike.movement.output.tinkerpop;
 
+import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphTraversalProvider;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.runtime.core.Runtime;
@@ -73,8 +74,8 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
     public void testWillTransferVerticesFromGraphAToGraphB() {
         assertEquals((Long) 0L, (Long) SharedEmptyTinkerGraphGraphProvider.getInstance().traversal().V().count().next());
         final Configuration config = ConfigurationUtil.configurationWithOverrides(graphTransferConfig, new MapConfiguration(new HashMap<>() {{
-            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, SuppliedWorkChunkDriver.class.getName());
+            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, TinkerPopGraphDriver.class.getName());
+            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, TinkerPopGraphDriver.class.getName());
 
         }}));
         registerCleanupCallback(() -> {
@@ -104,8 +105,8 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
     public void testWillTransferEdgesFromGraphAToGraphB() {
 
         final Configuration config = ConfigurationUtil.configurationWithOverrides(graphTransferConfig, new MapConfiguration(new HashMap<>() {{
-            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, SuppliedWorkChunkDriver.class.getName());
+            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, TinkerPopGraphDriver.class.getName());
+            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, TinkerPopGraphDriver.class.getName());
 
         }}));
 
