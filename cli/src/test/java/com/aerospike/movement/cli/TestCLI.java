@@ -103,45 +103,7 @@ public class TestCLI extends AbstractMovementTest {
     private final Integer TEST_SIZE = 10_000;
 
 
-    @Test
-    @Ignore //@todo generator extraction
-    public void testRunGenerateTask() throws Exception {
-        assertEquals(0, getHitCounter(MockEncoder.class, MockEncoder.Methods.ENCODE));
-        RuntimeUtil.loadClass(MockTask.class.getName());
-        final Path tmpConfig = Files.createTempFile("movement", "test").toAbsolutePath();
-        final String configString = ConfigurationUtil.configurationToPropertiesFormat(getMockConfiguration(new HashMap<>()));
-        Files.write(tmpConfig, configString.getBytes());
-        String schemaPath = IOUtil.copyFromResourcesIntoNewTempFile("example_schema.yaml").getAbsolutePath();
-        final String[] args = {
-                CLI.MovementCLI.Args.TEST_MODE,
-                CLI.MovementCLI.Args.TASK, MockTask.class.getSimpleName(),
-                CLI.MovementCLI.Args.CONFIG_SHORT, tmpConfig.toString(),
-                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(THREADS, "1"),
-                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName()),
-                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName()),
-//                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(SCALE_FACTOR, TEST_SIZE.toString()),
-//                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(YAMLSchemaParser.Config.Keys.YAML_FILE_PATH, schemaPath)
-        };
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
 
-        MockUtil.setDefaultMockCallbacks();
-
-
-        final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);
-        assertTrue(x.isPresent());
-        final Iterator<Object> iterator = x.get().call();
-        while (iterator.hasNext()) {
-            final Object it = iterator.next();
-            if (!iterator.hasNext()) {
-                System.out.println(it);
-            }
-        }
-
-        final int NUMBER_OF_PHASES = 1;
-        TestCase.assertEquals(TEST_SIZE * NUMBER_OF_PHASES, getHitCounter(MockEncoder.class, MockEncoder.Methods.ENCODE));
-        TestCase.assertEquals(TEST_SIZE * NUMBER_OF_PHASES, getHitCounter(MockOutput.class, MockOutput.Methods.WRITE_TO_OUTPUT));
-    }
 
 
     @Test
