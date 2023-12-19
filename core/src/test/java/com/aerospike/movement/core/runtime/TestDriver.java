@@ -10,7 +10,7 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.OutputId;
 import com.aerospike.movement.runtime.core.driver.WorkChunk;
-import com.aerospike.movement.runtime.core.driver.WorkChunkId;
+import com.aerospike.movement.runtime.core.driver.WorkItem;
 import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
 import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.util.core.iterator.ConfiguredRangeSupplier;
@@ -55,7 +55,7 @@ public class TestDriver {
         assertTrue(chunk.hasNext());
         long ctr = 0;
         while (chunk.hasNext()) {
-            final WorkChunkId id = chunk.next();
+            final WorkItem id = chunk.next();
             assertEquals(ctr++, id.getId());
         }
         assertEquals(10, ctr);
@@ -153,7 +153,7 @@ public class TestDriver {
                 if(workChunk.hasNext())
                     chunkHitCounter.incrementAndGet();
                 while (workChunk.hasNext()) {
-                    final WorkChunkId newVal = workChunk.next();
+                    final WorkItem newVal = workChunk.next();
                     if (!concurrentUniqueSet.add((Long) newVal.getId())) {
                         throw new RuntimeException("Duplicate value found: " + newVal);
                     }

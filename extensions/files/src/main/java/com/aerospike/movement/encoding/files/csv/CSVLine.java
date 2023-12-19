@@ -13,7 +13,7 @@ import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 
 public class CSVLine {
-    enum CSVField {
+    public enum CSVField {
         EMPTY
     }
     private final List<Object> line;

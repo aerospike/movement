@@ -21,7 +21,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-public class RecursiveDirectoryTraversal extends WorkChunkDriver {
+public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
     private final Runtime.PHASE phase;
 
     public static class Config extends ConfigurationBase {
@@ -54,7 +54,7 @@ public class RecursiveDirectoryTraversal extends WorkChunkDriver {
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
     private static Iterator<Path> iterator;
 
-    private RecursiveDirectoryTraversal(Runtime.PHASE phase, final Configuration config) {
+    private RecursiveDirectoryTraversalDriver(Runtime.PHASE phase, final Configuration config) {
         super(Config.INSTANCE, config);
         this.phase = phase;
     }
@@ -64,24 +64,24 @@ public class RecursiveDirectoryTraversal extends WorkChunkDriver {
         return initialized;
     }
 
-    public static RecursiveDirectoryTraversal open(final Configuration config) {
-        return new RecursiveDirectoryTraversal(RuntimeUtil.getCurrentPhase(config), config);
+    public static RecursiveDirectoryTraversalDriver open(final Configuration config) {
+        return new RecursiveDirectoryTraversalDriver(RuntimeUtil.getCurrentPhase(config), config);
     }
 
     @Override
     public void init(final Configuration config) {
-        synchronized (RecursiveDirectoryTraversal.class) {
+        synchronized (RecursiveDirectoryTraversalDriver.class) {
             if (!initialized.get()) {
-                final String baseDir = DirectoryLoader.CONFIG.getOrDefault(DirectoryLoader.Config.Keys.BASE_PATH, config);
+                final String baseDir = DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.BASE_PATH, config);
                 final Path basePath = Path.of(baseDir);
-                final String phaseOnePath = DirectoryLoader.CONFIG.getOrDefault(DirectoryLoader.Config.Keys.PHASE_ONE_SUBDIR, config);
-                final String phaseTwoPath = DirectoryLoader.CONFIG.getOrDefault(DirectoryLoader.Config.Keys.PHASE_TWO_SUBDIR, config);
+                final String phaseOnePath = DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, config);
+                final String phaseTwoPath = DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, config);
                 final Path elementTypePath =
                         config.containsKey(Config.Keys.DIRECTORY_TO_TRAVERSE) ?
                                 Path.of(config.getString(Config.Keys.DIRECTORY_TO_TRAVERSE)) :
                                 phase.equals(Runtime.PHASE.ONE) ?
                                         basePath.resolve(phaseOnePath) : basePath.resolve(phaseTwoPath);
-                RecursiveDirectoryTraversal.iterator = pathIterator(RuntimeUtil.getCurrentPhase(config), elementTypePath);
+                RecursiveDirectoryTraversalDriver.iterator = pathIterator(RuntimeUtil.getCurrentPhase(config), elementTypePath);
                 initialized.set(true);
             }
         }
@@ -89,7 +89,7 @@ public class RecursiveDirectoryTraversal extends WorkChunkDriver {
 
     @Override
     public void close() throws Exception {
-        synchronized (RecursiveDirectoryTraversal.class) {
+        synchronized (RecursiveDirectoryTraversalDriver.class) {
             if (initialized.compareAndSet(true, false)) {
                 iterator = null;
             }
@@ -126,7 +126,7 @@ public class RecursiveDirectoryTraversal extends WorkChunkDriver {
                 return l.iterator();
             } catch (IOException e) {
                 throw RuntimeUtil
-                        .getErrorHandler(RecursiveDirectoryTraversal.class)
+                        .getErrorHandler(RecursiveDirectoryTraversalDriver.class)
                         .handleFatalError(e, phase, elementTypePath);
             }
         }

@@ -2,16 +2,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.aerospike.movement</groupId>
-        <artifactId>extensions</artifactId>
+        <groupId>com.aerospike</groupId>
+        <artifactId>Movement</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>com.aerospike.movement</groupId>
-    <artifactId>files</artifactId>
+    <artifactId>integration</artifactId>
     <packaging>jar</packaging>
 
-    <name>files</name>
+    <name>integration</name>
     <url>http://maven.apache.org</url>
 
     <properties>
@@ -20,15 +19,15 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.aerospike.movement</groupId>
-            <artifactId>core</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.aerospike.movement</groupId>
+            <artifactId>files</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>

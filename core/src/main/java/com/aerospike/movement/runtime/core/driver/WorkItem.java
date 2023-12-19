@@ -9,10 +9,10 @@ package com.aerospike.movement.runtime.core.driver;
 
 import com.aerospike.movement.structure.core.EmittedId;
 
-public class WorkChunkId implements EmittedId {
+public class WorkItem implements EmittedId {
     protected final Object id;
 
-    public WorkChunkId(final Object id) {
+    public WorkItem(final Object id) {
         this.id = id;
     }
 

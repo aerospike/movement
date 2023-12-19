@@ -43,10 +43,6 @@ public class LocalParallelStreamRuntime implements Runtime {
     public final static AtomicReference<WorkChunkDriver> workChunkDriver = new AtomicReference<>();
     public final static Map<String, Class<? extends Task>> taskAliases = new ConcurrentHashMap<>();
 
-    public static int getBatchSize(final Configuration config) {
-        return Integer.parseInt(CONFIG.getOrDefault(Config.Keys.BATCH_SIZE, config));
-    }
-
     public static void halt() {
         INSTANCE.customThreadPool.shutdown();
         INSTANCE.close();

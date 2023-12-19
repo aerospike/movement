@@ -20,8 +20,8 @@ public abstract class Batched implements Iterator<List<Object>> {
         this.iterator = iterator;
     }
 
-    public static Iterator<List<Object>> consume(final Iterator<Object> objectIterator, final int size) {
-        return new BatchedConsumer(objectIterator, size);
+    public static Iterator<List<Object>> batch(final Iterator<?> objectIterator, final int size) {
+        return new BatchedConsumer((Iterator<Object>) objectIterator, size);
     }
 
 

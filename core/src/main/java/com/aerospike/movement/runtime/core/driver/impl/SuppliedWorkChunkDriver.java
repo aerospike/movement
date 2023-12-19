@@ -12,7 +12,6 @@ import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunk;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 import com.aerospike.movement.runtime.core.driver.WorkList;
-import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import com.aerospike.movement.util.core.iterator.Batched;
@@ -106,9 +105,9 @@ public class SuppliedWorkChunkDriver extends WorkChunkDriver {
         }
 
         if (initialized.compareAndSet(false, true)) {
-            final int batchSize = LocalParallelStreamRuntime.getBatchSize(config);
+            final int batchSize = RuntimeUtil.getBatchSize(config);
 
-            SuppliedWorkChunkDriver.iterator = Batched.consume(supplier.get(), batchSize);
+            SuppliedWorkChunkDriver.iterator = Batched.batch(supplier.get(), batchSize);
             INSTANCE.set(new SuppliedWorkChunkDriver(config));
         }
         return INSTANCE.get();

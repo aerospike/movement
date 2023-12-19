@@ -10,7 +10,7 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.core.Emitter;
 import com.aerospike.movement.structure.core.graph.EmittedEdge;
 import com.aerospike.movement.structure.core.graph.EmittedVertex;
-import com.aerospike.movement.emitter.files.DirectoryLoader;
+import com.aerospike.movement.emitter.files.DirectoryEmitter;
 import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.output.core.OutputWriter;
@@ -147,14 +147,14 @@ public class DirectoryOutput extends Loadable implements Output {
     @Override
     public Emitter reader(final Runtime.PHASE phase, final Class type, final Optional<String> label, final Configuration callerConfig) {
         final Configuration readerConfig = ConfigurationUtil.configurationWithOverrides(config, new MapConfiguration(new HashMap<>() {{
-            put(DirectoryLoader.Config.Keys.LABEL, label);
-            put(DirectoryLoader.Config.Keys.BASE_PATH, Path.of((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getParent().toString());
-            put(DirectoryLoader.Config.Keys.PHASE_ONE_SUBDIR, Path.of((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getFileName().toString());
-            put(DirectoryLoader.Config.Keys.PHASE_TWO_SUBDIR, Path.of((String) CONFIG.getOrDefault(Config.Keys.EDGE_OUTPUT_DIRECTORY, config)).getFileName().toString());
+            put(DirectoryEmitter.Config.Keys.LABEL, label);
+            put(DirectoryEmitter.Config.Keys.BASE_PATH, Path.of((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getParent().toString());
+            put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, Path.of((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getFileName().toString());
+            put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, Path.of((String) CONFIG.getOrDefault(Config.Keys.EDGE_OUTPUT_DIRECTORY, config)).getFileName().toString());
             put(ConfigurationBase.Keys.PHASE_OVERRIDE, phase.name());
         }}));
 
-        return DirectoryLoader.open(readerConfig);
+        return DirectoryEmitter.open(readerConfig);
     }
 
     private AtomicLong getMetric(final Object label) {

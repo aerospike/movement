@@ -7,6 +7,7 @@
 
 package com.aerospike.movement.runtime.core.local;
 
+import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.emitter.core.Emitter;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.runtime.core.Handler;
@@ -16,11 +17,17 @@ import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 
 import com.aerospike.movement.util.core.coordonation.WaitGroup;
 import com.aerospike.movement.util.core.error.ErrorHandler;
+import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.MapConfiguration;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public class ParallelStreamProcessor implements Runnable {
     private final List<Pipeline> pipelines;
@@ -77,7 +84,7 @@ public class ParallelStreamProcessor implements Runnable {
             final WorkChunkDriver driver = (WorkChunkDriver) RuntimeUtil.lookupOrLoad(WorkChunkDriver.class, config);
             final ErrorHandler errorHandler = RuntimeUtil.getErrorHandler(this, config);
             try {
-                RuntimeUtil.driveIndividualThreadSync(phase,
+                driveIndividualThreadSync(phase,
                         driver,
                         emitter,
                         output,
@@ -99,5 +106,39 @@ public class ParallelStreamProcessor implements Runnable {
         } catch (InterruptedException e) {
             throw errorHandler.handleError(e, phase, pipelines, waitGroup);
         }
+    }
+
+    public static void driveIndividualThreadSync(final Runtime.PHASE phase,
+                                                 final WorkChunkDriver driver,
+                                                 final Emitter emitter,
+                                                 final Output output,
+                                                 final Runnable completionHandler,
+                                                 final Handler<Throwable> errorHandler) {
+        try {
+            final Iterator<Emitable> emitableIterator = emitter.stream(driver, phase).iterator();
+            while (emitableIterator.hasNext()) {
+                processEmitable(emitableIterator.next(), output);
+            }
+        } catch (Exception e) {
+            errorHandler.handle(RuntimeUtil.getErrorHandler(LocalParallelStreamRuntime.class).handleFatalError(e, output), output);
+        }
+        completionHandler.run();
+    }
+
+    public static void processEmitable(final Emitable emitable, final Output output) {
+        IteratorUtils.iterate(walk(emitable.emit(output), output));
+    }
+
+    public static Iterator<Emitable> walk(final Stream<Emitable> input, final Output output) {
+        return IteratorUtils.flatMap(input.iterator(), emitable ->
+                IteratorUtils.flatMap(emitable.emit(output).iterator(),
+                        innerEmitable -> {
+                            try {
+                                return walk(innerEmitable.emit(output), output);
+                            } catch (final Exception e) {
+                                RuntimeUtil.getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleError(e, output);
+                                return Collections.emptyIterator();
+                            }
+                        }));
     }
 }

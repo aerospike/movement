@@ -30,8 +30,8 @@ public class WorkList implements WorkChunk {
     }
 
     @Override
-    public WorkChunkId next() {
-        return new WorkChunkId(iterator.next());
+    public WorkItem next() {
+        return new WorkItem(iterator.next());
     }
 
     @Override

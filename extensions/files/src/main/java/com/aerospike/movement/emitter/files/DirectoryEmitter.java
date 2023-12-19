@@ -25,11 +25,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.aerospike.movement.emitter.files.RecursiveDirectoryTraversal.Config.Keys.DIRECTORY_TO_TRAVERSE;
+import static com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver.Config.Keys.DIRECTORY_TO_TRAVERSE;
 import static org.apache.commons.configuration2.ConfigurationUtils.copy;
 
 
-public class DirectoryLoader extends Loadable implements Emitter, Emitter.SelfDriving, Emitter.Constrained {
+public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfDriving, Emitter.Constrained {
 
     public static class Config extends ConfigurationBase {
         public static final Config INSTANCE = new Config();
@@ -52,8 +52,8 @@ public class DirectoryLoader extends Loadable implements Emitter, Emitter.SelfDr
         public static class Keys {
             public static final String LABEL = "loader.label";
             public static final String BASE_PATH = "loader.basePath";
-            public static final String PHASE_ONE_SUBDIR = "loader.vertexDir";
-            public static final String PHASE_TWO_SUBDIR = "loader.edgeDir";
+            public static final String PHASE_ONE_SUBDIR = "aerospike.graphloader.vertices";
+            public static final String PHASE_TWO_SUBDIR = "aerospike.graphloader.edges";
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
@@ -66,15 +66,15 @@ public class DirectoryLoader extends Loadable implements Emitter, Emitter.SelfDr
 
     private ErrorHandler errorHandler;
 
-    private DirectoryLoader(final Configuration config) {
+    private DirectoryEmitter(final Configuration config) {
         super(Config.INSTANCE, config);
         this.config = new MapConfiguration(new HashMap<>());
         copy(config, this.config);
         this.errorHandler = RuntimeUtil.getErrorHandler(this, config);
     }
 
-    public static DirectoryLoader open(final Configuration config) {
-        return new DirectoryLoader(config);
+    public static DirectoryEmitter open(final Configuration config) {
+        return new DirectoryEmitter(config);
     }
 
 
@@ -96,7 +96,7 @@ public class DirectoryLoader extends Loadable implements Emitter, Emitter.SelfDr
         for (final String constraint : getConstraints(callerConfig))
             driverPath = driverPath.resolve(constraint);
         final String pathName = driverPath.toString();
-        final RecursiveDirectoryTraversal directoryTraversal = RecursiveDirectoryTraversal.open(ConfigurationUtil.configurationWithOverrides(config, new HashMap<>() {{
+        final RecursiveDirectoryTraversalDriver directoryTraversal = RecursiveDirectoryTraversalDriver.open(ConfigurationUtil.configurationWithOverrides(config, new HashMap<>() {{
             put(DIRECTORY_TO_TRAVERSE, pathName);
         }}));
         directoryTraversal.init(config);

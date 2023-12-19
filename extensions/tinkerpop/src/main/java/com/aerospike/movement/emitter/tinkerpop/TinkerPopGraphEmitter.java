@@ -6,30 +6,29 @@
 
 package com.aerospike.movement.emitter.tinkerpop;
 
-import com.aerospike.movement.tinkerpop.common.GraphProvider;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.emitter.core.Emitter;
-import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
-import com.aerospike.movement.tinkerpop.common.TinkerPopGraphProvider;
+import com.aerospike.movement.runtime.core.local.Loadable;
+import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
+import com.aerospike.movement.tinkerpop.common.GraphProvider;
 import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
-import com.aerospike.movement.util.tinkerpop.Args;
 import org.apache.commons.configuration2.Configuration;
-import org.apache.tinkerpop.gremlin.language.grammar.GremlinQueryParser;
-import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
+
+import static com.aerospike.movement.emitter.tinkerpop.TinkerPopGraphEmitter.Config.Keys.PASSTHROUGH;
 
 public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.SelfDriving, Emitter.Constrained {
     public static final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -40,8 +39,10 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
     }
 
     @Override
-    public WorkChunkDriver driver(final Configuration configuration) {
-        return null;
+    public WorkChunkDriver driver(final Configuration callerConfig) {
+        final TinkerPopGraphDriver driver = TinkerPopGraphDriver.open(config);
+        driver.init(config);
+        return driver;
     }
 
     @Override
@@ -70,11 +71,13 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
 
         public static class Keys {
             public static final String GRAPH_PROVIDER = "emitter.graphProvider";
+            public static final String PASSTHROUGH = "passthrough";
 
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
+            put(PASSTHROUGH, String.valueOf(true));
         }};
     }
 
@@ -106,19 +109,32 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
 
     @Override
     public Stream<Emitable> stream(final WorkChunkDriver workChunkDriver, final Runtime.PHASE phase) {
+        if (!TinkerPopGraphDriver.class.isAssignableFrom(workChunkDriver.getClass()))
+            throw RuntimeUtil.getErrorHandler(this).handleFatalError(new RuntimeException("TinkerPopGraphEmitter requires TinkerPopGraphDriver, another driver was provided: " + workChunkDriver.getClass()), workChunkDriver);
+        final boolean passthrough = Boolean.parseBoolean((String) CONFIG.getOrDefault(PASSTHROUGH, config));
         Optional.ofNullable(workChunkDriver).orElseThrow(() -> RuntimeUtil.getErrorHandler(this)
                 .handleFatalError(new RuntimeException("Work Chunk Driver is null"), phase));
-        final Stream<List<Object>> chunks = Stream.iterate(workChunkDriver.getNext(), Optional::isPresent, i -> workChunkDriver.getNext())
+        final Stream<List<?>> chunks = Stream.iterate(workChunkDriver.getNext(), Optional::isPresent, i -> workChunkDriver.getNext())
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .map(wc -> IteratorUtils.list(IteratorUtils.map(wc, wcele -> wcele.getId())));
-        return chunks.flatMap(listOfIds -> {
-            if (phase.equals(Runtime.PHASE.ONE)) {
-                return IteratorUtils.stream(graph.vertices(listOfIds.toArray())).map(TinkerPopVertex::new);
-            } else if (phase.equals(Runtime.PHASE.TWO)) {
-                return IteratorUtils.stream(graph.edges(listOfIds.toArray())).map(TinkerPopEdge::new);
-            } else {
-                throw errorHandler.error("Unknown object type ", listOfIds.getClass().getName());
+                .map(wc -> IteratorUtils.list(IteratorUtils.map(wc, workChunkElement -> {
+                    if (Element.class.isAssignableFrom(workChunkElement.getClass()))
+                        return workChunkElement;
+                    return workChunkElement.getId();
+                })));
+        return chunks.flatMap(listOfIdsOrElements -> {
+            try {
+                if (phase.equals(Runtime.PHASE.ONE)) {
+                    final List<Vertex> vertices = passthrough ? (List<Vertex>) listOfIdsOrElements : IteratorUtils.list(graph.vertices(listOfIdsOrElements.toArray()));
+                    return vertices.stream().map(TinkerPopVertex::new);
+                } else if (phase.equals(Runtime.PHASE.TWO)) {
+                    final List<Edge> edges = passthrough ? (List<Edge>) listOfIdsOrElements : IteratorUtils.list(graph.edges(listOfIdsOrElements.toArray()));
+                    return edges.stream().map(TinkerPopEdge::new);
+                } else {
+                    throw errorHandler.error("Unimplemented PHASE", phase);
+                }
+            } catch (Exception e) {
+                throw RuntimeUtil.getErrorHandler(this).handleFatalError(e);
             }
         });
     }

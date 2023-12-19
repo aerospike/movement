@@ -7,28 +7,34 @@
 package com.aerospike.movement.plugin.tinkerpop;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
-
+import com.aerospike.movement.emitter.files.DirectoryEmitter;
+import com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver;
+import com.aerospike.movement.encoding.files.csv.GraphCSVDecoder;
 import com.aerospike.movement.encoding.tinkerpop.TinkerPopGraphEncoder;
 import com.aerospike.movement.output.tinkerpop.TinkerPopGraphOutput;
 import com.aerospike.movement.plugin.Plugin;
 import com.aerospike.movement.plugin.PluginInterface;
 import com.aerospike.movement.process.core.Task;
+import com.aerospike.movement.process.tasks.tinkerpop.Load;
+import com.aerospike.movement.runtime.core.Handler;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
+import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
+import com.aerospike.movement.test.core.AbstractMovementTest;
+import com.aerospike.movement.test.files.FileTestUtil;
+import com.aerospike.movement.test.mock.MockUtil;
+import com.aerospike.movement.test.mock.task.MockTask;
+import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphGraphProvider;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphTraversalProvider;
+import com.aerospike.movement.tinkerpop.common.PluginServiceFactory;
 import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
 import com.aerospike.movement.util.core.error.ErrorHandler;
 import com.aerospike.movement.util.core.iterator.ConfiguredRangeSupplier;
 import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
-import com.aerospike.movement.test.core.AbstractMovementTest;
-import com.aerospike.movement.test.mock.task.MockTask;
-import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphGraphProvider;
-import com.aerospike.movement.tinkerpop.common.PluginServiceFactory;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
-import com.aerospike.movement.runtime.core.Handler;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
+import junit.framework.TestCase;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -40,19 +46,21 @@ import org.junit.Test;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
-import java.util.*;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.LongStream;
 
-import static com.aerospike.movement.config.core.ConfigurationBase.Keys.*;
-import static com.aerospike.movement.test.mock.MockUtil.setDefaultMockCallbacks;
-import static junit.framework.TestCase.*;
-import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
+import static com.aerospike.movement.process.tasks.tinkerpop.Load.RECURSIVE_DIR_TRAVERSAL_CLASS_NAME;
+import static org.junit.Assert.assertEquals;
 
 public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
 
-    final Map<String, String> mockConfigurationMap = getMockConfigurationMap();
+    final Map<String, ?> mockConfigurationMap = AbstractMovementTest.getMockConfigurationMap();
     final AtomicBoolean failed = new AtomicBoolean(false);
     final List<Throwable> failures = new CopyOnWriteArrayList<>();
 
@@ -79,14 +87,21 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
 
 
     @Test
+    public void testClassNameCorrect() {
+        assertEquals(RecursiveDirectoryTraversalDriver.class.getName(), RECURSIVE_DIR_TRAVERSAL_CLASS_NAME);
+    }
+
+
+    @Test
     public void testLoadPluginLowLevel() {
         final Configuration testConfig = ConfigurationUtil.configurationWithOverrides(new MapConfiguration(mockConfigurationMap),
                 new HashMap<>() {{
-                    put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-                    put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+                    put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
+                    put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
                     put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(10 + 1));
                     put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
                 }});
+        MockUtil.setDefaultMockCallbacks();
         RuntimeUtil.lookupOrLoad(MockTask.class, testConfig);
         RuntimeUtil.getTaskClassByAlias(MockTask.class.getSimpleName());
         final Graph graph = SharedEmptyTinkerGraphGraphProvider.getInstance();
@@ -105,26 +120,28 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
 
     @Test
     public void testLoadPlugin() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        final Configuration testConfig = ConfigurationUtil.configurationWithOverrides(new MapConfiguration(mockConfigurationMap),
-                new HashMap<>() {{
-                    put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-                    put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
-                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(10 + 1));
-                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
+        FileTestUtil.writeClassicGraphToDirectory(Path.of("/tmp/generate"));
+        final Map<String, String> testConfig =
+                Load.Config.INSTANCE.defaultConfigMap(new HashMap<>() {{
+                    put(ConfigurationBase.Keys.EMITTER, DirectoryEmitter.class.getName());
+                    put(ConfigurationBase.Keys.ENCODER, TinkerPopGraphEncoder.class.getName());
+                    put(ConfigurationBase.Keys.DECODER, GraphCSVDecoder.class.getName());
+                    put(ConfigurationBase.Keys.OUTPUT, TinkerPopGraphOutput.class.getName());
+                    put(DirectoryEmitter.Config.Keys.BASE_PATH, "/tmp/generate");
+                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, "vertices");
+                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, "edges");
+                    put(TinkerPopGraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
                 }});
-        RuntimeUtil.lookupOrLoad(MockTask.class, testConfig);
-        RuntimeUtil.getTaskClassByAlias(MockTask.class.getSimpleName());
-        final Graph graph = SharedEmptyTinkerGraphGraphProvider.getInstance();
 
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, 10).iterator())));
+        final Graph graph = SharedEmptyTinkerGraphGraphProvider.getInstance();
         graph.traversal().V().drop().iterate();
 
-        final Object plugin = RuntimeUtil.openClassRef(CallStepPlugin.class.getName(), testConfig);
+        final Object plugin = RuntimeUtil.openClassRef(CallStepPlugin.class.getName(), new MapConfiguration(testConfig));
 
         plugin.getClass().getMethod(PluginInterface.Methods.PLUG_INTO, Object.class).invoke(plugin, graph);
-        setDefaultMockCallbacks();
+        MockUtil.setDefaultMockCallbacks();
         graph.traversal()
-                .call(MockTask.class.getSimpleName())
+                .call(Load.class.getSimpleName())
                 .iterate();
     }
 
@@ -140,11 +157,11 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
                 new HashMap<>() {{
 //                    put(YAMLSchemaParser.Config.Keys.YAML_FILE_URI, IOUtil.copyFromResourcesIntoNewTempFile("example_schema.yaml").toURI().toString());
                     put(LocalParallelStreamRuntime.Config.Keys.THREADS, "1");
-                    put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-                    put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+                    put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
+                    put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
                     put(ConfigurationBase.Keys.ENCODER, TinkerPopGraphEncoder.class.getName());
                     put(TinkerPopGraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
-                    put(OUTPUT, TinkerPopGraphOutput.class.getName());
+                    put(ConfigurationBase.Keys.OUTPUT, TinkerPopGraphOutput.class.getName());
                     put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(ROOT_VERTEX_ID_MAX + 1));
                     put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
                 }});
@@ -198,12 +215,12 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
                 new HashMap<>() {{
                     put(LocalParallelStreamRuntime.Config.Keys.THREADS, 1);
                     put(PluginEnabledGraph.Config.Keys.GRAPH_IMPL, SharedEmptyTinkerGraphGraphProvider.class.getName());
-                    put(OUTPUT, TinkerPopGraphOutput.class.getName());
-                    put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
+                    put(ConfigurationBase.Keys.OUTPUT, TinkerPopGraphOutput.class.getName());
+                    put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
                     put(TinkerPopGraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
-                    put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+                    put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
 //                    put(EMITTER, Generator.class.getName());
-                    put(ENCODER, TinkerPopGraphEncoder.class.getName());
+                    put(ConfigurationBase.Keys.ENCODER, TinkerPopGraphEncoder.class.getName());
                     put(SuppliedWorkChunkDriver.Config.Keys.ITERATOR_SUPPLIER_PHASE_ONE, ConfiguredRangeSupplier.class.getName());
 
                     put(ConfiguredRangeSupplier.Config.Keys.RANGE_BOTTOM, 0L);
@@ -231,7 +248,7 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
 
         if (failed.get()) {
             failures.forEach(it -> it.printStackTrace());
-            fail("Failures recorded");
+            TestCase.fail("Failures recorded");
         }
 //        TestCase.assertEquals((Long) 8000L, (Long) graph.traversal().V().count().next());
 //        SchemaTestConstants
