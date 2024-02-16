@@ -17,8 +17,9 @@ import java.util.stream.Collectors;
 
 public class CLI {
     public static void main(String[] args) throws Exception {
-        Optional<CLIPlugin> plugin = parseAndLoadPlugin(args);
-        Iterator<?> response = plugin.orElseThrow(() -> new RuntimeException("Could not load CLI Plugin")).call();
+        final Optional<CLIPlugin> plugin = parseAndLoadPlugin(args);
+        if (plugin.isEmpty()) return;
+        final Iterator<?> response = plugin.get().call();
         if (plugin.get().getCommandLine().listComponents || plugin.get().getCommandLine().listTasks || plugin.get().getCommandLine().help) {
             response.forEachRemaining(it -> System.out.println(it));
         } else {
@@ -43,10 +44,10 @@ public class CLI {
             cli = CommandLine.populateCommand(new MovementCLI(), args);
         } catch (CommandLine.ParameterException pxe) {
             CommandLine.usage(new MovementCLI(), System.out);
-            throw new RuntimeException("Error parsing command line arguments", pxe);
+            System.err.println("Error parsing command line arguments: " + pxe.getMessage());
+            return Optional.empty();
         }
         if (cli.help) {
-            System.out.println("Movement, by Aerospike.\n");
             CommandLine.usage(new MovementCLI(), System.out);
             return Optional.empty();
         }
@@ -67,6 +68,8 @@ public class CLI {
         return String.format("%s=%s", key, value);
     }
 
+
+    @CommandLine.Command(name = "Movement", header = "Movement: a parallel dataflow system, by Aerospike.")
     public static class MovementCLI {
         public static class Args {
             public static final String TASK = "task";
@@ -92,7 +95,7 @@ public class CLI {
         protected boolean listTasks;
         @CommandLine.Option(names = Args.LIST_COMPONENTS, description = "List available components")
         protected boolean listComponents;
-        @CommandLine.Option(names = Args.TASK, description = "Task to run")
+        @CommandLine.Option(names = Args.TASK, description = "Task to run", required = true)
         protected String taskName;
         @CommandLine.Option(names = {Args.CONFIG_SHORT, Args.CONFIG_LONG}, description = "Path or URL to the configuration file")
         protected String configPath;

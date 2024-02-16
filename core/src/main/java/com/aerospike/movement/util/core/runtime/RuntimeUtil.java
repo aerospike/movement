@@ -478,7 +478,7 @@ public class RuntimeUtil {
     public static <T> Set<Class<T>> findAvailableSubclasses(final Class<T> clazz, final String packagePrefix) {
         final ConfigurationBuilder c = new ConfigurationBuilder()
                 .setClassLoaders(new ClassLoader[]{
-                        ClassLoader.getPlatformClassLoader()
+                        clazz.getClassLoader()
                 })
                 .setUrls(ClasspathHelper.forPackage(packagePrefix))
                 .setScanners(SubTypes);
