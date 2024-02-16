@@ -14,7 +14,7 @@ import com.aerospike.movement.structure.core.graph.EmittedVertex;
 import com.aerospike.movement.runtime.core.driver.OutputId;
 import com.aerospike.movement.runtime.core.driver.OutputIdDriver;
 import com.aerospike.movement.structure.core.EmittedId;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 
@@ -44,7 +44,7 @@ public class PassthroughOutputIdDriver extends OutputIdDriver {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(PassthroughOutputIdDriver.Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(PassthroughOutputIdDriver.Config.Keys.class);
         }
 
         public static class Keys {

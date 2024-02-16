@@ -10,6 +10,9 @@ package com.aerospike.movement.output.tinkerpop;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.emitter.core.Emitter;
+import com.aerospike.movement.emitter.tinkerpop.TinkerPopGraphEmitter;
+import com.aerospike.movement.encoding.tinkerpop.TinkerPopGraphEncoder;
+import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
 import com.aerospike.movement.structure.core.graph.EmittedEdge;
 import com.aerospike.movement.structure.core.graph.EmittedVertex;
 import com.aerospike.movement.encoding.core.Encoder;
@@ -18,10 +21,9 @@ import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.output.core.OutputWriter;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
-import com.aerospike.movement.util.core.error.ErrorUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
-import com.aerospike.movement.encoding.tinkerpop.TinkerPopGraphEncoder;
+import com.aerospike.movement.encoding.tinkerpop.TinkerPopGraphDecoder;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -54,7 +56,7 @@ public class TinkerPopGraphOutput extends Loadable implements Output, OutputWrit
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(TinkerPopTraversalEncoder.Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(TinkerPopTraversalEncoder.Config.Keys.class);
         }
 
 
@@ -80,7 +82,7 @@ public class TinkerPopGraphOutput extends Loadable implements Output, OutputWrit
     public static Configuration getOutputConfig() {
         return new MapConfiguration(new HashMap<>() {{
             put(ConfigurationBase.Keys.OUTPUT, TinkerPopGraphOutput.class.getName());
-            put(ConfigurationBase.Keys.ENCODER, TinkerPopGraphEncoder.class.getName());
+            put(ConfigurationBase.Keys.ENCODER, TinkerPopGraphDecoder.class.getName());
         }});
     }
 
@@ -92,7 +94,14 @@ public class TinkerPopGraphOutput extends Loadable implements Output, OutputWrit
 
     @Override
     public Emitter reader(Runtime.PHASE phase, Class type, Optional<String> label, final Configuration callerConfig) {
-        throw ErrorUtil.unimplemented();
+        final Configuration readerConfig = ConfigUtil.withOverrides(this.config,
+                new HashMap<>() {{
+                    put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, TinkerPopGraphDriver.class.getName());
+                    put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, TinkerPopGraphDriver.class.getName());
+                    put(ConfigurationBase.Keys.EMITTER,TinkerPopGraphEmitter.class.getName());
+                    put(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR, phase.name());
+                }});
+        return TinkerPopGraphEmitter.open(readerConfig);
     }
 
     @Override
@@ -105,9 +114,12 @@ public class TinkerPopGraphOutput extends Loadable implements Output, OutputWrit
 
 
     @Override
-    public void writeToOutput(final Emitable item) {
-        encoder.encode(item);
-        incrementMetrics(item);
+    public void writeToOutput(final Optional<Emitable> item) {
+        item.map(emitable -> {
+            incrementMetrics(emitable);
+            encoder.encode(emitable);
+            return null;
+        });
     }
 
     private void incrementMetrics(final Emitable item) {
@@ -140,6 +152,11 @@ public class TinkerPopGraphOutput extends Loadable implements Output, OutputWrit
     @Override
     public void dropStorage() {
         ((TinkerPopGraphEncoder) encoder).getGraph().traversal().V().drop().iterate();
+    }
+
+    @Override
+    public Optional<Encoder> getEncoder() {
+        return Optional.of(encoder);
     }
 
     @Override

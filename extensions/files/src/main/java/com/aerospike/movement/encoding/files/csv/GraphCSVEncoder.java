@@ -13,7 +13,7 @@ import com.aerospike.movement.structure.core.graph.EmittedEdge;
 import com.aerospike.movement.structure.core.graph.EmittedVertex;
 import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.output.files.SplitFileLineOutput;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -40,7 +40,7 @@ public class GraphCSVEncoder extends CSVEncoder {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
@@ -86,7 +86,7 @@ public class GraphCSVEncoder extends CSVEncoder {
 
     @Override
     public Map<String, Object> getEncoderMetadata() {
-        return Map.of(SplitFileLineOutput.Config.Keys.EXTENSION,"csv");
+        return Map.of(SplitFileLineOutput.Config.Keys.EXTENSION, "csv");
     }
 
     @Override
@@ -113,6 +113,8 @@ public class GraphCSVEncoder extends CSVEncoder {
 
 
     public List<String> toCsvFields(final Emitable item) {
+        if (Optional.class.isAssignableFrom(item.getClass()))
+            throw new RuntimeException("optional");
         if (EmittedEdge.class.isAssignableFrom(item.getClass())) {
             return getEdgeHeaderFields(((EmittedEdge) item).label()).stream()
                     .map(f -> EmittedEdge.getFieldFromEdge(((EmittedEdge) item), f))

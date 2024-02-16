@@ -11,7 +11,7 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.logging.core.Logger;
 import com.aerospike.movement.logging.core.LoggerFactory;
 import com.aerospike.movement.util.core.ArrayBuilder;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.runtime.core.Handler;
 import org.apache.commons.configuration2.Configuration;
 
@@ -33,7 +33,7 @@ public class LoggingErrorHandler implements ErrorHandler {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
         public static class Keys {

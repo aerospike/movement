@@ -15,7 +15,7 @@ import com.aerospike.movement.test.mock.emitter.MockEmitable;
 import com.aerospike.movement.test.mock.emitter.MockEmitter;
 import com.aerospike.movement.test.mock.encoder.MockEncoder;
 import com.aerospike.movement.test.mock.output.MockOutput;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 
@@ -104,7 +104,8 @@ public final class MockUtil {
                 MockCallback.create((object, args) -> {
                     final EmitableGraphElement item;
                     try {
-                        item = (EmitableGraphElement) args[1];
+                        Object o = ((Optional<?>) args[1]).get();
+                        item = Optional.class.isAssignableFrom(o.getClass()) ? ((Optional<EmitableGraphElement>)o).get() : (EmitableGraphElement) o;
                     } catch (Exception e) {
                         throw RuntimeUtil.getErrorHandler(MockUtil.class).handleError(new RuntimeException(e));
                     }
@@ -135,7 +136,7 @@ public final class MockUtil {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Keys.class);
+            return ConfigUtil.getKeysFromClass(Keys.class);
         }
 
         public static class Keys {
@@ -150,7 +151,8 @@ public final class MockUtil {
 
 
     public static Optional<Object> onEvent(final Class clazz, final String method, final Object object, Object... args) {
-        return lookupCallback(clazz, method).flatMap(c -> c.onEvent(object, args));
+        return lookupCallback(clazz, method).flatMap(c ->
+                c.onEvent(object, args));
     }
 
     private static Optional<MockCallback> lookupCallback(final Class clazz, final String method) {

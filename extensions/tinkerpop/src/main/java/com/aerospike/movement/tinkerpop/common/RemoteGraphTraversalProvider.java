@@ -7,12 +7,11 @@
 package com.aerospike.movement.tinkerpop.common;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.encoding.tinkerpop.TinkerPopTraversalEncoder;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
-import org.apache.tinkerpop.gremlin.process.remote.RemoteConnectionException;
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
@@ -35,7 +34,7 @@ public class RemoteGraphTraversalProvider {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
@@ -57,8 +56,7 @@ public class RemoteGraphTraversalProvider {
         final String remoteTraversalSourceName = Config.INSTANCE.getOrDefault(Config.Keys.REMOTE_TRAVERSAL_SOURCE_NAME, config);
         final GraphTraversalSource g = AnonymousTraversalSource
                 .traversal()
-                .withRemote(DriverRemoteConnection
-                        .using(host, Integer.parseInt(port), remoteTraversalSourceName));
+                .withRemote(DriverRemoteConnection.using(host, Integer.parseInt(port), remoteTraversalSourceName));
         try {
             //test connection
             g.V().limit(1).hasNext();
@@ -67,7 +65,7 @@ public class RemoteGraphTraversalProvider {
         }
         synchronized (RemoteGraphTraversalProvider.class) {
             if (Boolean.parseBoolean(Config.INSTANCE.getOrDefault(TinkerPopTraversalEncoder.Config.Keys.CLEAR, config))) {
-                g.V().drop().iterate();
+//                g.V().drop().iterate();
             }
         }
         return g;

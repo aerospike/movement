@@ -9,7 +9,7 @@ package com.aerospike.movement.tinkerpop.common;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphGraphProvider;
 import com.aerospike.movement.tinkerpop.common.instrumentation.impl.CachedGraph;
 import com.aerospike.movement.tinkerpop.common.instrumentation.impl.ThrottledGraph;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
@@ -102,9 +102,9 @@ public class TestGraphWrappers {
 
     @Test
     public void testSharedEmptyTinkerGraphProvider() {
-        final Graph sharedEmptyTinkerGraph = SharedEmptyTinkerGraphGraphProvider.open(ConfigurationUtil.empty());
+        final Graph sharedEmptyTinkerGraph = SharedEmptyTinkerGraphGraphProvider.open(ConfigUtil.empty()).getProvided(GraphProvider.GraphProviderContext.OUTPUT);
         asciiTest(sharedEmptyTinkerGraph);
-        final Graph sharedEmptyTinkerGraphRefTwo = SharedEmptyTinkerGraphGraphProvider.open(ConfigurationUtil.empty());
+        final Graph sharedEmptyTinkerGraphRefTwo = SharedEmptyTinkerGraphGraphProvider.open(ConfigUtil.empty()).getProvided(GraphProvider.GraphProviderContext.OUTPUT);
         assertEquals(2L, sharedEmptyTinkerGraphRefTwo.traversal().V().count().next().longValue());
         assertEquals(1L, sharedEmptyTinkerGraphRefTwo.traversal().E().count().next().longValue());
     }
@@ -112,12 +112,13 @@ public class TestGraphWrappers {
 
     @Before
     public void clearTestGraph(){
-        SharedEmptyTinkerGraphGraphProvider.getInstance().traversal().V().drop().iterate();
+        SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().V().drop().iterate();
     }
     @Test
     public void testCachedGraph() {
         asciiTest(CachedGraph.open(new MapConfiguration(new HashMap<>() {{
-            put(CachedGraph.Config.Keys.GRAPH_PROVIDER_IMPL, SharedEmptyTinkerGraphGraphProvider.class.getName());
+            put(GraphProvider.Keys.CONTEXT,GraphProvider.GraphProviderContext.OUTPUT.toString());
+            put(CachedGraph.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
         }})));
     }
 
@@ -125,6 +126,7 @@ public class TestGraphWrappers {
     public void testThrottledGraph() {
         final long delayTime = 200;
         Graph throttledGraph = ThrottledGraph.open(new MapConfiguration(new HashMap<>() {{
+            put(GraphProvider.Keys.CONTEXT,GraphProvider.Keys.OUTPUT);
             put(ThrottledGraph.Config.Keys.GRAPH_PROVIDER_IMPL, SharedEmptyTinkerGraphGraphProvider.class.getName());
             put(ThrottledGraph.Config.Keys.DELAY_TIME, delayTime); //delay each operation .5 seconds;
         }}));

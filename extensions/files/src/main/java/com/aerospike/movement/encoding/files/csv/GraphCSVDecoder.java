@@ -11,7 +11,7 @@ import com.aerospike.movement.structure.core.graph.EmitableGraphElement;
 import com.aerospike.movement.encoding.core.Decoder;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorUtil;
 import org.apache.commons.configuration2.Configuration;
 
@@ -50,7 +50,7 @@ public class GraphCSVDecoder extends Loadable implements Decoder<String> {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 

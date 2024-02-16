@@ -26,7 +26,7 @@
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
         <commons-configuration2.version>2.9.0</commons-configuration2.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
-        <tinkerpop.version>3.6.3</tinkerpop.version>
+        <tinkerpop.version>3.7.1</tinkerpop.version>
     </properties>
 
     <dependencies>

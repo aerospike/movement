@@ -11,26 +11,21 @@ import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 
-public class ClassicGraphProvider implements GraphProvider {
+public class SharedTinkerClassicGraphProvider implements GraphProvider {
+    static final Graph classicGraph = TinkerFactory.createClassic();
 
-
-    static Graph classicGraph = TinkerFactory.createClassic();
-    private final Configuration config;
-
-    public ClassicGraphProvider(final Configuration config) {
-        this.config = config;
+    public SharedTinkerClassicGraphProvider(final Configuration config) {
     }
 
-    public static Graph open(final Configuration config) {
-        return classicGraph;
+    public static GraphProvider open(final Configuration config) {
+        return new SharedTinkerClassicGraphProvider(config);
     }
 
-    public static Graph getInstance() {
-        return classicGraph;
-    }
 
     @Override
-    public Graph getGraph() {
+    public Graph getProvided(GraphProviderContext ctx) {
         return classicGraph;
     }
+
+
 }

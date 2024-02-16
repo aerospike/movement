@@ -15,11 +15,11 @@ import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.runtime.core.local.RunningPhase;
 import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
 import com.aerospike.movement.test.core.AbstractMovementTest;
-import com.aerospike.movement.test.tinkerpop.ClassicGraphProvider;
+import com.aerospike.movement.test.tinkerpop.SharedTinkerClassicGraphProvider;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphTraversalProvider;
 import com.aerospike.movement.tinkerpop.common.RemoteGraphTraversalProvider;
 import com.aerospike.movement.tinkerpop.common.TinkerPopGraphProvider;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
 import com.aerospike.movement.util.core.runtime.IOUtil;
@@ -69,12 +69,14 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
 
     final Configuration graphTransferConfig = new MapConfiguration(new HashMap<>() {{
         put(THREADS, String.valueOf(THREAD_COUNT));
+
         put(ConfigurationBase.Keys.EMITTER, TinkerPopGraphEmitter.class.getName());
-        put(TinkerPopGraphEmitter.Config.Keys.GRAPH_PROVIDER, TinkerPopGraphProvider.class.getName());
-        put(TinkerPopGraphProvider.Config.Keys.GRAPH_IMPL, ClassicGraphProvider.class.getName());
+        put(TinkerPopGraphEmitter.Config.Keys.GRAPH_PROVIDER, SharedTinkerClassicGraphProvider.class.getName());
 
         put(ConfigurationBase.Keys.ENCODER, TinkerPopTraversalEncoder.class.getName());
         put(TinkerPopTraversalEncoder.Config.Keys.TRAVERSAL_PROVIDER, SharedEmptyTinkerGraphTraversalProvider.class.getName());
+
+        
         put(ConfigurationBase.Keys.OUTPUT, TinkerPopTraversalOutput.class.getName());
     }});
 
@@ -85,7 +87,7 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
         assertEquals(0L, SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().E().count().next().longValue());
         assertEquals(0L, SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().count().next().longValue());
 
-        final Configuration config = ConfigurationUtil.configurationWithOverrides(graphTransferConfig, new MapConfiguration(new HashMap<>() {{
+        final Configuration config = ConfigUtil.withOverrides(graphTransferConfig, new MapConfiguration(new HashMap<>() {{
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, TinkerPopGraphDriver.class.getName());
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, TinkerPopGraphDriver.class.getName());
 
@@ -124,7 +126,7 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
     public void testWillTransferEdgesFromGraphAToGraphBByTraversal() {
         assertEquals(0L, SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().E().count().next().longValue());
         assertEquals(0L, SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().count().next().longValue());
-        final Configuration config = ConfigurationUtil.configurationWithOverrides(graphTransferConfig, new MapConfiguration(new HashMap<>() {{
+        final Configuration config = ConfigUtil.withOverrides(graphTransferConfig, new MapConfiguration(new HashMap<>() {{
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, TinkerPopGraphDriver.class.getName());
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, TinkerPopGraphDriver.class.getName());
         }}));
@@ -168,7 +170,7 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
                     put(RemoteGraphTraversalProvider.Config.Keys.HOST, "localhost");
                     put(RemoteGraphTraversalProvider.Config.Keys.PORT, 8182);
                 }});
-        System.out.println(ConfigurationUtil.configurationToPropertiesFormat(testConfig));
+        System.out.println(ConfigUtil.configurationToPropertiesFormat(testConfig));
 
         final GraphTraversalSource g = AnonymousTraversalSource
                 .traversal()

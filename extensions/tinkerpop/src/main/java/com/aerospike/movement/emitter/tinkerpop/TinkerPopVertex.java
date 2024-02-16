@@ -17,6 +17,8 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static com.aerospike.movement.emitter.core.Emitter.encodeToOutput;
+
 public class TinkerPopVertex implements EmittedVertex {
     private final Vertex vertex;
 
@@ -26,7 +28,7 @@ public class TinkerPopVertex implements EmittedVertex {
 
     @Override
     public Stream<Emitable> emit(final Output output) {
-        output.writer(EmittedVertex.class, vertex.label()).writeToOutput(this);
+        encodeToOutput(this,output);
         return Stream.empty();
     }
 

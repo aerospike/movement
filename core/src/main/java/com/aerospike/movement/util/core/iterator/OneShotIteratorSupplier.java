@@ -27,6 +27,8 @@ public class OneShotIteratorSupplier<T> extends CheckedNotThreadSafe implements 
         checkThreadAssignment();
         if (used.compareAndSet(false, true)) {
             return supplier.get();
-        } else throw new IllegalStateException("IteratorSupplier can only be used once");
+        } else{
+            throw new IllegalStateException("IteratorSupplier can only be used once");
+        }
     }
 }

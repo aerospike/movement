@@ -19,10 +19,9 @@ import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.encoder.MockEncoder;
 import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.test.mock.task.MockTask;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
-import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import junit.framework.TestCase;
 import org.junit.After;
@@ -78,7 +77,7 @@ public class TestCLI extends AbstractMovementTest {
         final List<Object> y = IteratorUtils.list(x.get().call());
         final List<String> z = RuntimeUtil.findAvailableSubclasses(Task.class)
                 .stream().map(Class::getName).collect(Collectors.toList());
-        assertEquals(4, z.size());
+        assertEquals(5, z.size());
         assertEquals(z.size(), y.size());
         CLI.main(args);
     }
@@ -111,7 +110,7 @@ public class TestCLI extends AbstractMovementTest {
         assertEquals(0, getHitCounter(MockEncoder.class, MockEncoder.Methods.ENCODE));
         RuntimeUtil.loadClass(MockTask.class.getName());
         final Path tmpConfig = Files.createTempFile("movement", "test").toAbsolutePath();
-        final String configString = ConfigurationUtil.configurationToPropertiesFormat(getMockConfiguration(new HashMap<>()));
+        final String configString = ConfigUtil.configurationToPropertiesFormat(getMockConfiguration(new HashMap<>()));
         Files.write(tmpConfig, configString.getBytes());
 
 
@@ -132,13 +131,13 @@ public class TestCLI extends AbstractMovementTest {
 
         final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);
         assertTrue(x.isPresent());
-        final Iterator<Object> iterator = x.get().call();
+        final UUID id = (UUID) x.get().call().next();
+        Iterator<Map<String, Object>> iterator = RuntimeUtil.statusIteratorForTask(id);
         while (iterator.hasNext()) {
-            final Object it = iterator.next();
-            if (!iterator.hasNext()) {
-                System.out.println(it);
-            }
+            System.out.println(iterator.next());
+            Thread.sleep(1000L);
         }
+        RuntimeUtil.waitTask(id);
         LocalParallelStreamRuntime.closeStatic();
 
         final int NUMBER_OF_PHASES = 1;
@@ -148,7 +147,7 @@ public class TestCLI extends AbstractMovementTest {
 
     @Test
     @Ignore //@todo generator extraction
-    public void testRunExampleConfigurationGenerate() {
+    public void testRunExampleConfigurationGenerate() throws Exception {
         long TEST_SIZE = 10;
         RuntimeUtil.loadClass(MockTask.class.getName());
         final Path exampleConfig = Path.of("../conf/generator/example.properties");

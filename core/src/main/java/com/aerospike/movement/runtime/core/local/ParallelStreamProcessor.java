@@ -70,9 +70,9 @@ public class ParallelStreamProcessor implements Runnable {
         }
     }
 
-    //Make your elementIterators size equal to your threadpool size
     @Override
     public void run() {
+        //@todo restore custom threadpool?
         final WaitGroup waitGroup = WaitGroup.of(pipelines.size());
         pipelines.stream().parallel().forEach(pipeline -> {
             maxRunningTasks.getAndUpdate(existingMax -> {

@@ -25,7 +25,7 @@ public class CompositeEncoder<T> implements Encoder<T>{
         return new CompositeEncoder<>(Arrays.asList(encoders));
     }
     @Override
-    public T encode(Emitable item) {
+    public Optional<T> encode(Emitable item) {
         return null;
     }
 

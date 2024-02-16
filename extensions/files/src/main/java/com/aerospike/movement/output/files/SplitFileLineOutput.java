@@ -10,7 +10,7 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.output.core.OutputWriter;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import org.apache.commons.configuration2.Configuration;
 
 import java.io.BufferedWriter;
@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -48,7 +49,7 @@ public class SplitFileLineOutput implements OutputWriter {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(DirectoryOutput.Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(DirectoryOutput.Config.Keys.class);
         }
 
 
@@ -97,7 +98,7 @@ public class SplitFileLineOutput implements OutputWriter {
         this.label = label;
         this.config = config;
         this.encoder = encoder;
-        this.basePath = Path.of((String)(Config.INSTANCE.getOrDefault(Config.Keys.DIRECTORY, config)));
+        this.basePath = Path.of((String) (Config.INSTANCE.getOrDefault(Config.Keys.DIRECTORY, config)));
         this.maxLines = Long.parseLong(Config.INSTANCE.getOrDefault(Config.Keys.MAX_LINES, config));
         this.writesBeforeFlush = Integer.parseInt(Config.INSTANCE.getOrDefault(Config.Keys.WRITES_BEFORE_FLUSH, config));
         this.metric = metric;
@@ -110,8 +111,11 @@ public class SplitFileLineOutput implements OutputWriter {
     }
 
     @Override
-    public void writeToOutput(final Emitable emitable) {
-        writeEmitable(emitable);
+    public void writeToOutput(final Optional<Emitable> potentialEmitable) {
+        if (potentialEmitable.isPresent()) {
+            Emitable emitable = potentialEmitable.get();
+            writeEmitable(emitable);
+        }
     }
 
 
@@ -145,9 +149,8 @@ public class SplitFileLineOutput implements OutputWriter {
 
     public void writeEmitable(final Emitable item) {
         try {
-            Object x = encoder.encodeItemMetadata(item).orElseThrow(() -> new RuntimeException("No metadata for " + item));
-            final String header =  (String) x;
-            write(encoder.encode(item) + "\n",header);
+            final String header = (String) encoder.encodeItemMetadata(item).orElseThrow(() -> new RuntimeException("No metadata for " + item));
+            encoder.encode(item).ifPresent(encoded -> write(encoded + "\n", header));
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

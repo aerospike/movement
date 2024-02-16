@@ -15,9 +15,8 @@ import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.runtime.core.Pipeline;
 import com.aerospike.movement.runtime.core.driver.OutputIdDriver;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorHandler;
-import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.process.core.Task;
 import com.aerospike.movement.runtime.core.Runtime;
@@ -42,6 +41,8 @@ public class LocalParallelStreamRuntime implements Runtime {
     public final static AtomicReference<OutputIdDriver> outputIdDriver = new AtomicReference<>();
     public final static AtomicReference<WorkChunkDriver> workChunkDriver = new AtomicReference<>();
     public final static Map<String, Class<? extends Task>> taskAliases = new ConcurrentHashMap<>();
+    public final static AtomicReference<Optional<RunningPhase>> runningPhase = new AtomicReference<>();
+    public final static Map<UUID, Map<String, Object>> runningTasks = new ConcurrentHashMap<>();
 
     public static void halt() {
         INSTANCE.customThreadPool.shutdown();
@@ -63,7 +64,7 @@ public class LocalParallelStreamRuntime implements Runtime {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
@@ -120,24 +121,63 @@ public class LocalParallelStreamRuntime implements Runtime {
 
     @Override
     public Iterator<RunningPhase> runPhases(final List<PHASE> phases, final Configuration config) {
-        return phases.stream().map(phase -> runPhase(phase, config)).iterator();
+        return phases.stream().map(phase -> runPhase(phase, ConfigUtil.withOverrides(config, new HashMap<>() {{
+            put(ConfigurationBase.Keys.PHASE, phase.name());
+            put(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR, phase.name());
+        }}))).iterator();
     }
 
     @Override
     public RunningPhase runPhase(final PHASE phase, final Configuration config) {
+        return runPhase(phase, setupPipelines(customThreadPool.getParallelism(), phase, config), config);
+    }
+
+    public RunningPhase runPhase(final PHASE phase, final List<Pipeline> pipelines, final Configuration config) {
         // Id iterator drives the process, it may be bounded to a specific purpose, return unordered or sequential ids, or be unbounded
         // If it is unbounded, it simply drives the stream and the emitter impl it is driving should end the process when finished.
-        return executePhase(phase, customThreadPool, this, setPhaseConfiguration(phase, config));
+        Optional<RunningPhase> x = Optional.of(executePhase(phase, customThreadPool, this, pipelines, setPhaseConfiguration(phase, config)));
+        runningPhase.set(x);
+        return x.get();
     }
 
 
     private Configuration setPhaseConfiguration(final PHASE phase, final Configuration config) {
-        return ConfigurationUtil.configurationWithOverrides(config, Map.of(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR, phase.name()));
+        return ConfigUtil.withOverrides(config, Map.of(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR, phase.name()));
     }
 
+    public static final String TASK_ID_KEY = "taskId";
+    public static final String TASK_KEY = "task";
+    public static final String FUTURE_KEY = "future";
+    public static final String PHASE_REF_KEY = "phaseRef";
+
     @Override
-    public Iterator<Map<String, Object>> runTask(final Task task) {
-        return Task.run(task);
+    public Iterator<?> runTask(final Task task) {
+        final UUID taskId = UUID.randomUUID();
+        final AtomicReference<Optional<RunningPhase>> rpRef = new AtomicReference<>(Optional.empty());
+
+        Semaphore sem = new Semaphore(0);
+        final Future<Map<String, Object>> fut = CompletableFuture.supplyAsync(() -> {
+            final Map<String, Object> phaseResults = new HashMap<>();
+            Task.run(task).forEachRemaining(rp -> {
+                rpRef.set(Optional.of(rp));
+                sem.release();
+                rp.get();
+                phaseResults.put(rp.phase.name(), rp.status().next());
+            });
+            return phaseResults;
+        });
+        try {
+            sem.acquire();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        runningTasks.put(taskId, new HashMap<>() {{
+            put(TASK_ID_KEY, taskId);
+            put(TASK_KEY, task);
+            put(FUTURE_KEY, fut);
+            put(PHASE_REF_KEY, rpRef);
+        }});
+        return List.of(taskId).iterator();
     }
 
 
@@ -169,13 +209,15 @@ public class LocalParallelStreamRuntime implements Runtime {
     }
 
     public static Iterator<Loadable> getAllLoaded() {
-        return (Iterator<Loadable>) IteratorUtils.wrap(
-                IteratorUtils.concat(RuntimeUtil.lookup(Emitter.class),
-                        RuntimeUtil.lookup(Encoder.class),
-                        RuntimeUtil.lookup(Decoder.class),
-                        RuntimeUtil.lookup(Output.class),
-                        RuntimeUtil.lookup(OutputIdDriver.class),
-                        RuntimeUtil.lookup(WorkChunkDriver.class)));
+        List<Loadable> results = new ArrayList<>();
+        results.addAll((List<Loadable>) RuntimeUtil.lookup(Emitter.class));
+        results.addAll((List<Loadable>) RuntimeUtil.lookup(Encoder.class));
+        results.addAll((List<Loadable>) RuntimeUtil.lookup(Decoder.class));
+        results.addAll((List<Loadable>) RuntimeUtil.lookup(Decoder.class));
+        results.addAll((List<Loadable>) RuntimeUtil.lookup(Output.class));
+        results.addAll((List<Loadable>) RuntimeUtil.lookup(OutputIdDriver.class));
+        results.addAll((List<Loadable>) RuntimeUtil.lookup(WorkChunkDriver.class));
+        return results.iterator();
     }
 
 
@@ -190,7 +232,9 @@ public class LocalParallelStreamRuntime implements Runtime {
     private static RunningPhase executePhase(final Runtime.PHASE phase,
                                              final ForkJoinPool customThreadPool,
                                              final LocalParallelStreamRuntime runtime,
+                                             final List<Pipeline> pipelines,
                                              final Configuration config) {
+        pipelines.forEach(it -> ((Loadable) it.getEmitter()).init(config));
         Output.init(phase, config);
         Emitter.init(phase, config);
         Encoder.init(phase, config);
@@ -198,7 +242,6 @@ public class LocalParallelStreamRuntime implements Runtime {
 
 
         try {
-            final List<Pipeline> pipelines = setupPipelines(customThreadPool.getParallelism(), phase, config);
             final ParallelStreamProcessor processor = ParallelStreamProcessor.create(pipelines, config, runtime, phase);
             return RunningPhase.execute(processor, pipelines, phase, config);
         } catch (Exception e) {

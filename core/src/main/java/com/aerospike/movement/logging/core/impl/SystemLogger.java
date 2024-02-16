@@ -52,7 +52,7 @@ public class SystemLogger implements Logger {
 
     @Override
     public void debug(final String message, Object... context) {
-        System.out.println(format(Level.DEBUG, message, this.context, context));
+//        System.out.println(format(Level.DEBUG, message, this.context, context));
     }
 
     @Override

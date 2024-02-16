@@ -11,13 +11,19 @@ import com.aerospike.movement.emitter.core.Emitter;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
+import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.runtime.CheckedNotThreadSafe;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
+import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static com.aerospike.movement.config.core.ConfigurationBase.Keys.*;
 
 public class Pipeline extends CheckedNotThreadSafe implements AutoCloseable {
     public static String PIPELINE_ID = "internal.pipeline.id";
@@ -37,13 +43,13 @@ public class Pipeline extends CheckedNotThreadSafe implements AutoCloseable {
     }
 
     public static Pipeline create(final int id, final Runtime.PHASE phase, final Configuration config) {
-        final Emitter emitter = RuntimeUtil.loadEmitter(ConfigurationUtil.configurationWithOverrides(config, Map.of(PIPELINE_ID, id)));
+        final Emitter emitter = RuntimeUtil.loadEmitter(ConfigUtil.withOverrides(config, Map.of(PIPELINE_ID, id)));
         final WorkChunkDriver driver;
         if (Emitter.SelfDriving.class.isAssignableFrom(emitter.getClass()))
             driver = ((Emitter.SelfDriving) emitter).driver(config);
         else
             driver = (WorkChunkDriver) RuntimeUtil.lookupOrLoad(WorkChunkDriver.class, config);
-        final Output output = RuntimeUtil.loadOutput(ConfigurationUtil.configurationWithOverrides(config, Map.of(PIPELINE_ID, id)));
+        final Output output = RuntimeUtil.loadOutput(ConfigUtil.withOverrides(config, Map.of(PIPELINE_ID, id)));
         return new Pipeline(id, driver, emitter, output, phase);
     }
 
@@ -60,9 +66,18 @@ public class Pipeline extends CheckedNotThreadSafe implements AutoCloseable {
         return emitter;
     }
 
+    public Iterator<Map<String, Object>> status() {
+        return IteratorUtils.of(new HashMap<>() {{
+            put("PIPELINE_ID", id);
+            put(OUTPUT, output.toString());
+            put(EMITTER, emitter.toString());
+            put(ENCODER, output.getEncoder().map(Object::toString).orElse("null"));
+        }});
+    }
+
     @Override
     public String toString() {
-        return String.format("Pipeline [%d] with Output [%s] and Emitter [%s]", id, output, emitter);
+        return IOUtil.formatStruct(status().next());
     }
 
     @Override

@@ -7,7 +7,7 @@
 package com.aerospike.movement.tinkerpop.common;
 
 import com.aerospike.movement.tinkerpop.common.instrumentation.impl.ThrottledGraph;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -34,7 +34,7 @@ public class ThrottledTraversalProvider {
         } else {
             throw new RuntimeException("missing configuration key " + ThrottledGraph.Config.Keys.GRAPH_PROVIDER_IMPL);
         }
-        return new ThrottledTraversalProvider(ThrottledGraph.open(ConfigurationUtil.configurationWithOverrides(config, new HashMap<>() {{
+        return new ThrottledTraversalProvider(ThrottledGraph.open(ConfigUtil.withOverrides(config, new HashMap<>() {{
             put(ThrottledGraph.Config.Keys.GRAPH_PROVIDER_IMPL, GRAPH_PROVIDER_IMPL);
         }})), config);
     }

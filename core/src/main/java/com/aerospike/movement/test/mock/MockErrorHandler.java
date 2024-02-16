@@ -10,7 +10,7 @@ package com.aerospike.movement.test.mock;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.logging.core.Logger;
 import com.aerospike.movement.logging.core.LoggerFactory;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorHandler;
 import com.aerospike.movement.util.core.error.LoggingErrorHandler;
 import com.aerospike.movement.runtime.core.Handler;
@@ -34,7 +34,7 @@ public class MockErrorHandler implements ErrorHandler {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(LoggingErrorHandler.Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(LoggingErrorHandler.Config.Keys.class);
         }
 
         public static class Keys {

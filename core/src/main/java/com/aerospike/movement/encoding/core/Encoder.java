@@ -24,10 +24,10 @@ public interface Encoder<O> {
     }
 
     static void init(Runtime.PHASE phase, Configuration config) {
-        RuntimeUtil.closeAllInstancesOfLoadable(Encoder.class);
+//        RuntimeUtil.closeAllInstancesOfLoadable(Encoder.class);
     }
 
-    O encode(Emitable item);
+    Optional<O> encode(Emitable item);
 
     Optional<O> encodeItemMetadata(Emitable item);
 

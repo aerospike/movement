@@ -10,7 +10,7 @@ import com.aerospike.movement.cli.CLI;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.plugin.Plugin;
 import com.aerospike.movement.process.core.Task;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import org.apache.commons.configuration2.Configuration;
@@ -34,7 +34,7 @@ public class CLIPlugin extends Plugin {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
@@ -71,7 +71,7 @@ public class CLIPlugin extends Plugin {
         }
         final Configuration config;
         try {
-            config = ConfigurationUtil.load(cli.configPath().get());
+            config = ConfigUtil.load(cli.configPath().get());
         } catch (Exception e) {
             throw new RuntimeException("Failed to load config file: " + cli.configPath().get(), e);
         }

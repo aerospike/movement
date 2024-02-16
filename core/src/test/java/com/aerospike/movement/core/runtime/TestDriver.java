@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 import static com.aerospike.movement.config.core.ConfigurationBase.Keys.OUTPUT_ID_DRIVER;
 import static com.aerospike.movement.config.core.ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE;
@@ -52,14 +53,14 @@ public class TestDriver {
         }});
         SuppliedWorkChunkDriver driver = (SuppliedWorkChunkDriver) SuppliedWorkChunkDriver.open(config);
         final WorkChunk chunk = driver.getNext().get();
-        assertTrue(chunk.hasNext());
-        long ctr = 0;
-        while (chunk.hasNext()) {
-            final WorkItem id = chunk.next();
-            assertEquals(ctr++, id.getId());
-        }
-        assertEquals(10, ctr);
+        final AtomicLong ctr = new AtomicLong(0);
+        chunk.stream().forEach(ln -> {
+            assertEquals(ctr.getAndIncrement(), ln.get());
+        });
+
+        assertEquals(10, ctr.get());
     }
+
 
     @Test
     public void testOutputIDDriver() throws Exception {
@@ -124,44 +125,4 @@ public class TestDriver {
         assertEquals(100_000L, hitCounter.get());
     }
 
-    @Test
-    @Ignore
-    @Deprecated
-    public void testWorkChunkDriverConcurrent() throws Exception {
-        GeneratedOutputIdDriver.closeInstance();
-        SuppliedWorkChunkDriver.closeStatic();
-        Configuration config = new MapConfiguration(new HashMap<>() {{
-            put(BATCH_SIZE, 100);
-            put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-            put(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR, Runtime.PHASE.ONE.name());
-            put(ConfiguredRangeSupplier.Config.Keys.RANGE_BOTTOM, 0);
-            put(ConfiguredRangeSupplier.Config.Keys.RANGE_TOP, 100_000);
-            put(SuppliedWorkChunkDriver.Config.Keys.ITERATOR_SUPPLIER_PHASE_ONE, ConfiguredRangeSupplier.class.getName());
-        }});
-        SuppliedWorkChunkDriver driver = (SuppliedWorkChunkDriver) SuppliedWorkChunkDriver.open(config);
-        final AtomicLong elementHitCounter = new AtomicLong(0);
-        final AtomicLong chunkHitCounter = new AtomicLong(0);
-        final Set<Long> concurrentUniqueSet = new ConcurrentSkipListSet<>();
-        LongStream.range(0, 1000).parallel().forEach(l -> {
-            try {
-                Thread.sleep(new Random().nextInt(100));
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            while (driver.getNext().isPresent()) {
-                final WorkChunk workChunk = driver.getNext().get();
-                if(workChunk.hasNext())
-                    chunkHitCounter.incrementAndGet();
-                while (workChunk.hasNext()) {
-                    final WorkItem newVal = workChunk.next();
-                    if (!concurrentUniqueSet.add((Long) newVal.getId())) {
-                        throw new RuntimeException("Duplicate value found: " + newVal);
-                    }
-                    elementHitCounter.incrementAndGet();
-                }
-            }
-        });
-        assertEquals(1000L, chunkHitCounter.get());
-        assertEquals(100_000L, elementHitCounter.get());
-    }
 }

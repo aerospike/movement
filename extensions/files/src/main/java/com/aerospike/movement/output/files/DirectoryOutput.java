@@ -17,17 +17,14 @@ import com.aerospike.movement.output.core.OutputWriter;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.test.mock.emitter.MockEmitable;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import com.aerospike.movement.util.files.FileUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -55,7 +52,7 @@ public class DirectoryOutput extends Loadable implements Output {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
@@ -74,9 +71,7 @@ public class DirectoryOutput extends Loadable implements Output {
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
-            put(Keys.OUTPUT_DIRECTORY, "/tmp/generate");
-            put(Keys.VERTEX_OUTPUT_DIRECTORY, "/tmp/generate/vertices");
-            put(Keys.EDGE_OUTPUT_DIRECTORY, "/tmp/generate/edges");
+//uui
             put(Keys.ENTRIES_PER_FILE, "1000");
             put(Keys.BUFFER_SIZE_KB, "4096");
             put(Keys.WRITES_BEFORE_FLUSH, "1000");
@@ -102,6 +97,7 @@ public class DirectoryOutput extends Loadable implements Output {
         this.encoder = encoder;
         this.path = path;
         this.config = config;
+
     }
 
     public static DirectoryOutput open(Configuration config) {
@@ -135,7 +131,7 @@ public class DirectoryOutput extends Loadable implements Output {
 
             final Path typePath = resolveOrCreate(path, getTypeDirectory(type)).toAbsolutePath();
             resolveOrCreate(typePath, label);
-            writerConfig = ConfigurationUtil.configurationWithOverrides(config, Map.of(
+            writerConfig = ConfigUtil.withOverrides(config, Map.of(
                     Config.Keys.OUTPUT_DIRECTORY, typePath.toString()
             ));
             final OutputWriter outputWriter = SplitFileLineOutput.create(label, encoder, getMetric(label), writerConfig);
@@ -146,7 +142,7 @@ public class DirectoryOutput extends Loadable implements Output {
 
     @Override
     public Emitter reader(final Runtime.PHASE phase, final Class type, final Optional<String> label, final Configuration callerConfig) {
-        final Configuration readerConfig = ConfigurationUtil.configurationWithOverrides(config, new MapConfiguration(new HashMap<>() {{
+        final Configuration readerConfig = ConfigUtil.withOverrides(config, new MapConfiguration(new HashMap<>() {{
             put(DirectoryEmitter.Config.Keys.LABEL, label);
             put(DirectoryEmitter.Config.Keys.BASE_PATH, Path.of((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getParent().toString());
             put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, Path.of((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getFileName().toString());
@@ -176,6 +172,11 @@ public class DirectoryOutput extends Loadable implements Output {
     public void dropStorage() {
         FileUtil.recursiveDelete(path);
         path.toFile().mkdirs();
+    }
+
+    @Override
+    public Optional<Encoder> getEncoder() {
+        return Optional.of(encoder);
     }
 
     public Map<String, Object> getMetrics() {

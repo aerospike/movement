@@ -42,7 +42,7 @@ public abstract class WrappedGraph extends Loadable implements Graph {
 
     public WrappedGraph(final Class<Graph> graphClass, final ConfigurationBase configurationMeta, final Configuration config) {
         this((Graph) RuntimeUtil.openClassRef(CachedGraph.Config.INSTANCE
-                                .getOrDefault(CachedGraph.Config.Keys.GRAPH_PROVIDER_IMPL, config),
+                                .getOrDefault(CachedGraph.Config.Keys.GRAPH_PROVIDER, config),
                         config),
                 configurationMeta, config);
     }

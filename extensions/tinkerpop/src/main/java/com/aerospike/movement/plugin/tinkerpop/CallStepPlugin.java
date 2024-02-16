@@ -10,8 +10,7 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.logging.core.LoggerFactory;
 import com.aerospike.movement.plugin.Plugin;
 import com.aerospike.movement.process.core.Task;
-import com.aerospike.movement.tinkerpop.common.PluginServiceFactory;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -33,25 +32,26 @@ public class CallStepPlugin extends Plugin {
         }
 
         @Override
-        public Map<String, String> defaultConfigMap(final Map<String,Object> config) {
+        public Map<String, String> defaultConfigMap(final Map<String, Object> config) {
             return DEFAULTS;
         }
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
         public static class Keys {
+            public static final String SERVICE_NAME = "tinkerpop.plugin.service.name";
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
+            put(Keys.SERVICE_NAME, "movement");
         }};
     }
 
 
-    public static final String NAME = "movement";
     private final Configuration config;
 
     private CallStepPlugin(Configuration config) {
@@ -78,6 +78,7 @@ public class CallStepPlugin extends Plugin {
             final PluginServiceFactory psf = PluginServiceFactory.create(task, this, graph, config);
             graph.getServiceRegistry().registerService(psf);
         }
+
     }
 
     @Override
@@ -87,7 +88,7 @@ public class CallStepPlugin extends Plugin {
 
     @Override
     public String toString() {
-        return NAME;
+        return "CallStepPlugin: " + config.getString(Config.Keys.SERVICE_NAME);
     }
 
     @Override

@@ -12,6 +12,7 @@ import com.aerospike.movement.runtime.core.local.RunningPhase;
 import org.apache.commons.configuration2.Configuration;
 
 import java.util.*;
+import java.util.concurrent.Future;
 
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
@@ -24,7 +25,7 @@ public interface Runtime {
     Iterator<RunningPhase> runPhases(List<PHASE> phases, Configuration config);
 
 
-    Iterator<Map<String,Object>> runTask(Task task);
+    Iterator<?> runTask(Task task);
 
     void close();
 

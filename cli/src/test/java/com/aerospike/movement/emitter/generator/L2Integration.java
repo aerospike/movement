@@ -13,7 +13,7 @@ import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
 import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.test.core.AbstractMovementTest;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.files.FileUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -27,7 +27,6 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -44,7 +43,7 @@ import static org.junit.Assert.assertTrue;
 public class L2Integration extends AbstractMovementTest {
     @Test
     @Ignore //@todo remove
-    public void testL2Integration() throws IOException, InterruptedException {
+    public void testL2Integration() throws Exception {
         final String yamlFilePath = IOUtil.copyFromResourcesIntoNewTempFile("example_schema.yaml").getAbsolutePath();
         FileUtil.recursiveDelete(Path.of("/tmp/generate"));
 
@@ -66,7 +65,7 @@ public class L2Integration extends AbstractMovementTest {
         }});
 
         final File tmpConfig = Files.createTempFile("testconfig", "properties").toFile();
-        final String tmpConfigData = ConfigurationUtil.configurationToPropertiesFormat(testConfig);
+        final String tmpConfigData = ConfigUtil.configurationToPropertiesFormat(testConfig);
         FileWriter fileWriter = new FileWriter(tmpConfig);
         fileWriter.write(tmpConfigData);
         fileWriter.close();

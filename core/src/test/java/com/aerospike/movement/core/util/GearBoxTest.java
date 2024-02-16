@@ -8,10 +8,12 @@ package com.aerospike.movement.core.util;
 
 import com.aerospike.movement.util.core.stream.mechanics.GearBox;
 import com.aerospike.movement.util.core.stream.mechanics.PinionSystem;
+import com.aerospike.movement.util.core.stream.mechanics.ZipFunction;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -22,13 +24,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class GearBoxTest {
+    public static BiFunction<String, String, Optional<String>> stringConcatZipFunction = (s, s2) -> Optional.of(s + ":" + s2);
 
 
     @Test
     public void testTrivialGearBox() {
         Supplier<Stream<Integer>> streamSupplierA = () -> IntStream.range(0, 3).boxed();
         Supplier<Stream<Integer>> streamSupplierB = () -> IntStream.range(0, 3).boxed();
-        BiFunction<Integer, Integer, Integer> zipFunction = Integer::sum;
+        BiFunction<Integer, Integer, Optional<Integer>> zipFunction = (a, b) -> Optional.of(a + b);
 
         PinionSystem<Integer, Integer, Integer> pinionSystem = PinionSystem.of(streamSupplierA, streamSupplierB, zipFunction, PinionSystem::oneRotationHaltCheck);
 
@@ -41,16 +44,15 @@ public class GearBoxTest {
 
     @Test
     public void testSimpleGearBox() {
-        BiFunction<String, String, String> zipFunction = (s, s2) -> s + ":" + s2;
         List<PinionSystem> pinions = new ArrayList<>();
 
         Supplier<Stream<String>> streamSupplierA1 = () -> List.of("a", "the", "one").stream();
         Supplier<Stream<String>> streamSupplierB1 = () -> List.of("cat", "dog", "stone").stream();
-        pinions.add(PinionSystem.of(streamSupplierA1, streamSupplierB1, zipFunction, PinionSystem::oneRotationHaltCheck));
+        pinions.add(PinionSystem.of(streamSupplierA1, streamSupplierB1, ZipFunction.from(stringConcatZipFunction), PinionSystem::oneRotationHaltCheck));
 
         Supplier<Stream<String>> streamSupplierA2 = () -> List.of("green", "red", "yellow").stream();
         Supplier<Stream<String>> streamSupplierB2 = () -> List.of("paper", "chair", "tree").stream();
-        pinions.add(PinionSystem.of(streamSupplierA2, streamSupplierB2, zipFunction, PinionSystem::oneRotationHaltCheck));
+        pinions.add(PinionSystem.of(streamSupplierA2, streamSupplierB2, stringConcatZipFunction, PinionSystem::oneRotationHaltCheck));
 
 
         GearBox<String, String, String> box = GearBox.from(pinions.toArray(new PinionSystem[0]));
@@ -66,16 +68,15 @@ public class GearBoxTest {
 
     @Test
     public void testMixedGearBox() {
-        BiFunction<String, String, String> zipFunction = (s, s2) -> s + ":" + s2;
         List<PinionSystem<String, String, String>> pinions = new ArrayList<>();
 
         Supplier<Stream<String>> streamSupplierA1 = () -> List.of("a", "the", "one", "half").stream();
         Supplier<Stream<String>> streamSupplierB1 = () -> List.of("cat", "dog", "stone").stream();
-        pinions.add(PinionSystem.of(streamSupplierA1, streamSupplierB1, zipFunction, PinionSystem::oneRotationHaltCheck));
+        pinions.add(PinionSystem.of(streamSupplierA1, streamSupplierB1, stringConcatZipFunction, PinionSystem::oneRotationHaltCheck));
 
         Supplier<Stream<String>> streamSupplierA2 = () -> List.of("green", "red", "yellow").stream();
         Supplier<Stream<String>> streamSupplierB2 = () -> List.of("paper", "chair", "tree").stream();
-        pinions.add(PinionSystem.of(streamSupplierA2, streamSupplierB2, zipFunction, PinionSystem::oneRotationHaltCheck));
+        pinions.add(PinionSystem.of(streamSupplierA2, streamSupplierB2, stringConcatZipFunction, PinionSystem::oneRotationHaltCheck));
 
 
         GearBox<String, String, String> gearBox = GearBox.from(pinions);

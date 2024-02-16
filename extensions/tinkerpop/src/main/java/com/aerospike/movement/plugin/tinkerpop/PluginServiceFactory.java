@@ -4,11 +4,13 @@
  * Copyright (c) 2023 Aerospike Inc.
  */
 
-package com.aerospike.movement.tinkerpop.common;
+package com.aerospike.movement.plugin.tinkerpop;
 
 import com.aerospike.movement.plugin.Plugin;
 import com.aerospike.movement.process.core.Task;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
+import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.traversal.traverser.TraverserRequirement;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -25,6 +27,7 @@ public class PluginServiceFactory<I, R> implements Service.ServiceFactory<I, R>,
     public static final String API = "api";
     public static final String HELP = "help";
     public static final String CALL = "call";
+    public static final String TASK_STATUS = "TaskStatus";
 
     private final String serviceName;
     private final Graph system;
@@ -37,7 +40,7 @@ public class PluginServiceFactory<I, R> implements Service.ServiceFactory<I, R>,
     }
 
     public static PluginServiceFactory create(final Task serviceTask, final Plugin plugin, final Graph system, final Configuration config) {
-        return new PluginServiceFactory(serviceTask, plugin, system, config);
+        return new PluginServiceFactory(serviceTask, Optional.ofNullable(plugin).orElseThrow(), system, config);
     }
 
     @Override
@@ -68,9 +71,15 @@ public class PluginServiceFactory<I, R> implements Service.ServiceFactory<I, R>,
         return Service.super.getRequirements();
     }
 
+
+
     @Override
     public CloseableIterator<R> execute(final ServiceCallContext ctx, final Map params) {
-        final Configuration overriddenConfig = ConfigurationUtil.configurationWithOverrides(config, params);
+        if(serviceName.equals(TASK_STATUS)){
+            String taskId = (String) Optional.ofNullable(params.get(LocalParallelStreamRuntime.TASK_ID_KEY)).orElseThrow(() -> new RuntimeException("cannot find with params" + params));
+            return (CloseableIterator<R>) CloseableIterator.of(RuntimeUtil.statusIteratorForTask(UUID.fromString(taskId)));
+        }
+        final Configuration overriddenConfig = ConfigUtil.withOverrides(config, params);
 //        validateParams(overriddenConfig);
         if (Optional.ofNullable((String) params.get(HELP)).isPresent()) {
             final Optional<List<String>> helpForService = Optional.ofNullable(plugin.api().get(serviceName));

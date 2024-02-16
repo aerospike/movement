@@ -25,7 +25,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class ConfigurationUtil {
+import static com.aerospike.movement.config.core.ConfigurationBase.Keys.DOT;
+
+public class ConfigUtil {
     public static ConfigurationBase getConfigurationMeta(final Class<? extends Loadable> clazz) {
         return (ConfigurationBase) RuntimeUtil.getStaticFieldValue(
                 RuntimeUtil.loadInnerClass(clazz.getName(), "Config"),
@@ -44,7 +46,7 @@ public class ConfigurationUtil {
             catalogProps.load(new FileInputStream(file));
             return new MapConfiguration(catalogProps);
         } catch (IOException e) {
-            throw RuntimeUtil.getErrorHandler(ConfigurationUtil.class).handleError(new RuntimeException(e));
+            throw RuntimeUtil.getErrorHandler(ConfigUtil.class).handleError(new RuntimeException(e));
         }
     }
 
@@ -65,12 +67,12 @@ public class ConfigurationUtil {
 
     public static Configuration load(final String configPath) {
         if (configPath.startsWith("resources:")) {
-            return ConfigurationUtil.fromFile(IOUtil.copyFromResourcesIntoNewTempFile(configPath.split("resources:/")[1]));
+            return ConfigUtil.fromFile(IOUtil.copyFromResourcesIntoNewTempFile(configPath.split("resources:/")[1]));
         }
-        if (ConfigurationUtil.isURL(configPath)) {
-            return ConfigurationUtil.fromURL(configPath);
+        if (ConfigUtil.isURL(configPath)) {
+            return ConfigUtil.fromURL(configPath);
         } else {
-            return ConfigurationUtil.fromFile(new File(configPath));
+            return ConfigUtil.fromFile(new File(configPath));
         }
     }
 
@@ -83,7 +85,7 @@ public class ConfigurationUtil {
     }
 
     public static String keyFromPathElements(String... elements) {
-        return String.join(ConfigurationBase.Keys.DOT, elements);
+        return String.join(DOT, elements);
     }
 
     public static List<String> getSubKeys(final Configuration config, final String baseKey, final String... path) {
@@ -123,13 +125,24 @@ public class ConfigurationUtil {
         return key + "." + subKey;
     }
 
+    public static String cons(String a, String b) {
+        return a + DOT + b;
+    }
+
+    public static List<String> filterBySubkeyMatchPrefixes(Configuration config, String subKeyToMatch, String... prefixes) {
+        return IteratorUtils.stream(config.getKeys())
+                .filter(configKey -> Arrays.stream(prefixes).anyMatch(configKey::startsWith))
+                .filter(configKey -> configKey.contains(subKeyToMatch))
+                .collect(Collectors.toList());
+    }
+
     Map<String, Object> configurationToMap(Configuration config) {
         return IteratorUtils.stream(config.getKeys())
                 .map(key -> Map.entry(key, config.getProperty(key)))
                 .collect(Collectors.toMap(t -> t.getKey(), x -> x.getValue()));
     }
 
-    public static Configuration configurationWithOverrides(Configuration config, Configuration overrides) {
+    public static Configuration withOverrides(Configuration config, Configuration overrides) {
         final Map<String, Object> configMap = new HashMap<>();
         config.getKeys().forEachRemaining(key -> configMap.put(key, config.getProperty(key)));
         final Map<String, Object> overridesMap = new HashMap<>();
@@ -138,15 +151,24 @@ public class ConfigurationUtil {
         return new MapConfiguration(configMap);
     }
 
-    public static Configuration configurationWithOverrides(Configuration config, Map<String, Object> overrides) {
-        return configurationWithOverrides(config, new MapConfiguration(overrides));
+    public static Configuration withOverrides(Configuration config, Map<String, Object> overrides) {
+        return withOverrides(config, new MapConfiguration(overrides));
+    }
+    public static Configuration withOverrides(Configuration config, String... overrides) {
+        assert overrides.length % 2 == 0;
+        final Map<String,String> omap = new HashMap<>();
+        Iterator<String> i = List.of(overrides).iterator();
+        while(i.hasNext()){
+            omap.put(i.next(),i.next());
+        }
+        return withOverrides(config, new MapConfiguration(omap));
     }
 
     public static Configuration fromURL(final String url) {
         try {
             return fromURL(new URL(url));
         } catch (IOException e) {
-            throw RuntimeUtil.getErrorHandler(ConfigurationUtil.class).handleError(new RuntimeException(e));
+            throw RuntimeUtil.getErrorHandler(ConfigUtil.class).handleError(new RuntimeException(e));
         }
     }
 
@@ -156,7 +178,7 @@ public class ConfigurationUtil {
             tempFile = Files.createTempFile("movement", "tmp");
             IOUtil.downloadFileFromURL(url, tempFile.toFile());
         } catch (IOException e) {
-            throw RuntimeUtil.getErrorHandler(ConfigurationUtil.class).handleError(new RuntimeException(e));
+            throw RuntimeUtil.getErrorHandler(ConfigUtil.class).handleError(new RuntimeException(e));
         }
         return fromFile(tempFile.toFile());
     }

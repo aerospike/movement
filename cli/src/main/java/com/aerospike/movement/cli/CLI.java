@@ -7,8 +7,8 @@
 package com.aerospike.movement.cli;
 
 import com.aerospike.movement.plugin.cli.CLIPlugin;
-import com.aerospike.movement.runtime.core.local.RunningPhase;
-import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
+import com.aerospike.movement.process.core.Task;
+import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import picocli.CommandLine;
 
 import java.util.*;
@@ -16,54 +16,25 @@ import java.util.stream.Collectors;
 
 
 public class CLI {
-    public static void main(String[] args) {
-        int statusFrequency = 100;
-        try {
-            Optional<CLIPlugin> plugin = parseAndLoadPlugin(args);
-            final Iterator<?> results = plugin.orElseThrow(() -> new RuntimeException("Could not load CLI Plugin")).call();
-            int x = 0;
-            long lastCount = 0;
-            if (plugin.get().getCommandLine().debug) {
-                final long startTime = System.currentTimeMillis();
-                while (results.hasNext()) {
-                    x++;
-                    if (x % statusFrequency == 0) {
-                        final Map<String, Object> res = (Map<String, Object>) results.next();
-                        if (res.containsKey(RunningPhase.Keys.OUTPUTS)) {
-                            final Map<String, Long> outputs = (Map<String, Long>) res.get(RunningPhase.Keys.OUTPUTS);
-                            final Optional<Long> totalProcessed = outputs.values()
-                                    .stream()
-                                    .filter(it -> {
-                                        return Long.class.isAssignableFrom(it.getClass());
-                                    })
-                                    .reduce(Long::sum);
-                            if (totalProcessed.isPresent()) {
-                                final long endTime = System.currentTimeMillis();
-                                final long duration = endTime - startTime;
-                                final double seconds = duration / 1000.0;
-                                final double rate = totalProcessed.get() / seconds;
-                                final Long total = totalProcessed.get();
-                                if (total > 0 && total > lastCount) {
-                                    System.out.println(String.format("Processed %d elements in %f seconds (%f elements per second)", totalProcessed.get(), seconds, rate));
-                                    lastCount = total;
-                                }
-                            }
-                        }
-                    } else {
-                        results.next();
-                    }
+    public static void main(String[] args) throws Exception {
+        Optional<CLIPlugin> plugin = parseAndLoadPlugin(args);
+        Iterator<?> response = plugin.orElseThrow(() -> new RuntimeException("Could not load CLI Plugin")).call();
+        if (plugin.get().getCommandLine().listComponents || plugin.get().getCommandLine().listTasks || plugin.get().getCommandLine().help) {
+            response.forEachRemaining(it -> System.out.println(it));
+        } else {
+            Object x = response.next();
+            if (UUID.class.isAssignableFrom(x.getClass())) {
+                UUID taskId = (UUID) x;
+                final Task.StatusMonitor taskMonitor = Task.StatusMonitor.from(taskId);
+                while (taskMonitor.isRunning()) {
+                    System.out.println(taskMonitor.statusMessage());
+                    Thread.sleep(1000L);
                 }
-            } else {
-                IteratorUtils.iterate(results);
+                RuntimeUtil.waitTask((UUID) taskId);
             }
-        } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
-            System.exit(1);
         }
-        if (!Arrays.asList(args).contains(MovementCLI.Args.TEST_MODE)) {
+        if (!plugin.get().getCommandLine().testMode)
             System.exit(0);
-        }
     }
 
     protected static Optional<CLIPlugin> parseAndLoadPlugin(final String[] args) throws Exception {

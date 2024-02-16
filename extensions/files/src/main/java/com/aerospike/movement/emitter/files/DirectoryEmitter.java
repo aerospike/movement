@@ -12,7 +12,7 @@ import com.aerospike.movement.emitter.core.Emitter;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorHandler;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -45,18 +45,21 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
         public static class Keys {
             public static final String LABEL = "loader.label";
             public static final String BASE_PATH = "loader.basePath";
-            public static final String PHASE_ONE_SUBDIR = "aerospike.graphloader.vertices";
-            public static final String PHASE_TWO_SUBDIR = "aerospike.graphloader.edges";
+            public static final String PHASE_ONE_SUBDIR = "aerospike.graphloader.phaseOneSubdir";
+            public static final String PHASE_TWO_SUBDIR = "aerospike.graphloader.phaseTwoSubdir";
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
+            put(Keys.PHASE_ONE_SUBDIR, "vertices");
+            put(Keys.PHASE_TWO_SUBDIR, "edges");
+
 
         }};
     }
@@ -93,11 +96,11 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
     @Override
     public WorkChunkDriver driver(final Configuration callerConfig) {
         Path driverPath = getBaseDirectory(RuntimeUtil.getCurrentPhase(config));
-        for (final String constraint : getConstraints(callerConfig))
-            driverPath = driverPath.resolve(constraint);
-        final String pathName = driverPath.toString();
-        final RecursiveDirectoryTraversalDriver directoryTraversal = RecursiveDirectoryTraversalDriver.open(ConfigurationUtil.configurationWithOverrides(config, new HashMap<>() {{
-            put(DIRECTORY_TO_TRAVERSE, pathName);
+        String subPath = RuntimeUtil.getCurrentPhase(callerConfig).equals(Runtime.PHASE.ONE) ?
+                driverPath.resolve((String) CONFIG.getOrDefault(Config.Keys.PHASE_ONE_SUBDIR, callerConfig)).toString() :
+                driverPath.resolve((String) CONFIG.getOrDefault(Config.Keys.PHASE_TWO_SUBDIR, callerConfig)).toString();
+        final RecursiveDirectoryTraversalDriver directoryTraversal = RecursiveDirectoryTraversalDriver.open(ConfigUtil.withOverrides(config, new HashMap<>() {{
+            put(DIRECTORY_TO_TRAVERSE, subPath);
         }}));
         directoryTraversal.init(config);
         return directoryTraversal;
@@ -105,12 +108,12 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
 
     @Override
     public List<String> getConstraints(final Configuration callerConfig) {
-        final List<String> constraintConfigs = ConfigurationUtil.getSubKeys(callerConfig, Keys.CONSTRAINT);
+        final List<String> constraintConfigs = ConfigUtil.getSubKeys(callerConfig, Keys.CONSTRAINT);
         final List<String> x = constraintConfigs.stream()
                 .sorted((numericStringKey1, numericStringKey2) -> {
                     try {
-                        final Integer i1 = Integer.parseInt(ConfigurationUtil.getLastConfigPathElement(numericStringKey1));
-                        final Integer i2 = Integer.parseInt(ConfigurationUtil.getLastConfigPathElement(numericStringKey2));
+                        final Integer i1 = Integer.parseInt(ConfigUtil.getLastConfigPathElement(numericStringKey1));
+                        final Integer i2 = Integer.parseInt(ConfigUtil.getLastConfigPathElement(numericStringKey2));
                         return i1.compareTo(i2);
                     } catch (Exception e) {
                         throw RuntimeUtil
@@ -130,14 +133,11 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
     public Stream<Emitable> stream(final WorkChunkDriver workChunkDriver, final Runtime.PHASE phase) {
         return Stream.iterate(workChunkDriver.getNext(), Optional::isPresent, i -> workChunkDriver.getNext())
                 .filter(Optional::isPresent)
-                .map(Optional::get)
-                .flatMap(chunk -> {
-                    try {
-                        return ((EmittableWorkChunkFile) chunk).stream();
-                    } catch (ClassCastException classCastException) {
-                        throw new RuntimeException(classCastException);
-                    }
+                .map(it -> {
+                    return (EmittableWorkChunkFile) it.get();
                 });
+//                .flatMap(chunk -> (Stream<? extends Emitable>) chunk.stream().filter(Optional::isPresent)
+//                        .map(Optional::get).map(it -> (EmittableWorkChunkFile) it.getId()));
     }
 
 
@@ -156,7 +156,7 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
     }
 
     public static Path getPhasePath(final Runtime.PHASE phase, final Configuration config) {
-        return Path.of((String)CONFIG.getOrDefault(Config.Keys.BASE_PATH, config))
+        return Path.of((String) CONFIG.getOrDefault(Config.Keys.BASE_PATH, config))
                 .resolve((String) CONFIG.getOrDefault(phase.equals(Runtime.PHASE.ONE) ?
                         Config.Keys.PHASE_ONE_SUBDIR : Config.Keys.PHASE_TWO_SUBDIR, config));
     }

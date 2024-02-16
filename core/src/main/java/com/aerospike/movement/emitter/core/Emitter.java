@@ -7,6 +7,7 @@
 
 package com.aerospike.movement.emitter.core;
 
+import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
@@ -23,9 +24,18 @@ import static com.aerospike.movement.config.core.ConfigurationBase.Keys.EMITTER;
  */
 public interface Emitter {
 
+    static void encodeToOutput(Emitable emitable, Output output) {
+        encodeToOutput(Optional.of(emitable),output);
+    }
+    static void encodeToOutput(Optional<Emitable> emitable, Output output) {
+        if(emitable.isEmpty())
+            return;
+        output.writer(emitable.get().getClass(), emitable.get().getClass().getSimpleName()).writeToOutput(emitable);
+    }
 
     static void init(Runtime.PHASE phase, Configuration config) {
-        RuntimeUtil.closeAllInstancesOfLoadable(Emitter.class);
+
+//        RuntimeUtil.closeAllInstancesOfLoadable(Emitter.class);
     }
 
     Stream<Emitable> stream(final WorkChunkDriver workChunkDriver, final Runtime.PHASE phase);

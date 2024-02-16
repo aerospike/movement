@@ -10,7 +10,7 @@ package com.aerospike.movement.test.mock.task;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.process.core.Task;
 import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 
@@ -39,7 +39,7 @@ public class MockTask extends Task {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
         public static class Keys {
@@ -86,6 +86,7 @@ public class MockTask extends Task {
 
     @Override
     public void init(final Configuration config) {
+        RuntimeUtil.registerTaskAlias(MockTask.class.getSimpleName(), MockTask.class);
 
     }
 

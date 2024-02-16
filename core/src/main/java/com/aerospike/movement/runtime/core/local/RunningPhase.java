@@ -14,18 +14,28 @@ import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 
 import com.aerospike.movement.util.core.error.ErrorHandler;
+import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
+import org.reflections.serializers.JsonSerializer;
 
 import java.util.*;
 import java.util.concurrent.ForkJoinTask;
 import java.util.stream.Collectors;
+
+import static com.aerospike.movement.config.core.ConfigurationBase.Keys.PHASE;
+import static com.aerospike.movement.runtime.core.local.RunningPhase.Keys.PIPELINES;
+import static com.aerospike.movement.runtime.core.local.RunningPhase.Keys.PIPELINE_COUNT;
 
 public class RunningPhase implements Iterator<Map<String, Object>> {
     public final ParallelStreamProcessor processor;
 
     public static class Keys {
         public static final String OUTPUTS = "outputs";
+        public static final String PIPELINES = "pipelines";
+        public static final String PIPELINE_COUNT = "pipelineCount";
+
+
     }
 
     private final ForkJoinTask task;
@@ -74,22 +84,19 @@ public class RunningPhase implements Iterator<Map<String, Object>> {
             public Map<String, Object> next() {
                 RuntimeUtil.stall(100L);
                 final Map<String, Object> status = new HashMap<>();
-                for (Output output : LocalParallelStreamRuntime.outputs) {
-                    output.getMetrics().forEach((k, v) -> {
-                        status.compute(k, (key, value) -> {
-                            if (v instanceof String) {
-                                return v;
-                            }
-                            return (Long) Optional.ofNullable(value).orElse(0L) + (Long) v;
-                        });
-                    });
-                }
+                pipelines.stream().map(it -> it.getOutput()).forEach(output -> {
+                    status.put(output.getClass().getSimpleName() + ":" + ((Loadable) output).getId().toString().split("-")[0], output.getMetrics());
+                });
+
+
                 return new HashMap<>() {{
                     put(Keys.OUTPUTS, status);
                 }};
             }
         };
+
     }
+
 
     public void close() {
         final ErrorHandler errorHandler = RuntimeUtil.getErrorHandler(this, config);
@@ -109,6 +116,10 @@ public class RunningPhase implements Iterator<Map<String, Object>> {
 
     @Override
     public String toString() {
-        return phase.toString();
+        return IOUtil.formatStruct(new HashMap<>() {{
+            put(PHASE, phase.name());
+            put(PIPELINES, pipelines.stream().map(it -> it.toString()).collect(Collectors.toList()));
+            put(PIPELINE_COUNT, pipelines.size());
+        }});
     }
 }

@@ -68,10 +68,11 @@ public class MockEmitter extends Loadable implements Emitter {
                 .orElseThrow(() ->
                         RuntimeUtil.getErrorHandler(this).handleFatalError(ErrorUtil.runtimeException("no stream available in mock emitter")));
 
+
         return Stream.iterate(wcd.getNext(), wc -> wc.isPresent(), i -> wcd.getNext())
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .flatMap(wc -> IteratorUtils.stream(wc.iterator()))
+                .flatMap(wc -> wc.stream())
                 .map(id -> new MockEmitable(id, false, config));
     }
 

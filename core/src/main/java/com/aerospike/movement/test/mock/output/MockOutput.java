@@ -17,7 +17,7 @@ import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.emitter.MockEmitter;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 
@@ -35,13 +35,13 @@ public class MockOutput extends Loadable implements Output, OutputWriter {
         }
 
         @Override
-        public Map<String, String> defaultConfigMap(final Map<String,Object> config) {
+        public Map<String, String> defaultConfigMap(final Map<String, Object> config) {
             return DEFAULTS;
         }
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
@@ -110,8 +110,8 @@ public class MockOutput extends Loadable implements Output, OutputWriter {
     }
 
     @Override
-    public void writeToOutput(final Emitable item) {
-        MockUtil.onEvent(this.getClass(), Methods.WRITE_TO_OUTPUT, this, item, encoder.encode(item));
+    public void writeToOutput(final Optional<Emitable> item) {
+        MockUtil.onEvent(this.getClass(), Methods.WRITE_TO_OUTPUT, this, item, item.map(it -> encoder.encode(it)));
     }
 
 
@@ -133,5 +133,10 @@ public class MockOutput extends Loadable implements Output, OutputWriter {
     @Override
     public void dropStorage() {
         MockUtil.onEvent(this.getClass(), Methods.DROP_STORAGE, this);
+    }
+
+    @Override
+    public Optional<Encoder> getEncoder() {
+        return Optional.ofNullable(encoder);
     }
 }

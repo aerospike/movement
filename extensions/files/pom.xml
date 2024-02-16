@@ -26,6 +26,12 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>com.aerospike.movement</groupId>
+            <artifactId>tinkerpop</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>

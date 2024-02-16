@@ -10,19 +10,25 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunk;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
+import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
+import com.aerospike.movement.util.core.stream.sequence.PotentialSequence;
+import com.aerospike.movement.util.core.stream.sequence.SequenceUtil;
 import org.apache.commons.configuration2.Configuration;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
     private final Runtime.PHASE phase;
+    //Driver Instances for a PipelineGroup must read from the same iterator
+    public static Map<Runtime.PHASE, PotentialSequence<?>> phaseSequences = new ConcurrentHashMap<>();
+    private static PotentialSequence<?> sequence;
 
     public static class Config extends ConfigurationBase {
         public static final Config INSTANCE = new Config();
@@ -38,7 +44,7 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
@@ -51,8 +57,7 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
 
     }
 
-    private static final AtomicBoolean initialized = new AtomicBoolean(false);
-    private static Iterator<Path> iterator;
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
 
     private RecursiveDirectoryTraversalDriver(Runtime.PHASE phase, final Configuration config) {
         super(Config.INSTANCE, config);
@@ -65,13 +70,16 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
     }
 
     public static RecursiveDirectoryTraversalDriver open(final Configuration config) {
-        return new RecursiveDirectoryTraversalDriver(RuntimeUtil.getCurrentPhase(config), config);
+        final RecursiveDirectoryTraversalDriver x = new RecursiveDirectoryTraversalDriver(RuntimeUtil.getCurrentPhase(config), config);
+        x.init(config);
+        return x;
     }
 
     @Override
     public void init(final Configuration config) {
-        synchronized (RecursiveDirectoryTraversalDriver.class) {
+        synchronized (this) {
             if (!initialized.get()) {
+//                this.phase = RuntimeUtil.getphase(config);
                 final String baseDir = DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.BASE_PATH, config);
                 final Path basePath = Path.of(baseDir);
                 final String phaseOnePath = DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, config);
@@ -80,8 +88,13 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
                         config.containsKey(Config.Keys.DIRECTORY_TO_TRAVERSE) ?
                                 Path.of(config.getString(Config.Keys.DIRECTORY_TO_TRAVERSE)) :
                                 phase.equals(Runtime.PHASE.ONE) ?
-                                        basePath.resolve(phaseOnePath) : basePath.resolve(phaseTwoPath);
-                RecursiveDirectoryTraversalDriver.iterator = pathIterator(RuntimeUtil.getCurrentPhase(config), elementTypePath);
+                                        basePath.resolve(phaseOnePath)
+                                        : basePath.resolve(phaseTwoPath);
+                if (!phaseSequences.containsKey(phase)) {
+                    phaseSequences.put(phase, pathSequence(RuntimeUtil.getCurrentPhase(config), elementTypePath, config));
+                }
+                this.sequence = phaseSequences.get(phase);
+
                 initialized.set(true);
             }
         }
@@ -91,7 +104,7 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
     public void close() throws Exception {
         synchronized (RecursiveDirectoryTraversalDriver.class) {
             if (initialized.compareAndSet(true, false)) {
-                iterator = null;
+                phaseSequences.remove(this.phase);
             }
         }
     }
@@ -99,37 +112,28 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
 
     @Override
     public Optional<WorkChunk> getNext() {
-        synchronized (iterator) {
-            final Optional<Iterator<Path>> oi = Optional.ofNullable(iterator);
-            if (!initialized.get() || oi.isEmpty()) {
-                throw new IllegalStateException("WorkChunkDriver not initialized");
-            }
-            try {
-                if (!iterator.hasNext()) {
-                    return Optional.empty();
-                }
-            } catch (IllegalStateException ise) {
-                throw new RuntimeException(ise);
-            }
-            final WorkChunk file = EmittableWorkChunkFile.from(iterator.next(), phase, config);
-            onNextValue(file);
-            return Optional.of(file);
+        if (!initialized.get()) {
+            throw new IllegalStateException("WorkChunkDriver not initialized");
         }
+        return (Optional<WorkChunk>) sequence.getNext();
     }
 
-    private static Iterator<Path> pathIterator(final Runtime.PHASE phase, final Path elementTypePath) {
+
+    private static PotentialSequence<WorkChunk> pathSequence(final Runtime.PHASE phase, final Path elementTypePath, final Configuration config) {
         if (phase.equals(Runtime.PHASE.ONE) || phase.equals(Runtime.PHASE.TWO)) {
-            try {
-                final List<Path> l = Files.walk(elementTypePath)
-                        .filter(file -> !Files.isDirectory(file))
-                        .collect(Collectors.toList());
-                return l.iterator();
-            } catch (IOException e) {
-                throw RuntimeUtil
-                        .getErrorHandler(RecursiveDirectoryTraversalDriver.class)
-                        .handleFatalError(e, phase, elementTypePath);
-            }
+            return SequenceUtil.fuse(OneShotIteratorSupplier.of(() -> {
+                try {
+                    return Files.walk(elementTypePath)
+                            .filter(file -> !Files.isDirectory(file))
+                            .map(it -> EmittableWorkChunkFile.from((Path) it, phase, config))
+                            .iterator();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }));
         }
         throw new IllegalStateException("Unknown phase " + phase);
     }
 }
+
+

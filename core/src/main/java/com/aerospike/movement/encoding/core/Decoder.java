@@ -14,7 +14,7 @@ import org.apache.commons.configuration2.Configuration;
 
 public interface Decoder<O>  {
     static void init(Runtime.PHASE phase, Configuration config) {
-        RuntimeUtil.closeAllInstancesOfLoadable(Decoder.class);
+//        RuntimeUtil.closeAllInstancesOfLoadable(Decoder.class);
     }
     Emitable decodeElement(O encodedElement, String label, Runtime.PHASE phase);
 

@@ -11,7 +11,7 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.runtime.core.driver.OutputId;
 import com.aerospike.movement.runtime.core.driver.OutputIdDriver;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import org.apache.commons.configuration2.Configuration;
 
 import java.util.*;
@@ -37,7 +37,7 @@ public class GeneratedOutputIdDriver extends OutputIdDriver {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(GeneratedOutputIdDriver.Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(GeneratedOutputIdDriver.Config.Keys.class);
         }
 
         public static class Keys {

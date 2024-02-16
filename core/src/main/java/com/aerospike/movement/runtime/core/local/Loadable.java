@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public abstract class Loadable implements AutoCloseable {
-    final UUID id;
+    protected final UUID id;
     private final ConfigurationBase configurationMeta;
     protected final ErrorHandler errorHandler;
     protected final Configuration config;
@@ -51,5 +51,9 @@ public abstract class Loadable implements AutoCloseable {
 
     public interface Notification {
         Object getMessage();
+    }
+    @Override
+    public String toString(){
+        return this.getClass().getSimpleName() + ":" + this.getId().toString().split("-")[0];
     }
 }

@@ -14,6 +14,8 @@ import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.output.files.SplitFileLineOutput;
 import org.apache.commons.configuration2.Configuration;
 
+import java.util.Optional;
+
 public abstract class OutputLogger implements Logger, AutoCloseable {
 
     protected final Encoder<String> encoder;
@@ -31,7 +33,7 @@ public abstract class OutputLogger implements Logger, AutoCloseable {
     protected void writeToOutput(LogMessage logMessage) {
         final String meta = encoder.encodeItemMetadata(logMessage)
                 .orElseThrow(() -> new RuntimeException("Could not encode header metadata for message: " + logMessage));
-        output.writer(LogMessage.class, meta).writeToOutput(logMessage);
+        output.writer(LogMessage.class, meta).writeToOutput(Optional.of(logMessage));
     }
 
 

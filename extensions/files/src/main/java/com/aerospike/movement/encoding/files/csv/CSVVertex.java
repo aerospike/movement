@@ -41,7 +41,7 @@ public class CSVVertex implements EmittedVertex {
 
     @Override
     public Stream<Emitable> emit(final Output output) {
-        output.writer(EmittedVertex.class, label()).writeToOutput(this);
+        output.writer(EmittedVertex.class, label()).writeToOutput(Optional.of(this));
         return Stream.empty();
     }
 
@@ -53,6 +53,11 @@ public class CSVVertex implements EmittedVertex {
 
     @Override
     public EmittedId id() {
-        return EmittedId.from(Long.valueOf((String) line.getEntry("~id")));
+        try{
+            return EmittedId.from((String) line.getEntry("~id"));
+        }catch (Exception e){
+            System.out.println(line);
+            throw new RuntimeException(e);
+        }
     }
 }

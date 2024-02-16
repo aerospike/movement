@@ -11,13 +11,11 @@ import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import java.util.List;
-
 public class SharedEmptyTinkerGraphGraphProvider implements GraphProvider {
     private static final Graph tinkerGraph = TinkerGraph.open();
     private final Configuration config;
 
-    public static Graph getInstance() {
+    public static Graph getGraphInstance() {
         return tinkerGraph;
     }
 
@@ -26,13 +24,12 @@ public class SharedEmptyTinkerGraphGraphProvider implements GraphProvider {
     }
 
 
-    public static Graph open(final Configuration config) {
-        return tinkerGraph;
+    public static SharedEmptyTinkerGraphGraphProvider open(final Configuration config) {
+        return new SharedEmptyTinkerGraphGraphProvider(config);
     }
 
     @Override
-    public Graph getGraph() {
+    public Graph getProvided(GraphProviderContext ctx) {
         return tinkerGraph;
     }
-
 }

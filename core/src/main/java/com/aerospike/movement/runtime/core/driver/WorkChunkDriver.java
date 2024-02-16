@@ -32,14 +32,14 @@ public abstract class WorkChunkDriver extends Loadable implements PotentialSeque
     private static final AtomicReference<WorkChunkDriver> INSTANCE = new AtomicReference<>();
     protected final Configuration config;
     protected static Queue<UUID> outstanding = new ConcurrentLinkedQueue<>();
-    private final AtomicLong chunksEmitted, chunksAcknowledged;
+    private final AtomicLong chunksAcknowledged;
 
     protected final ErrorHandler errorHandler;
+    public static final AtomicLong metric = new AtomicLong(0);
 
     protected WorkChunkDriver(final ConfigurationBase configurationMeta, final Configuration config) {
         super(configurationMeta, config);
         this.config = config;
-        this.chunksEmitted = new AtomicLong(0);
         this.chunksAcknowledged = new AtomicLong(0);
         this.errorHandler = RuntimeUtil.getErrorHandler(this, config);
     }
@@ -56,12 +56,14 @@ public abstract class WorkChunkDriver extends Loadable implements PotentialSeque
 
     protected abstract AtomicBoolean getInitialized();
 
-    protected void onNextValue(final WorkChunk value) {
-        outstanding.add(value.getId());
+    protected WorkChunk onNextValue(final WorkChunk value) {
+        metric.incrementAndGet();
+        return value;
     }
 
     public void close() throws Exception {
         chunksAcknowledged.set(0);
+        metric.set(0);
         getInitialized().set(false);
         INSTANCE.set(null);
     }

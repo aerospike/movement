@@ -12,7 +12,7 @@ import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunk;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 import com.aerospike.movement.runtime.core.driver.WorkList;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import com.aerospike.movement.util.core.iterator.Batched;
 import com.aerospike.movement.util.core.iterator.IteratorSupplier;
@@ -55,7 +55,7 @@ public class SuppliedWorkChunkDriver extends WorkChunkDriver {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 

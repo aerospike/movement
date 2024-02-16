@@ -13,7 +13,7 @@ import com.aerospike.movement.runtime.core.driver.WorkChunk;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 import com.aerospike.movement.runtime.core.driver.WorkList;
 import com.aerospike.movement.tinkerpop.common.GraphProvider;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.Batched;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -23,7 +23,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TinkerPopGraphDriver extends WorkChunkDriver {
-    private final Runtime.PHASE phase;
+    private Runtime.PHASE phase;
 
 
     public static class Config extends ConfigurationBase {
@@ -40,12 +40,11 @@ public class TinkerPopGraphDriver extends WorkChunkDriver {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
         public static class Keys {
-            public static final String DIRECTORY_TO_TRAVERSE = "loader.traversal.directory";
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
@@ -74,14 +73,10 @@ public class TinkerPopGraphDriver extends WorkChunkDriver {
     public void init(final Configuration config) {
         synchronized (TinkerPopGraphDriver.class) {
             if (!initialized.get()) {
+                phase = RuntimeUtil.getCurrentPhase(config);
                 final Class providerClass = RuntimeUtil.loadClass(TinkerPopGraphEmitter.CONFIG.getOrDefault(TinkerPopGraphEmitter.Config.Keys.GRAPH_PROVIDER, config));
-                final Object x = RuntimeUtil.openClass(providerClass, config);
-                final Graph graph;
-                if (Graph.class.isAssignableFrom(x.getClass()))
-                    graph = (Graph) x;
-                else
-                    graph = ((GraphProvider) x).getGraph();
-
+                final GraphProvider graphProvider = (GraphProvider) RuntimeUtil.openClass(providerClass, config);
+                final Graph graph = graphProvider.getProvided(GraphProvider.GraphProviderContext.INPUT);
                 if (phase.equals(Runtime.PHASE.ONE))
                     TinkerPopGraphDriver.iterator = Batched.batch(graph.vertices(), RuntimeUtil.getBatchSize(config));
                 else if (phase.equals(Runtime.PHASE.TWO))
