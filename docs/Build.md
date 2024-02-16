@@ -1,0 +1,1 @@
+To build the project, use scripts/build.sh

@@ -95,7 +95,7 @@ public class CLI {
         protected boolean listTasks;
         @CommandLine.Option(names = Args.LIST_COMPONENTS, description = "List available components")
         protected boolean listComponents;
-        @CommandLine.Option(names = Args.TASK, description = "Task to run", required = true)
+        @CommandLine.Option(names = Args.TASK, description = "Task to run")
         protected String taskName;
         @CommandLine.Option(names = {Args.CONFIG_SHORT, Args.CONFIG_LONG}, description = "Path or URL to the configuration file")
         protected String configPath;
