@@ -160,17 +160,18 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
 
         plugin.getClass().getMethod(PluginInterface.Methods.PLUG_INTO, Object.class).invoke(plugin, graph);
         MockUtil.setDefaultMockCallbacks();
-        UUID x = (UUID) graph.traversal()
+        Map<String, Object> x = (Map<String, Object>) graph.traversal()
                 .call(Load.class.getSimpleName())
                 .next();
+        UUID id = (UUID) x.get("id");
         System.out.println(x);
         List<Object> list = graph.traversal().call("--list").toList();
         Iterator<?> status = graph.traversal()
                 .call(PluginServiceFactory.TASK_STATUS)
-                .with(LocalParallelStreamRuntime.TASK_ID_KEY, x.toString());
+                .with(LocalParallelStreamRuntime.TASK_ID_KEY, id.toString());
 
         if (status.hasNext()) System.out.println(status.next());
-        RuntimeUtil.waitTask(x);
+        RuntimeUtil.waitTask(id);
 
         System.out.printf("generated path: %s\n", tempPath.toAbsolutePath());
         Files.walk(tempPath).forEach(it -> {
@@ -209,21 +210,21 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
         MockUtil.setDefaultMockCallbacks();
         final GraphProvider inputGraphProvider = SharedTinkerClassicGraphProvider.open(config);
         long start = System.nanoTime();
-        UUID x = (UUID) graph.traversal()
+        Map<String,Object> x = (Map<String, Object>) graph.traversal()
                 .call(Migrate.class.getSimpleName())
                 .with("emitter.tinkerpop.graph.provider", inputGraphProvider.getClass().getName())
                 .with("encoder.graphProvider", SharedEmptyTinkerGraphGraphProvider.class.getName())
                 .next();
 
-
+        UUID id = (UUID) x.get("id");
         System.out.println(x);
 
         Iterator<?> status = graph.traversal()
                 .call(PluginServiceFactory.TASK_STATUS)
-                .with(LocalParallelStreamRuntime.TASK_ID_KEY, x.toString());
+                .with(LocalParallelStreamRuntime.TASK_ID_KEY, id.toString());
 
         if (status.hasNext()) System.out.println(status.next());
-        RuntimeUtil.waitTask(x);
+        RuntimeUtil.waitTask(id);
         long elapsed = System.nanoTime() - start;
         System.out.printf("elapsed time: %d ms\n", TimeUnit.NANOSECONDS.toMillis(elapsed));
         final long classicVertexCount = inputGraphProvider.getProvided(GraphProvider.GraphProviderContext.INPUT).traversal().V().count().next();
@@ -257,21 +258,20 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
         final GraphProvider inputGraphProvider = SharedTinkerClassicGraphProvider.open(config);
         final Path exportDir = Files.createTempDirectory("export");
         long start = System.nanoTime();
-        UUID x = (UUID) graph.traversal()
+        Iterator<?> task = graph.traversal()
                 .call(Export.class.getSimpleName())
                 .with("output.directory", exportDir.toAbsolutePath().toString())
-                .with("emitter.tinkerpop.graph.provider", inputGraphProvider.getClass().getName())
-                .next();
-
-
-        System.out.println(x);
+                .with("emitter.tinkerpop.graph.provider", inputGraphProvider.getClass().getName());
+        Map<String,Object> map = (Map<String, Object>) task.next();
+        UUID id = (UUID) map.get("id");
+        System.out.println(task.next());
 
         Iterator<?> status = graph.traversal()
                 .call(PluginServiceFactory.TASK_STATUS)
-                .with(LocalParallelStreamRuntime.TASK_ID_KEY, x.toString());
+                .with(LocalParallelStreamRuntime.TASK_ID_KEY, id.toString());
 
         if (status.hasNext()) System.out.println(status.next());
-        RuntimeUtil.waitTask(x);
+        RuntimeUtil.waitTask(id);
         long elapsed = System.nanoTime() - start;
         System.out.printf("elapsed time: %d ms\n", TimeUnit.NANOSECONDS.toMillis(elapsed));
         final long classicVertexCount = inputGraphProvider.getProvided(GraphProvider.GraphProviderContext.INPUT).traversal().V().count().next();

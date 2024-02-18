@@ -20,7 +20,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
 
-public class PluginServiceFactory<I, R> implements Service.ServiceFactory<I, R>, Service<I, R> {
+public class PluginServiceFactory<I> implements Service.ServiceFactory<I, Map<String, Object>>, Service<I, Map<String, Object>> {
     private final Configuration config;
     private final Plugin plugin;
     public static final String OPEN = "open";
@@ -54,7 +54,7 @@ public class PluginServiceFactory<I, R> implements Service.ServiceFactory<I, R>,
     }
 
     @Override
-    public Service<I, R> createService(final boolean isStart, final Map params) {
+    public Service<I, Map<String, Object>> createService(final boolean isStart, final Map params) {
         if (!isStart) {
             throw new UnsupportedOperationException(Service.Exceptions.cannotUseMidTraversal);
         }
@@ -72,22 +72,36 @@ public class PluginServiceFactory<I, R> implements Service.ServiceFactory<I, R>,
     }
 
 
-
     @Override
-    public CloseableIterator<R> execute(final ServiceCallContext ctx, final Map params) {
-        if(serviceName.equals(TASK_STATUS)){
+    public CloseableIterator<Map<String, Object>> execute(final ServiceCallContext ctx, final Map params) {
+        if (serviceName.equals(TASK_STATUS)) {
             String taskId = (String) Optional.ofNullable(params.get(LocalParallelStreamRuntime.TASK_ID_KEY)).orElseThrow(() -> new RuntimeException("cannot find with params" + params));
-            return (CloseableIterator<R>) CloseableIterator.of(RuntimeUtil.statusIteratorForTask(UUID.fromString(taskId)));
+            return (CloseableIterator<Map<String, Object>>) CloseableIterator.of(RuntimeUtil.statusIteratorForTask(UUID.fromString(taskId)));
         }
         final Configuration overriddenConfig = ConfigUtil.withOverrides(config, params);
 //        validateParams(overriddenConfig);
         if (Optional.ofNullable((String) params.get(HELP)).isPresent()) {
             final Optional<List<String>> helpForService = Optional.ofNullable(plugin.api().get(serviceName));
-            return (CloseableIterator<R>) helpForService
+            return (CloseableIterator<Map<String, Object>>) helpForService
                     .orElseThrow(() -> new IllegalArgumentException("could not get api for " + serviceName));
         }
-        return CloseableIterator.of((Iterator<R>) plugin.runTask(serviceName, overriddenConfig)
-                .orElseThrow(() -> new RuntimeException("could not run task for " + serviceName)));
+        Iterator<Object> iterator = plugin.runTask(serviceName, overriddenConfig)
+                .orElseThrow(() -> new RuntimeException("could not run task for " + serviceName));
+        UUID id = (UUID) iterator.next();
+        Task.StatusMonitor monitor = Task.StatusMonitor.from(id);
+        return CloseableIterator.of(IteratorUtils.concat(IteratorUtils.of(Map.of("id", id)), new Iterator<Map<String, Object>>() {
+            @Override
+            public boolean hasNext() {
+                return monitor.isRunning();
+            }
+
+            @Override
+            public Map<String, Object> next() {
+                Map<String, Object> x = monitor.status(true);
+                x.put("id", id);
+                return x;
+            }
+        }));
     }
 
     @Override

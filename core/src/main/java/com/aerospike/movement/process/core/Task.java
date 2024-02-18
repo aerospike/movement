@@ -206,7 +206,7 @@ public abstract class Task extends Loadable {
 
                 List<Map.Entry<String, Map<String, Number>>> outputData = outputs.stream().map(output -> {
                     final UUID outputId = ((Loadable) (output)).getId();
-                    final long ioOps = (Long) output.getMetrics().get("io_ops");
+                    final long ioOps = (Long) output.getMetrics().getOrDefault("io_ops",0l);
                     String outputkey = output.getClass().getSimpleName() + outputId.toString().split("-")[0];
                     final Map<String, Number> vals = Map.of(
                             Keys.TOTAL, ioOps,
