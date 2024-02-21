@@ -30,12 +30,11 @@ public class SuppliedWorkChunkDriver extends WorkChunkDriver {
             if (!initialized.get()) {
                 throw new IllegalStateException("WorkChunkDriver not initialized");
             }
-            if (!iterator.hasNext()) {
+            if (!chunkIterator.hasNext()) {
                 return Optional.empty();
             }
             RuntimeUtil.blockOnBackpressure();
-            final List<Object> x = iterator.next();
-            final WorkList value = WorkList.from(x, config);
+            final WorkList value = WorkList.from(chunkIterator.next());
             onNextValue(value);
             return Optional.of(value);
         }
@@ -74,7 +73,7 @@ public class SuppliedWorkChunkDriver extends WorkChunkDriver {
     private static final ConcurrentHashMap<Runtime.PHASE, IteratorSupplier> suppliers = new ConcurrentHashMap<>();
     private static final AtomicReference<SuppliedWorkChunkDriver> INSTANCE = new AtomicReference<>();
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
-    private static Iterator<List<Object>> iterator;
+    private static Iterator<List<Object>> chunkIterator;
 
     protected SuppliedWorkChunkDriver(final Configuration config) {
         super(Config.INSTANCE, config);
@@ -107,7 +106,7 @@ public class SuppliedWorkChunkDriver extends WorkChunkDriver {
         if (initialized.compareAndSet(false, true)) {
             final int batchSize = RuntimeUtil.getBatchSize(config);
 
-            SuppliedWorkChunkDriver.iterator = Batched.batch(supplier.get(), batchSize);
+            SuppliedWorkChunkDriver.chunkIterator = Batched.batch(supplier.get(), batchSize);
             INSTANCE.set(new SuppliedWorkChunkDriver(config));
         }
         return INSTANCE.get();
@@ -138,9 +137,9 @@ public class SuppliedWorkChunkDriver extends WorkChunkDriver {
     public static void closeStatic() throws Exception {
         initialized.set(false);
         INSTANCE.set(null);
-        if (iterator instanceof AutoCloseable) {
-            ((AutoCloseable) iterator).close();
+        if (chunkIterator instanceof AutoCloseable) {
+            ((AutoCloseable) chunkIterator).close();
         }
-        iterator = null;
+        chunkIterator = null;
     }
 }

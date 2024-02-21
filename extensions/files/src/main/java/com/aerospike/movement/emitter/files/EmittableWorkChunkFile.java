@@ -124,7 +124,7 @@ public class EmittableWorkChunkFile implements WorkChunk, Emitable {
         }
 
         @Override
-        public Map.Entry<Path, Long> getId() {
+        public Map.Entry<Path, Long> unwrap() {
             return (Map.Entry<Path, Long>) id;
         }
     }

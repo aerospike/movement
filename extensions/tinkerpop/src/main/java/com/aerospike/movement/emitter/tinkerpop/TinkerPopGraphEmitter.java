@@ -118,6 +118,7 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
                 .map(wc ->
                         wc.stream().filter(Optional::isPresent)
                                 .map(Optional::get)
+                                .map(it -> it.unwrap())
                                 .collect(Collectors.toList()));
 
         return chunks.flatMap(listOfIdsOrElements -> {

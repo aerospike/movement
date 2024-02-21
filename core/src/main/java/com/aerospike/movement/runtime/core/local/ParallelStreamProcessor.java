@@ -95,7 +95,7 @@ public class ParallelStreamProcessor implements Runnable {
                 );
             } catch (Exception e) {
                 runningTasks.decrementAndGet();
-                throw errorHandler.handleError(e, pipeline);
+                throw errorHandler.handleFatalError(e, pipeline);
             }
             runningTasks.decrementAndGet();
         });
@@ -136,8 +136,7 @@ public class ParallelStreamProcessor implements Runnable {
                             try {
                                 return walk(innerEmitable.emit(output), output);
                             } catch (final Exception e) {
-                                RuntimeUtil.getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleError(e, output);
-                                return Collections.emptyIterator();
+                                throw RuntimeUtil.getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleFatalError(e, output);
                             }
                         }));
     }

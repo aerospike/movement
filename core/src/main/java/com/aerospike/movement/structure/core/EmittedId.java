@@ -15,5 +15,5 @@ public interface EmittedId {
         return () -> id;
     }
 
-    Object getId();
+    Object unwrap();
 }

@@ -81,7 +81,7 @@ public class PassthroughOutputIdDriver extends OutputIdDriver {
             id = ((EmittedEdge) emitable).toId();
         else
             throw RuntimeUtil.getErrorHandler(this).handleError(new RuntimeException("unknown passthrough emitable type: " + emitable.getClass()), emitable);
-        return Optional.of(OutputId.create(id.getId()));
+        return Optional.of(OutputId.create(id.unwrap()));
     }
 
     private static final AtomicBoolean initialized = new AtomicBoolean(false);

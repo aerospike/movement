@@ -16,7 +16,6 @@ import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.util.core.iterator.ConfiguredRangeSupplier;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -26,7 +25,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.LongStream;
-import java.util.stream.Stream;
 
 import static com.aerospike.movement.config.core.ConfigurationBase.Keys.OUTPUT_ID_DRIVER;
 import static com.aerospike.movement.config.core.ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE;
@@ -55,7 +53,9 @@ public class TestDriver {
         final WorkChunk chunk = driver.getNext().get();
         final AtomicLong ctr = new AtomicLong(0);
         chunk.stream().forEach(ln -> {
-            assertEquals(ctr.getAndIncrement(), ln.get());
+            WorkItem x = ln.get();
+
+            assertEquals(ctr.getAndIncrement(), ln.get().unwrap());
         });
 
         assertEquals(10, ctr.get());
@@ -75,15 +75,15 @@ public class TestDriver {
         }});
         GeneratedOutputIdDriver driver = (GeneratedOutputIdDriver) GeneratedOutputIdDriver.open(config);
         final OutputId x = driver.getNext().get();
-        assertEquals(0L, x.getId());
-        long y = (Long) x.getId();
+        assertEquals(0L, x.unwrap());
+        long y = (Long) x.unwrap();
         Optional<OutputId> things;
         while (true) {
             things = driver.getNext();
             if (things.isEmpty()) {
                 break;
             }
-            assertEquals((Long) y + 1, things.get().getId());
+            assertEquals((Long) y + 1, things.get().unwrap());
             y++;
         }
         assertEquals(100L, y + 1);
@@ -115,7 +115,7 @@ public class TestDriver {
                 if (things.isEmpty()) {
                     break;
                 }
-                final Long newVal = (Long) things.get().getId();
+                final Long newVal = (Long) things.get().unwrap();
                 if (!concurrentUniqueSet.add(newVal)) {
                     throw new RuntimeException("Duplicate value found: " + newVal);
                 }

@@ -108,7 +108,7 @@ public class TinkerPopGraphDriver extends WorkChunkDriver {
             } catch (IllegalStateException ise) {
                 throw new RuntimeException(ise);
             }
-            final WorkList list = WorkList.from(iterator.next(), config);
+            final WorkList list = WorkList.from(iterator.next());
             onNextValue(list);
             return Optional.of(list);
         }

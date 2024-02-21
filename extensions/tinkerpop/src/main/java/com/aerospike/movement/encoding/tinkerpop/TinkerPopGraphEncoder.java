@@ -8,12 +8,8 @@ package com.aerospike.movement.encoding.tinkerpop;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.core.Emitable;
-import com.aerospike.movement.encoding.core.Decoder;
 import com.aerospike.movement.encoding.core.Encoder;
-import com.aerospike.movement.output.core.Output;
-import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.local.Loadable;
-import com.aerospike.movement.structure.core.EmittedId;
 import com.aerospike.movement.structure.core.graph.EmittedEdge;
 import com.aerospike.movement.structure.core.graph.EmittedVertex;
 import com.aerospike.movement.tinkerpop.common.GraphProvider;
@@ -27,7 +23,6 @@ import org.apache.tinkerpop.gremlin.structure.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.aerospike.movement.emitter.core.Emitter.encodeToOutput;
 
@@ -99,14 +94,14 @@ public class TinkerPopGraphEncoder extends Loadable implements Encoder<Element> 
             }
             return results.stream();
         }).collect(Collectors.toList());
-        final List<Vertex> inV = new ArrayList<>(IteratorUtils.list(graph.vertices(edge.toId().getId())));
-        final List<Vertex> outV = new ArrayList<>(IteratorUtils.list(graph.vertices(edge.fromId().getId())));
+        final List<Vertex> inV = new ArrayList<>(IteratorUtils.list(graph.vertices(edge.toId().unwrap())));
+        final List<Vertex> outV = new ArrayList<>(IteratorUtils.list(graph.vertices(edge.fromId().unwrap())));
         if (inV.size() > 1 || outV.size() > 1)
             throw new RuntimeException("Graph should never return more then 1 vertex for an id");
 
         try {
             if (inV.isEmpty() || outV.isEmpty()) {
-                final String errorMessage = String.format("could not find vertex %s when creating edge", inV.isEmpty() ? edge.toId() : edge.fromId().getId());
+                final String errorMessage = String.format("could not find vertex %s when creating edge", inV.isEmpty() ? edge.toId() : edge.fromId().unwrap());
                 if (Boolean.parseBoolean(CONFIG.getOrDefault(Config.Keys.DROP_DANGLING_EDGES, config))) {
                     RuntimeUtil.getLogger(this).warn(errorMessage, edge);
                 } else {
@@ -134,7 +129,7 @@ public class TinkerPopGraphEncoder extends Loadable implements Encoder<Element> 
         }).collect(Collectors.toList());
         args.addAll(0, new ArrayList() {{
             add(T.id);
-            add(vertex.id().getId());
+            add(vertex.id().unwrap());
             add(T.label);
             add(vertex.label());
         }});

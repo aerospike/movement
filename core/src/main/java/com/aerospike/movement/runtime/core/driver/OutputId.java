@@ -21,7 +21,7 @@ public class OutputId implements EmittedId {
     }
 
     @Override
-    public Object getId() {
+    public Object unwrap() {
         return id;
     }
 }

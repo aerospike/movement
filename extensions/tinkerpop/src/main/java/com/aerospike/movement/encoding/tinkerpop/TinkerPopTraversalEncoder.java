@@ -105,7 +105,7 @@ public class TinkerPopTraversalEncoder extends Loadable implements Encoder<Eleme
             return results.stream();
         }).collect(Collectors.toList());
         final Vertex inV, outV;
-        final Object toId = edge.toId().getId();
+        final Object toId = edge.toId().unwrap();
         final boolean danglingSupport = Boolean.parseBoolean(CONFIG.getOrDefault(Config.Keys.DROP_DANGLING_EDGES, config));
         try {
             inV = g.V(toId).next();
@@ -118,7 +118,7 @@ public class TinkerPopTraversalEncoder extends Loadable implements Encoder<Eleme
                 throw errorHandler.handleFatalError(nse, errorMessage);
             }
         }
-        final Object fromId = edge.fromId().getId();
+        final Object fromId = edge.fromId().unwrap();
         try {
             outV = g.V(fromId).next();
         } catch (NoSuchElementException nse) {
@@ -162,7 +162,7 @@ public class TinkerPopTraversalEncoder extends Loadable implements Encoder<Eleme
         }
         try {
             final Vertex x = g.addV(vertex.label())
-                    .property(T.id, vertex.id().getId())
+                    .property(T.id, vertex.id().unwrap())
                     .property(keyValues)
                     .next();
             RuntimeUtil.getLogger(this).debug("wrote vertex: " + x);
@@ -176,10 +176,10 @@ public class TinkerPopTraversalEncoder extends Loadable implements Encoder<Eleme
     @Override
     public Optional<Element> encode(final Emitable item) {
         if (EmittedVertex.class.isAssignableFrom(item.getClass())) {
-            RuntimeUtil.getLogger(this).debug("encoding vertex" + ((EmittedVertex) item).id().getId());
+            RuntimeUtil.getLogger(this).debug("encoding vertex" + ((EmittedVertex) item).id().unwrap());
             return encodeVertex((EmittedVertex) item);
         } else if (EmittedEdge.class.isAssignableFrom(item.getClass())) {
-            RuntimeUtil.getLogger(this).debug("encoding edge[" + ((EmittedEdge) item).fromId().getId() + ":" + ((EmittedEdge) item).toId().getId() + "]");
+            RuntimeUtil.getLogger(this).debug("encoding edge[" + ((EmittedEdge) item).fromId().unwrap() + ":" + ((EmittedEdge) item).toId().unwrap() + "]");
             return encodeEdge((EmittedEdge) item);
         }
         throw errorHandler.error("Unknown type: %s", item.getClass().getName());

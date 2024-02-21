@@ -112,10 +112,10 @@ public final class MockUtil {
                     if (EmittedVertex.class.isAssignableFrom(item.getClass())) {
                         final EmittedId id = ((EmittedVertex) item).id();
                         //Fail if an id is emitted twice
-                        if (emittedIds.contains(id.getId())) {
+                        if (emittedIds.contains(id.unwrap())) {
                             detected.set(true);
                         }
-                        emittedIds.add(id.getId());
+                        emittedIds.add(id.unwrap());
                     }
                     incrementHitCounter(MockOutput.class, MockOutput.Methods.WRITE_TO_OUTPUT);
                     return Optional.empty();
