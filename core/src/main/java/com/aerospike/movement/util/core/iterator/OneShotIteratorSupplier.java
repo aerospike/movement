@@ -19,8 +19,8 @@ public class OneShotIteratorSupplier<T> extends CheckedNotThreadSafe implements 
     protected OneShotIteratorSupplier(final IteratorSupplier<T> supplier) {
         this.supplier = supplier;
     }
-    public static <T>OneShotIteratorSupplier<T> of(final IteratorSupplier<T> supplier){
-        return new OneShotIteratorSupplier<T>(supplier);
+    public static OneShotIteratorSupplier of(final IteratorSupplier supplier){
+        return new OneShotIteratorSupplier(supplier);
     }
 
     public Iterator<T> get() {
