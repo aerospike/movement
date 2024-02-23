@@ -26,7 +26,7 @@ public class WorkList implements WorkChunk {
         this.pse = SequenceUtil.fuse(OneShotIteratorSupplier.of(() -> list.iterator()));
     }
 
-    public static WorkList from(final Collection<Object> list) {
+    public static WorkList from(final Collection<?> list) {
         final List<WorkItem> itemList = list.stream().map(it -> WorkItem.class.isAssignableFrom(it.getClass()) ? (WorkItem) it : new WorkItem(it)).collect(Collectors.toList());
         return new WorkList(itemList);
     }

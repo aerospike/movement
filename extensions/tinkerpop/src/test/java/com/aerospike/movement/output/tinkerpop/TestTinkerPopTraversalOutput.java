@@ -10,7 +10,6 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.tinkerpop.TinkerPopGraphEmitter;
 import com.aerospike.movement.encoding.tinkerpop.TinkerPopTraversalEncoder;
 import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.runtime.core.local.RunningPhase;
 import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
@@ -101,10 +100,6 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
         });
 
 
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() ->
-                TinkerFactory.createClassic().traversal().V().id()));
-
-
         final Runtime runtime = LocalParallelStreamRuntime.getInstance(config);
 
         iteratePhasesTimed(runtime, List.of(Runtime.PHASE.ONE), config);
@@ -135,11 +130,6 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
             LocalParallelStreamRuntime.getInstance(config).close();
         });
 
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() ->
-                TinkerFactory.createClassic().traversal().V().id()));
-
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotIteratorSupplier.of(() ->
-                TinkerFactory.createClassic().traversal().E().id()));
 
         final Runtime runtime = LocalParallelStreamRuntime.getInstance(config);
 

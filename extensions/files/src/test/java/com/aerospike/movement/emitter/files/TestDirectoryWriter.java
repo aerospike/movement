@@ -9,7 +9,6 @@ package com.aerospike.movement.emitter.files;
 import com.aerospike.movement.output.files.DirectoryOutput;
 import com.aerospike.movement.output.files.SplitFileLineOutput;
 import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.test.core.AbstractMovementTest;
 import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.emitter.MockEmitable;
@@ -65,9 +64,6 @@ public class TestDirectoryWriter extends AbstractMovementTest {
 
     @Test
     public void testWriteDirectory() throws IOException {
-        SuppliedWorkChunkDriver.clearSupplierForPhase(Runtime.PHASE.ONE);
-        SuppliedWorkChunkDriver.clearSupplierForPhase(Runtime.PHASE.TWO);
-
         FileUtil.recursiveDelete(outputDirectory);
 
         MockUtil.setDefaultMockCallbacks();

@@ -4,7 +4,7 @@ import com.aerospike.movement.emitter.tinkerpop.TinkerPopGraphEmitter;
 import com.aerospike.movement.encoding.files.csv.GraphCSVEncoder;
 import com.aerospike.movement.output.files.DirectoryOutput;
 import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedOutputIdDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.runtime.core.local.RunningPhase;
 import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
@@ -46,7 +46,7 @@ public class FileTestUtil {
                     put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, outputDirectory.toString());
                     put(WORK_CHUNK_DRIVER_PHASE_ONE, TinkerPopGraphDriver.class.getName());
                     put(WORK_CHUNK_DRIVER_PHASE_TWO, TinkerPopGraphDriver.class.getName());
-                    put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+                    put(OUTPUT_ID_DRIVER, RangedOutputIdDriver.class.getName());
                 }});
         System.out.println(ConfigUtil.configurationToPropertiesFormat(testConfig));
 

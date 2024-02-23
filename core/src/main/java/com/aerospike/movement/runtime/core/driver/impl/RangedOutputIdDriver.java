@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class GeneratedOutputIdDriver extends OutputIdDriver {
+public class RangedOutputIdDriver extends OutputIdDriver {
 
     private final long rangeTop;
 
@@ -37,7 +37,7 @@ public class GeneratedOutputIdDriver extends OutputIdDriver {
 
         @Override
         public List<String> getKeys() {
-            return ConfigUtil.getKeysFromClass(GeneratedOutputIdDriver.Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(RangedOutputIdDriver.Config.Keys.class);
         }
 
         public static class Keys {
@@ -68,10 +68,10 @@ public class GeneratedOutputIdDriver extends OutputIdDriver {
     }
 
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
-    private static final AtomicReference<GeneratedOutputIdDriver> INSTANCE = new AtomicReference<>();
+    private static final AtomicReference<RangedOutputIdDriver> INSTANCE = new AtomicReference<>();
 
 
-    private GeneratedOutputIdDriver(final Configuration config) {
+    private RangedOutputIdDriver(final Configuration config) {
         super(Config.INSTANCE, config);
         this.counter = new AtomicLong(Long.parseLong(Config.INSTANCE.getOrDefault(Config.Keys.RANGE_BOTTOM, config)));
         this.rangeTop = Long.parseLong(Config.INSTANCE.getOrDefault(Config.Keys.RANGE_TOP, config));
@@ -79,7 +79,7 @@ public class GeneratedOutputIdDriver extends OutputIdDriver {
 
     public static OutputIdDriver open(final Configuration config) {
         if (initialized.compareAndSet(false, true)) {
-            INSTANCE.set(new GeneratedOutputIdDriver(config));
+            INSTANCE.set(new RangedOutputIdDriver(config));
         }
         return INSTANCE.get();
     }

@@ -6,19 +6,17 @@
 
 package com.aerospike.movement.output.tinkerpop;
 
-import com.aerospike.movement.encoding.tinkerpop.TinkerPopGraphEncoder;
-import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
-import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphTraversalProvider;
 import com.aerospike.movement.config.core.ConfigurationBase;
-import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
-import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
-import com.aerospike.movement.test.core.AbstractMovementTest;
-import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.emitter.tinkerpop.TinkerPopGraphEmitter;
-import com.aerospike.movement.test.tinkerpop.SharedTinkerClassicGraphProvider;
+import com.aerospike.movement.encoding.tinkerpop.TinkerPopGraphEncoder;
+import com.aerospike.movement.runtime.core.Runtime;
+import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
+import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
+import com.aerospike.movement.test.core.AbstractMovementTest;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphGraphProvider;
+import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphTraversalProvider;
+import com.aerospike.movement.test.tinkerpop.SharedTinkerClassicGraphProvider;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
@@ -26,13 +24,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 
 import static com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime.Config.Keys.THREADS;
 import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
 
 public class TestTinkerPopGraphOutput extends AbstractMovementTest {
     final int THREAD_COUNT = 1; //TinkerGraph is single threaded
@@ -84,8 +82,6 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
             LocalParallelStreamRuntime.getInstance(config).close();
         });
 
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() ->
-                TinkerFactory.createClassic().traversal().V().id()));
 
         final Runtime runtime = LocalParallelStreamRuntime.getInstance(config);
 
@@ -116,11 +112,6 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
             LocalParallelStreamRuntime.getInstance(config).close();
         });
 
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() ->
-                TinkerFactory.createClassic().traversal().V().id()));
-
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotIteratorSupplier.of(() ->
-                TinkerFactory.createClassic().traversal().E().id()));
 
         final Runtime runtime = LocalParallelStreamRuntime.getInstance(config);
 
