@@ -10,10 +10,9 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.output.files.DirectoryOutput;
 import com.aerospike.movement.plugin.cli.CLIPlugin;
 import com.aerospike.movement.process.core.Task;
-import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedOutputIdDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedWorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.test.core.AbstractMovementTest;
 import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.encoder.MockEncoder;
@@ -21,7 +20,6 @@ import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.test.mock.task.MockTask;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
-import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import junit.framework.TestCase;
 import org.junit.After;
@@ -33,7 +31,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 
 import static com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime.Config.Keys.BATCH_SIZE;
 import static com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime.Config.Keys.THREADS;
@@ -121,12 +118,12 @@ public class TestCLI extends AbstractMovementTest {
                 CLI.MovementCLI.Args.DEBUG_SHORT,
                 CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(THREADS, "1"),
                 CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(BATCH_SIZE, String.valueOf(TEST_SIZE / getAvailableProcessors() / 8)),
-                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName()),
-                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName()),
-        };
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, RangedWorkChunkDriver.class.getName()),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(RangedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, "0"),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(RangedWorkChunkDriver.Config.Keys.RANGE_TOP, TEST_SIZE.toString()),
 
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, RangedOutputIdDriver.class.getName()),
+        };
         MockUtil.setDefaultMockCallbacks();
 
         final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);

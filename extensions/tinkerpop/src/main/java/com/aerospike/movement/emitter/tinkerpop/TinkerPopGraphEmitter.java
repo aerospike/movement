@@ -11,7 +11,6 @@ import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.emitter.core.Emitter;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
 import com.aerospike.movement.tinkerpop.common.GraphProvider;
@@ -88,7 +87,7 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
-            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
+            put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, TinkerPopGraphDriver.class.getName());
             put(PASSTHRU, String.valueOf(true));
         }};
     }

@@ -11,13 +11,11 @@ package com.aerospike.movement.runtime.core.local;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.runtime.core.Pipeline;
 import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 
 import com.aerospike.movement.util.core.error.ErrorHandler;
 import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
-import org.reflections.serializers.JsonSerializer;
 
 import java.util.*;
 import java.util.concurrent.ForkJoinTask;
@@ -102,7 +100,6 @@ public class RunningPhase implements Iterator<Map<String, Object>> {
     public void close() {
         final ErrorHandler errorHandler = RuntimeUtil.getErrorHandler(this, config);
         pipelines.forEach(p -> RuntimeUtil.closeWrap(p.getOutput(), errorHandler));
-        SuppliedWorkChunkDriver.clearSupplierForPhase(this.phase);
     }
 
     @Override

@@ -10,7 +10,6 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.files.DirectoryEmitter;
 import com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver;
 import com.aerospike.movement.encoding.files.csv.GraphCSVDecoder;
-import com.aerospike.movement.encoding.tinkerpop.TinkerPopGraphDecoder;
 import com.aerospike.movement.encoding.tinkerpop.TinkerPopGraphEncoder;
 import com.aerospike.movement.output.tinkerpop.TinkerPopGraphOutput;
 import com.aerospike.movement.plugin.Plugin;
@@ -20,27 +19,20 @@ import com.aerospike.movement.process.tasks.tinkerpop.Export;
 import com.aerospike.movement.process.tasks.tinkerpop.Load;
 import com.aerospike.movement.process.tasks.tinkerpop.Migrate;
 import com.aerospike.movement.runtime.core.Handler;
-import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedOutputIdDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedWorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.test.core.AbstractMovementTest;
 import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.task.MockTask;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphGraphProvider;
-import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphTraversalProvider;
-import com.aerospike.movement.test.tinkerpop.SharedGratefulGraphProvider;
 import com.aerospike.movement.test.tinkerpop.SharedTinkerClassicGraphProvider;
 import com.aerospike.movement.tinkerpop.common.GraphProvider;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorHandler;
-import com.aerospike.movement.util.core.iterator.ConfiguredRangeSupplier;
-import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
-import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import com.aerospike.movement.util.files.FileUtil;
-import junit.framework.TestCase;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -48,21 +40,16 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 
 import static com.aerospike.movement.process.tasks.tinkerpop.Load.RECURSIVE_DIR_TRAVERSAL_CLASS_NAME;
 import static org.junit.Assert.assertEquals;
@@ -107,10 +94,12 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
     public void testLoadPluginLowLevel() {
         final Configuration testConfig = ConfigUtil.withOverrides(new MapConfiguration(mockConfigurationMap),
                 new HashMap<>() {{
-                    put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-                    put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
-                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(10 + 1));
-                    put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
+                    put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, RangedWorkChunkDriver.class.getName());
+                    put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, RangedOutputIdDriver.class.getName());
+                    put(RangedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(10 + 1));
+                    put(RangedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
+                    put(RangedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(0));
+                    put(RangedWorkChunkDriver.Config.Keys.RANGE_TOP, String.valueOf(10));
                 }});
         MockUtil.setDefaultMockCallbacks();
         RuntimeUtil.lookupOrLoad(MockTask.class, testConfig);
@@ -118,7 +107,6 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
         final Graph graph = SharedEmptyTinkerGraphGraphProvider.getGraphInstance();
         final Plugin plugin = CallStepPlugin.open(testConfig);
 
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, 10).iterator())));
         graph.traversal().V().drop().iterate();
 
         graph.getServiceRegistry().registerService(PluginServiceFactory.create(

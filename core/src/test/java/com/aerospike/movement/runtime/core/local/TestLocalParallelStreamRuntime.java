@@ -7,17 +7,14 @@
 package com.aerospike.movement.runtime.core.local;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
-import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
-import com.aerospike.movement.test.mock.task.MockTask;
-
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
-import com.aerospike.movement.test.mock.encoder.MockEncoder;
-import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.runtime.core.Runtime;
+import com.aerospike.movement.runtime.core.driver.impl.RangedOutputIdDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedWorkChunkDriver;
 import com.aerospike.movement.test.core.AbstractMovementTest;
 import com.aerospike.movement.test.mock.MockUtil;
-import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
-import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
+import com.aerospike.movement.test.mock.encoder.MockEncoder;
+import com.aerospike.movement.test.mock.output.MockOutput;
+import com.aerospike.movement.test.mock.task.MockTask;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.junit.After;
@@ -25,8 +22,10 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.*;
-import java.util.stream.LongStream;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import static com.aerospike.movement.config.core.ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE;
 import static com.aerospike.movement.config.core.ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO;
@@ -59,18 +58,15 @@ public class TestLocalParallelStreamRuntime extends AbstractMovementTest {
         final Map<String, String> configMap = new HashMap<>() {{
             put(THREADS, String.valueOf(java.lang.Runtime.getRuntime().availableProcessors()));
             put(BATCH_SIZE, String.valueOf(20_000));
-            put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-            put(WORK_CHUNK_DRIVER_PHASE_TWO, SuppliedWorkChunkDriver.class.getName());
-            put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+            put(WORK_CHUNK_DRIVER_PHASE_ONE, RangedWorkChunkDriver.class.getName());
+            put(WORK_CHUNK_DRIVER_PHASE_TWO, RangedWorkChunkDriver.class.getName());
+            put(RangedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, "0");
+            put(RangedWorkChunkDriver.Config.Keys.RANGE_TOP, String.valueOf(TEST_SIZE));
+            put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, RangedOutputIdDriver.class.getName());
         }};
 
         final Configuration config = getMockConfiguration(configMap);
         final Runtime runtime = LocalParallelStreamRuntime.getInstance(config);
-
-
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
-
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
 
 
         MockUtil.setDefaultMockCallbacks();
@@ -94,17 +90,15 @@ public class TestLocalParallelStreamRuntime extends AbstractMovementTest {
         final Map<String, String> configMap = new HashMap<>() {{
             put(THREADS, "1");
             put(BATCH_SIZE, String.valueOf(13));
-            put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-            put(WORK_CHUNK_DRIVER_PHASE_TWO, SuppliedWorkChunkDriver.class.getName());
-            put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+            put(WORK_CHUNK_DRIVER_PHASE_ONE, RangedWorkChunkDriver.class.getName());
+            put(WORK_CHUNK_DRIVER_PHASE_TWO, RangedWorkChunkDriver.class.getName());
+
+            put(RangedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, "0");
+            put(RangedWorkChunkDriver.Config.Keys.RANGE_TOP, String.valueOf(TEST_SIZE));
+            put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, RangedOutputIdDriver.class.getName());
         }};
         final Configuration config = getMockConfiguration(configMap);
         final Runtime runtime = LocalParallelStreamRuntime.getInstance(config);
-
-
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
-
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
 
 
         MockUtil.setDefaultMockCallbacks();
@@ -140,12 +134,13 @@ public class TestLocalParallelStreamRuntime extends AbstractMovementTest {
         final Configuration config = getMockConfiguration(new HashMap<>() {{
             put(THREADS, "4");
             put(BATCH_SIZE, String.valueOf(1));
-            put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-            put(WORK_CHUNK_DRIVER_PHASE_TWO, SuppliedWorkChunkDriver.class.getName());
-            put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+            put(WORK_CHUNK_DRIVER_PHASE_ONE, RangedWorkChunkDriver.class.getName());
+            put(WORK_CHUNK_DRIVER_PHASE_TWO, RangedWorkChunkDriver.class.getName());
+
+            put(RangedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, "0");
+            put(RangedWorkChunkDriver.Config.Keys.RANGE_TOP, String.valueOf(1 + TEST_SIZE));
+            put(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, RangedOutputIdDriver.class.getName());
         }});
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, 1 * TEST_SIZE).iterator())));
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, 1 * TEST_SIZE).iterator())));
         MockUtil.setDefaultMockCallbacks();
 
         RuntimeUtil.loadClass(MockTask.class.getName());

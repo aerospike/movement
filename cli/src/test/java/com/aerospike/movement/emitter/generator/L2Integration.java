@@ -9,8 +9,8 @@ package com.aerospike.movement.emitter.generator;
 import com.aerospike.movement.cli.CLI;
 import com.aerospike.movement.encoding.files.csv.GraphCSVEncoder;
 import com.aerospike.movement.output.files.DirectoryOutput;
-import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedOutputIdDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedWorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.test.core.AbstractMovementTest;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
@@ -52,15 +52,15 @@ public class L2Integration extends AbstractMovementTest {
         Configuration testConfig = new MapConfiguration(new HashMap<>() {{
             put(LocalParallelStreamRuntime.Config.Keys.THREADS, 16);
 //            put(EMITTER, Generator.class.getName());
-            put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
+            put(WORK_CHUNK_DRIVER_PHASE_ONE, RangedWorkChunkDriver.class.getName());
 //            put(YAMLSchemaParser.Config.Keys.YAML_FILE_PATH, yamlFilePath);
             put(BATCH_SIZE, 100);
 //            put(Generator.Config.Keys.SCALE_FACTOR, scale);
             put(ENCODER, GraphCSVEncoder.class.getName());
             put(OUTPUT, DirectoryOutput.class.getName());
-            put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
-            put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(scale + 1));
-            put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
+            put(OUTPUT_ID_DRIVER, RangedOutputIdDriver.class.getName());
+            put(RangedOutputIdDriver.Config.Keys.RANGE_BOTTOM, String.valueOf(scale + 1));
+            put(RangedOutputIdDriver.Config.Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
             put(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY, generateDir);
         }});
 
