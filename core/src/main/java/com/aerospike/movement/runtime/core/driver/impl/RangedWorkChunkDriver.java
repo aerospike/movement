@@ -50,7 +50,7 @@ public class RangedWorkChunkDriver extends WorkChunkDriver {
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
-            put(Keys.RANGE_TOP, String.valueOf(Long.MAX_VALUE));
+            put(Keys.RANGE_BOTTOM, String.valueOf(0));
         }};
     }
 
