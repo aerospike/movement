@@ -141,14 +141,12 @@ public class ParallelStreamProcessor implements Runnable {
     }
 
     public static Iterator<Emitable> walk(final Stream<Emitable> input, final Output output) {
-        return IteratorUtils.flatMap(input.iterator(), emitable ->
-                IteratorUtils.flatMap(emitable.emit(output).iterator(),
-                        innerEmitable -> {
-                            try {
-                                return walk(innerEmitable.emit(output), output);
-                            } catch (final Exception e) {
-                                throw RuntimeUtil.getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleFatalError(e, output);
-                            }
-                        }));
+        return IteratorUtils.flatMap(input.iterator(), emitable -> {
+            try {
+                return walk(emitable.emit(output), output);
+            } catch (final Exception e) {
+                throw RuntimeUtil.getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleFatalError(e, output);
+            }
+        });
     }
 }
