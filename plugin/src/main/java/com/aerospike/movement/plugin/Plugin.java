@@ -74,7 +74,7 @@ public abstract class Plugin extends Loadable implements PluginInterface {
         final LocalParallelStreamRuntime taskRuntime = (LocalParallelStreamRuntime) LocalParallelStreamRuntime.open(taskConfig);
         task.addCompletionHandler("close runtime", (e, context) -> taskRuntime.close());
         try {
-            return Optional.of(Pair.of(taskRuntime, List.of(((Object) taskRuntime.runTask(task))).iterator()));
+            return Optional.of(Pair.of(taskRuntime, (Iterator<Object>) taskRuntime.runTask(task)));
         } catch (Exception e) {
             errorHandler.handleFatalError(e, task);
             return Optional.empty();

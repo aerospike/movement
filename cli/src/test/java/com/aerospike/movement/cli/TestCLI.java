@@ -129,7 +129,7 @@ public class TestCLI extends AbstractMovementTest {
         final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);
         assertTrue(x.isPresent());
         Iterator<Object> callIterator = x.get().call();
-        Object o = callIterator.next();
+//        Object o = callIterator.next();
         final UUID id = (UUID) callIterator.next();
         Iterator<Map<String, Object>> iterator = RuntimeUtil.statusIteratorForTask(id);
         while (iterator.hasNext()) {
