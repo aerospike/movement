@@ -10,6 +10,7 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.logging.core.LoggerFactory;
 import com.aerospike.movement.plugin.Plugin;
 import com.aerospike.movement.process.core.Task;
+import com.aerospike.movement.process.tasks.tinkerpop.*;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -70,13 +71,16 @@ public class CallStepPlugin extends Plugin {
         if (!Graph.class.isAssignableFrom(system.getClass()))
             throw errorHandler.error("cannot setup movement plugin, valid graph to plug into");
         final Graph graph = (Graph) system;
-        final List<String> taskInfo = RuntimeUtil.findAvailableTaskAliases();
+        List<Class> knownTasks = List.of(Load.class, Export.class, Migrate.class, TaskStatus.class, WaitTask.class);
+        knownTasks.forEach(task ->
+                RuntimeUtil.registerTaskAlias(task.getSimpleName(), task));
 
-        for (final String entry : taskInfo) {
-            LoggerFactory.withContext(this).debug("Registering task: %s", entry);
-            final Task task = (Task) RuntimeUtil.lookupOrLoad(RuntimeUtil.getTaskClassByAlias(entry), config);
+        for (final Class entry : knownTasks) {
+            LoggerFactory.withContext(this).debug("Registering task: %s", entry.getSimpleName());
+            final Task task = (Task) RuntimeUtil.lookupOrLoad(RuntimeUtil.getTaskClassByAlias(entry.getSimpleName()), config);
             final PluginServiceFactory psf = PluginServiceFactory.create(task, this, graph, config);
             graph.getServiceRegistry().registerService(psf);
+
         }
 
     }

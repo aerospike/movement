@@ -14,6 +14,7 @@ import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.MapConfiguration;
 
 import java.util.HashMap;
 import java.util.List;
@@ -75,7 +76,7 @@ public class Load extends Task {
 
     @Override
     public Configuration getConfig(Configuration config) {
-        return config;
+        return ConfigUtil.withOverrides(new MapConfiguration(Config.INSTANCE.defaultConfigMap()), config);
     }
 
     @Override

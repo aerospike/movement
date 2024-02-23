@@ -24,6 +24,8 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,8 +36,19 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
     public static final AtomicBoolean initialized = new AtomicBoolean(false);
     public final TinkerPopGraphDriver driver;
 
+    public static ConcurrentHashMap<String, List<String>> vertexPropertyKeyCache = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, List<String>> edgePropertyKeyCache = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, Semaphore> readLocks = new ConcurrentHashMap<>();
+    public static final String GLOBAL = "GLOBAL";
+
+    static {
+        readLocks.put(GLOBAL, new Semaphore(1));
+    }
+
     @Override
     public void init(final Configuration config) {
+        vertexPropertyKeyCache.clear();
+        edgePropertyKeyCache.clear();
         driver.init(config);
     }
 
@@ -146,6 +159,8 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
     @Override
     public void close() {
         try {
+            vertexPropertyKeyCache.clear();
+            edgePropertyKeyCache.clear();
             graph.close();
         } catch (Exception e) {
             throw errorHandler.handleError(e, this);
@@ -154,21 +169,57 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
 
 
     public List<String> getAllPropertyKeysForVertexLabel(final String label) {
+        final String lockName = "vertex:" + label;
+        readLocks.computeIfAbsent(lockName, it -> new Semaphore(1));
+        if (readLocks.get(lockName).availablePermits() == 0) {
+            acquireReadLock(lockName);
+            releaseReadLock(lockName);
+        }
+        return vertexPropertyKeyCache.computeIfAbsent(label, it -> {
+            acquireReadLock(lockName);
+            final List<String> results = graph.traversal().V()
+                    .hasLabel(label)
+                    .properties()
+                    .key()
+                    .dedup()
+                    .toList();
+            releaseReadLock(lockName);
+            return results;
+        });
 
-        return graph.traversal().V()
-                .hasLabel(label)
-                .properties()
-                .key()
-                .dedup()
-                .toList();
     }
 
     public List<String> getAllPropertyKeysForEdgeLabel(final String label) {
-        return graph.traversal().E()
-                .hasLabel(label)
-                .properties()
-                .key()
-                .dedup()
-                .toList();
+        final String lockName = "edge:" + label;
+        readLocks.computeIfAbsent(lockName, it -> new Semaphore(1));
+        if (readLocks.get(lockName).availablePermits() == 0) {
+            acquireReadLock(lockName);
+            releaseReadLock(lockName);
+        }
+        return edgePropertyKeyCache.computeIfAbsent(label, it -> {
+            acquireReadLock(lockName);
+            final List<String> results = graph.traversal().V()
+                    .hasLabel(label)
+                    .properties()
+                    .key()
+                    .dedup()
+                    .toList();
+            releaseReadLock(lockName);
+            return results;
+        });
     }
+
+    public void acquireReadLock(final String name) {
+        final Semaphore lock = readLocks.get(GLOBAL);
+        try {
+            lock.acquire();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void releaseReadLock(final String name) {
+        readLocks.get(GLOBAL).release();
+    }
+
 }

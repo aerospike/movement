@@ -1,9 +1,12 @@
 package com.aerospike.movement.plugin;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
+import com.aerospike.movement.runtime.core.Handler;
+import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.process.core.Task;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
+import com.aerospike.movement.util.core.Pair;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorHandler;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
@@ -58,17 +61,20 @@ public abstract class Plugin extends Loadable implements PluginInterface {
         return RuntimeUtil.findAvailableSubclasses(Loadable.class).stream().map(it -> (Object) it.toString()).iterator();
     }
 
-    public Optional<Iterator<Object>> runTask(final String taskName, final Configuration config) {
-        return runTask(Task.getTaskByAlias(taskName, config), config);
+    public Optional<Pair<LocalParallelStreamRuntime, Iterator<Object>>> runTask(final String taskName, final Configuration externalConfig) {
+        Task task = Task.getTaskByAlias(taskName, externalConfig);
+        return runTask(task, task.getConfig(externalConfig));
     }
 
-    public Optional<Iterator<Object>> runTask(final Task task, final Configuration config) {
+    public Optional<Pair<LocalParallelStreamRuntime, Iterator<Object>>> runTask(final Task task, final Configuration config) {
         final Configuration taskBaseConfig = ConfigUtil.getConfigurationMeta(task.getClass()).defaults();
         final Configuration taskConfig = ConfigUtil.withOverrides(taskBaseConfig, config);
 
         task.init(config);
+        final LocalParallelStreamRuntime taskRuntime = (LocalParallelStreamRuntime) LocalParallelStreamRuntime.open(taskConfig);
+        task.addCompletionHandler("close runtime", (e, context) -> taskRuntime.close());
         try {
-            return Optional.of((Iterator<Object>) IteratorUtils.wrap(LocalParallelStreamRuntime.open(taskConfig).runTask(task)));
+            return Optional.of(Pair.of(taskRuntime, List.of(((Object) taskRuntime.runTask(task))).iterator()));
         } catch (Exception e) {
             errorHandler.handleFatalError(e, task);
             return Optional.empty();

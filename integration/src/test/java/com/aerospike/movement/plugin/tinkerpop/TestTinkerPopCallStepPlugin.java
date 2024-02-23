@@ -73,9 +73,10 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
     final AtomicBoolean failed = new AtomicBoolean(false);
     final List<Throwable> failures = new CopyOnWriteArrayList<>();
 
+
     @Before
     public void clearRuntimeSetFailure() {
-        LocalParallelStreamRuntime.open(ConfigUtil.empty()).close();
+        LocalParallelStreamRuntime.closeStatic();
         failures.clear();
         ErrorHandler.trigger.set(new Handler<Throwable>() {
             @Override

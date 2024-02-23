@@ -135,6 +135,7 @@ public class SuppliedWorkChunkDriver extends WorkChunkDriver {
     }
 
     public static void closeStatic() throws Exception {
+//        SuppliedWorkChunkDriver.suppliers.clear();
         initialized.set(false);
         INSTANCE.set(null);
         if (chunkIterator instanceof AutoCloseable) {

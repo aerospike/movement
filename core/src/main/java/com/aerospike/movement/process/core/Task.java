@@ -9,6 +9,7 @@ package com.aerospike.movement.process.core;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.output.core.Output;
+import com.aerospike.movement.runtime.core.Handler;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.Loadable;
@@ -28,10 +29,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class Task extends Loadable {
-    private final String id;
-    protected final Configuration config;
-    protected final AtomicBoolean isRunning = new AtomicBoolean(false);
+    public final String id;
+    public final Configuration config;
+    public final AtomicBoolean isRunning = new AtomicBoolean(false);
 
+    final Map<String, Handler<Boolean>> completionHandlers = new HashMap<>();
     private static final Map<String, Task> jobs = new ConcurrentHashMap<>();
 
     protected Task(final ConfigurationBase configurationMeta, final Configuration config) {
@@ -111,6 +113,14 @@ public abstract class Task extends Loadable {
 
     private Optional<Exception> getFailure() {
         return Optional.empty();
+    }
+
+    public void onComplete(Boolean success) {
+        completionHandlers.forEach((name,handler) -> handler.handle(success));
+    }
+
+    public void addCompletionHandler(final String name, final Handler<Boolean> handler) {
+        completionHandlers.put(name, handler);
     }
 
 
@@ -206,7 +216,7 @@ public abstract class Task extends Loadable {
 
                 List<Map.Entry<String, Map<String, Number>>> outputData = outputs.stream().map(output -> {
                     final UUID outputId = ((Loadable) (output)).getId();
-                    final long ioOps = (Long) output.getMetrics().getOrDefault("io_ops",0l);
+                    final long ioOps = (Long) output.getMetrics().getOrDefault("io_ops", 0l);
                     String outputkey = output.getClass().getSimpleName() + outputId.toString().split("-")[0];
                     final Map<String, Number> vals = Map.of(
                             Keys.TOTAL, ioOps,

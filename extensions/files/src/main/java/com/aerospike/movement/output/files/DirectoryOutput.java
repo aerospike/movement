@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class DirectoryOutput extends Loadable implements Output {
+public class    DirectoryOutput extends Loadable implements Output {
 
     @Override
     public void init(final Configuration config) {

@@ -164,6 +164,11 @@ public class LocalParallelStreamRuntime implements Runtime {
                 rp.get();
                 phaseResults.put(rp.phase.name(), rp.status().next());
             });
+            CompletableFuture.supplyAsync(() -> {
+//                RuntimeUtil.waitTask(taskId);
+//                task.onComplete(true);
+                return null;
+            });
             return phaseResults;
         });
         try {

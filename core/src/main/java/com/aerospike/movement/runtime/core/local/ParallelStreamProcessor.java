@@ -26,8 +26,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+
+import static com.aerospike.movement.util.core.runtime.RuntimeUtil.getAvailableProcessors;
 
 public class ParallelStreamProcessor implements Runnable {
     private final List<Pipeline> pipelines;
@@ -72,33 +76,35 @@ public class ParallelStreamProcessor implements Runnable {
 
     @Override
     public void run() {
-        //@todo restore custom threadpool?
         final WaitGroup waitGroup = WaitGroup.of(pipelines.size());
-        pipelines.stream().parallel().forEach(pipeline -> {
-            maxRunningTasks.getAndUpdate(existingMax -> {
-                final int currentTaskCount = runningTasks.incrementAndGet();
-                return Math.max(existingMax, currentTaskCount);
-            });
-            final Emitter emitter = pipeline.getEmitter();
-            final Output output = pipeline.getOutput();
-            final WorkChunkDriver driver = (WorkChunkDriver) RuntimeUtil.lookupOrLoad(WorkChunkDriver.class, config);
-            final ErrorHandler errorHandler = RuntimeUtil.getErrorHandler(this, config);
-            try {
-                driveIndividualThreadSync(phase,
-                        driver,
-                        emitter,
-                        output,
-                        () -> {
-                            RuntimeUtil.closeWrap(pipeline);
-                            waitGroup.done();
-                        }, RuntimeErrorHandler.create(waitGroup, errorHandler)
-                );
-            } catch (Exception e) {
+        ExecutorService executorService = Executors.newFixedThreadPool(pipelines.size() + getAvailableProcessors());
+            pipelines.forEach(pipeline -> {
+                executorService.submit(() -> {
+                maxRunningTasks.getAndUpdate(existingMax -> {
+                    final int currentTaskCount = runningTasks.incrementAndGet();
+                    return Math.max(existingMax, currentTaskCount);
+                });
+                final Emitter emitter = pipeline.getEmitter();
+                final Output output = pipeline.getOutput();
+                final WorkChunkDriver driver = (WorkChunkDriver) RuntimeUtil.lookupOrLoad(WorkChunkDriver.class, config);
+                final ErrorHandler errorHandler = RuntimeUtil.getErrorHandler(this, config);
+                try {
+                    driveIndividualThreadSync(phase,
+                            driver,
+                            emitter,
+                            output,
+                            () -> {
+                                RuntimeUtil.closeWrap(pipeline);
+                                waitGroup.done();
+                            }, RuntimeErrorHandler.create(waitGroup, errorHandler)
+                    );
+                } catch (Exception e) {
+                    runningTasks.decrementAndGet();
+                    throw errorHandler.handleFatalError(e, pipeline);
+                }
                 runningTasks.decrementAndGet();
-                throw errorHandler.handleFatalError(e, pipeline);
-            }
-            runningTasks.decrementAndGet();
-        });
+                });
+            });
         try {
             waitGroup.await();
             RuntimeUtil.closeAllInstancesOfLoadable(WorkChunkDriver.class);

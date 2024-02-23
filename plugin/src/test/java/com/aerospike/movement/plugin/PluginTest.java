@@ -2,7 +2,9 @@ package com.aerospike.movement.plugin;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.process.core.Task;
+import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.test.core.AbstractMovementTest;
+import com.aerospike.movement.util.core.Pair;
 import org.apache.commons.configuration2.Configuration;
 import org.junit.Test;
 
@@ -15,8 +17,10 @@ public class PluginTest extends AbstractMovementTest {
         public Iterator<Object> call(final String taskName, final Configuration config) {
             final Task taskInstance = getTask(taskName, config);
             final Configuration taskConfig = taskInstance.getConfig(config);
-            return runTask(taskInstance, taskConfig)
+            Pair<LocalParallelStreamRuntime, Iterator<Object>> pair = runTask(taskInstance, taskConfig)
                     .orElseThrow(() -> new RuntimeException("Failed to run task: " + taskName));
+            Iterator<Object> callIterator = (Iterator<Object>) pair.right;
+            return callIterator;
         }
 
         protected TestPlugin(ConfigurationBase base, Configuration config) {

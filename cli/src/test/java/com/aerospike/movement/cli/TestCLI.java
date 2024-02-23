@@ -77,7 +77,7 @@ public class TestCLI extends AbstractMovementTest {
         final List<Object> y = IteratorUtils.list(x.get().call());
         final List<String> z = RuntimeUtil.findAvailableSubclasses(Task.class)
                 .stream().map(Class::getName).collect(Collectors.toList());
-        assertEquals(5, z.size());
+        assertEquals(6, z.size());
         assertEquals(z.size(), y.size());
         CLI.main(args);
     }
@@ -131,7 +131,9 @@ public class TestCLI extends AbstractMovementTest {
 
         final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);
         assertTrue(x.isPresent());
-        final UUID id = (UUID) x.get().call().next();
+        Iterator<Object> callIterator = x.get().call();
+        Object o = callIterator.next();
+        final UUID id = (UUID) callIterator.next();
         Iterator<Map<String, Object>> iterator = RuntimeUtil.statusIteratorForTask(id);
         while (iterator.hasNext()) {
             System.out.println(iterator.next());

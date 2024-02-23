@@ -53,6 +53,7 @@ public class RunningPhase implements Iterator<Map<String, Object>> {
 
     protected static RunningPhase execute(final ParallelStreamProcessor processor, final List<Pipeline> pipelines, final Runtime.PHASE phase, final Configuration config) {
         final ForkJoinTask task = processor.runtime.customThreadPool.submit(processor);
+
         return new RunningPhase(processor, task, pipelines, phase, config);
     }
 
