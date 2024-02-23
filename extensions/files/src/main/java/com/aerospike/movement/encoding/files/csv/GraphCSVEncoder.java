@@ -98,7 +98,7 @@ public class GraphCSVEncoder extends CSVEncoder {
         List<String> fields = new ArrayList<>();
         fields.add("~id");
         fields.add("~label");
-        ((Emitter) RuntimeUtil.lookupOrLoad(Emitter.class, config)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
+        ((Emitter) RuntimeUtil.lookup(Emitter.class).get(0)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
         return fields;
     }
 
@@ -107,7 +107,7 @@ public class GraphCSVEncoder extends CSVEncoder {
         fields.add("~label");
         fields.add("~from");
         fields.add("~to");
-        ((Emitter) RuntimeUtil.lookupOrLoad(Emitter.class, config)).getAllPropertyKeysForEdgeLabel(label).stream().sorted().forEach(fields::add);
+        ((Emitter) RuntimeUtil.lookup(Emitter.class).get(0)).getAllPropertyKeysForEdgeLabel(label).stream().sorted().forEach(fields::add);
         return fields;
     }
 

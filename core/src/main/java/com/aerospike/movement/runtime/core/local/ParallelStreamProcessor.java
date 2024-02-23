@@ -9,6 +9,7 @@ package com.aerospike.movement.runtime.core.local;
 
 import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.emitter.core.Emitter;
+import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.runtime.core.Handler;
 import com.aerospike.movement.runtime.core.Pipeline;
@@ -77,9 +78,9 @@ public class ParallelStreamProcessor implements Runnable {
     @Override
     public void run() {
         final WaitGroup waitGroup = WaitGroup.of(pipelines.size());
-        ExecutorService executorService = Executors.newFixedThreadPool(pipelines.size() + getAvailableProcessors());
-            pipelines.forEach(pipeline -> {
-                executorService.submit(() -> {
+        final ExecutorService executorService = Executors.newFixedThreadPool(pipelines.size() + 1);
+        pipelines.forEach(pipeline -> {
+            executorService.submit(() -> {
                 maxRunningTasks.getAndUpdate(existingMax -> {
                     final int currentTaskCount = runningTasks.incrementAndGet();
                     return Math.max(existingMax, currentTaskCount);
@@ -103,11 +104,15 @@ public class ParallelStreamProcessor implements Runnable {
                     throw errorHandler.handleFatalError(e, pipeline);
                 }
                 runningTasks.decrementAndGet();
-                });
             });
+        });
         try {
             waitGroup.await();
+            executorService.shutdown();
             RuntimeUtil.closeAllInstancesOfLoadable(WorkChunkDriver.class);
+            RuntimeUtil.closeAllInstancesOfLoadable(Emitter.class);
+            RuntimeUtil.closeAllInstancesOfLoadable(Encoder.class);
+            RuntimeUtil.closeAllInstancesOfLoadable(Output.class);
             RuntimeUtil.unload(WorkChunkDriver.class);
         } catch (InterruptedException e) {
             throw errorHandler.handleError(e, phase, pipelines, waitGroup);

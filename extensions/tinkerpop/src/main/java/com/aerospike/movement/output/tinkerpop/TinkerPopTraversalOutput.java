@@ -69,7 +69,7 @@ public class TinkerPopTraversalOutput extends Loadable implements Output, Output
 
 
     public static TinkerPopTraversalOutput open(Configuration config) {
-        return new TinkerPopTraversalOutput(RuntimeUtil.loadEncoder(config), config);
+        return new TinkerPopTraversalOutput((Encoder<Element>) RuntimeUtil.lookupOrLoad(Encoder.class,config), config);
     }
 
 

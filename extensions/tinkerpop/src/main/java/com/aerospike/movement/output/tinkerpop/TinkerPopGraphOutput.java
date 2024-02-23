@@ -76,7 +76,7 @@ public class TinkerPopGraphOutput extends Loadable implements Output, OutputWrit
     }
 
     public static TinkerPopGraphOutput open(Configuration config) {
-        return new TinkerPopGraphOutput((TinkerPopGraphEncoder) RuntimeUtil.loadEncoder(config), config);
+        return new TinkerPopGraphOutput((TinkerPopGraphEncoder) RuntimeUtil.lookupOrLoad(Encoder.class,config), config);
     }
 
     public static Configuration getOutputConfig() {

@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
-public class    DirectoryOutput extends Loadable implements Output {
+public class DirectoryOutput extends Loadable implements Output {
 
     @Override
     public void init(final Configuration config) {
@@ -102,7 +102,7 @@ public class    DirectoryOutput extends Loadable implements Output {
 
     public static DirectoryOutput open(Configuration config) {
         final Encoder<String> encoder = (Encoder<String>) encoderCache.computeIfAbsent(CONFIG.getOrDefault(Config.Keys.ENCODER, config),
-                key -> (Encoder<String>) RuntimeUtil.loadEncoder(config));
+                key -> (Encoder<String>) RuntimeUtil.lookupOrLoad(Encoder.class,config));
         final String outputDirectory = CONFIG.getOrDefault(Config.Keys.OUTPUT_DIRECTORY, config);
         return new DirectoryOutput(Path.of(outputDirectory), encoder, config);
     }
@@ -160,11 +160,12 @@ public class    DirectoryOutput extends Loadable implements Output {
     @Override
     public void close() {
         fileWriters.values().forEach(it -> {
-            it.values().forEach(output -> {
-                output.close();
+            it.values().forEach(writer -> {
+                if (!((SplitFileLineOutput) writer).closed)
+                    writer.close();
             });
         });
-        encoder.close();
+//        encoder.close();
         SplitFileLineOutput.fileIncr.set(0);
     }
 

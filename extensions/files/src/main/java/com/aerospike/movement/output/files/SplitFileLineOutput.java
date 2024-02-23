@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -34,6 +35,7 @@ public class SplitFileLineOutput implements OutputWriter {
 
 
     private final String label;
+    private final Semaphore outstanding;
 
     public static class Config extends ConfigurationBase {
         public static final Config INSTANCE = new Config();
@@ -104,6 +106,7 @@ public class SplitFileLineOutput implements OutputWriter {
         this.metric = metric;
         this.closed = true;
         this.bufferSize = Integer.parseInt(DirectoryOutput.CONFIG.getOrDefault(DirectoryOutput.Config.Keys.BUFFER_SIZE_KB, config)) * 1024;
+        this.outstanding = new Semaphore(bufferSize);
     }
 
     public static SplitFileLineOutput create(final String label, final Encoder<String> encoder, final AtomicLong metric, final Configuration config) {
@@ -113,6 +116,11 @@ public class SplitFileLineOutput implements OutputWriter {
     @Override
     public void writeToOutput(final Optional<Emitable> potentialEmitable) {
         if (potentialEmitable.isPresent()) {
+            try {
+                outstanding.acquire();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             Emitable emitable = potentialEmitable.get();
             writeEmitable(emitable);
         }
@@ -123,23 +131,8 @@ public class SplitFileLineOutput implements OutputWriter {
     public void init() {
     }
 
-    @Override
-    public void close() {
-        flush();
-        closed = true;
-    }
 
-    @Override
-    public void flush() {
-        try {
-            if (!closed) {
-                bufferedWriter.flush();
-                writeCountSinceLastFlush = 0;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+
 
 
     public AtomicLong getMetric() {
@@ -150,7 +143,13 @@ public class SplitFileLineOutput implements OutputWriter {
     public void writeEmitable(final Emitable item) {
         try {
             final String header = (String) encoder.encodeItemMetadata(item).orElseThrow(() -> new RuntimeException("No metadata for " + item));
-            encoder.encode(item).ifPresent(encoded -> write(encoded + "\n", header));
+            Optional encoded = encoder.encode(item);
+            if (encoded.isPresent()) {
+                write(encoded.get() + "\n", header);
+                outstanding.release();
+            } else {
+                throw new RuntimeException("could not encode item: " + item);
+            }
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -202,20 +201,46 @@ public class SplitFileLineOutput implements OutputWriter {
         }
     }
 
-    private void closeFile() {
-        closed = true;
-        flush();
+    @Override
+    public void flush() {
         try {
-            bufferedWriter.close();
-            fileWriter.close();
+            bufferedWriter.flush();
+            fileWriter.flush();
+            writeCountSinceLastFlush = 0;
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+    @Override
+    public void close() {
+        System.out.println("closing " + SplitFileLineOutput.class.getSimpleName() + ": " + this);
+        try {
+            outstanding.acquire(bufferSize);
+            outstanding.release(bufferSize);
+
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        closeFile();
+        closed = true;
+    }
+
+    private void closeFile() {
+        synchronized (this) {
+            closed = true;
+            flush();
+            try {
+                bufferedWriter.close();
+                fileWriter.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
 
     @Override
     public String toString() {
-        return String.format("SplitFileLineOutput: %s", basePath.toString());
+        return String.format("SplitFileLineOutput: path: %s availablePermits: %d, bufferSize: %d", basePath.toString(), outstanding.availablePermits(), bufferSize);
     }
 }

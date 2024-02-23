@@ -198,6 +198,7 @@ public class RuntimeUtil {
             throw RuntimeUtil.getErrorHandler(RuntimeUtil.class).handleFatalError(new RuntimeException("Error loading class: " + className, e));
         }
     }
+
     public static Class loadClass(final String className, final ClassLoader classLoader) {
         try {
             return Class.forName(className);
@@ -431,6 +432,7 @@ public class RuntimeUtil {
     }
 
     public static void closeAllInstancesOfLoadable(final Class clazz) {
+        System.out.printf("will close %d instances of %s\n", RuntimeUtil.lookup(clazz).size(), clazz.getSimpleName());
         RuntimeUtil.lookup(clazz).iterator().forEachRemaining(it -> RuntimeUtil.closeWrap(((Loadable) it)));
     }
 

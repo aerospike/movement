@@ -43,7 +43,7 @@ public class Pipeline extends CheckedNotThreadSafe implements AutoCloseable {
     }
 
     public static Pipeline create(final int id, final Runtime.PHASE phase, final Configuration config) {
-        final Emitter emitter = RuntimeUtil.loadEmitter(ConfigUtil.withOverrides(config, Map.of(PIPELINE_ID, id)));
+        final Emitter emitter = (Emitter) RuntimeUtil.lookupOrLoad(Emitter.class,ConfigUtil.withOverrides(config, Map.of(PIPELINE_ID, id)));
         final WorkChunkDriver driver;
         if (Emitter.SelfDriving.class.isAssignableFrom(emitter.getClass()))
             driver = ((Emitter.SelfDriving) emitter).driver(config);
