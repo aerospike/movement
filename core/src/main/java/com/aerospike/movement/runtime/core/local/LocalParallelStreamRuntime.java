@@ -80,7 +80,7 @@ public class LocalParallelStreamRuntime implements Runtime {
             put(Keys.THREADS, String.valueOf(RuntimeUtil.getAvailableProcessors()));
             put(Keys.DROP_OUTPUT, "false");
             put(Keys.DELAY_MS, "100");
-            put(Keys.BATCH_SIZE, "1000");
+            put(Keys.BATCH_SIZE, "1");
         }};
     }
 

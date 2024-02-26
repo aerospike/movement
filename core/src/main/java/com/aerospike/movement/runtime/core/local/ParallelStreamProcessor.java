@@ -18,6 +18,7 @@ import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 
 import com.aerospike.movement.util.core.coordonation.WaitGroup;
 import com.aerospike.movement.util.core.error.ErrorHandler;
+import com.aerospike.movement.util.core.iterator.ext.CloseableIterator;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -141,12 +142,14 @@ public class ParallelStreamProcessor implements Runnable {
     }
 
     public static Iterator<Emitable> walk(final Stream<Emitable> input, final Output output) {
-        return IteratorUtils.flatMap(input.iterator(), emitable -> {
-            try {
-                return walk(emitable.emit(output), output);
-            } catch (final Exception e) {
-                throw RuntimeUtil.getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleFatalError(e, output);
-            }
-        });
+        return IteratorUtils.flatMap(input.iterator(), emitable ->
+                IteratorUtils.flatMap(emitable.emit(output).iterator(),
+                        innerEmitable -> {
+                            try {
+                                return walk(innerEmitable.emit(output), output);
+                            } catch (final Exception e) {
+                                throw RuntimeUtil.getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleFatalError(e, output);
+                            }
+                        }));
     }
 }

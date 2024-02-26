@@ -8,7 +8,9 @@
 package com.aerospike.movement.test.core;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
+import com.aerospike.movement.process.core.Task;
 import com.aerospike.movement.runtime.core.Runtime;
+import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.runtime.core.local.RunningPhase;
 import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.emitter.MockEmitter;
@@ -73,5 +75,15 @@ public abstract class AbstractMovementTest {
 
     public void clearMock() {
         MockUtil.clear();
+    }
+    public static void testTask(Class<? extends Task> taskClass, Configuration config) {
+        final Runtime runtime = LocalParallelStreamRuntime.open(config);
+        Task task = (Task) RuntimeUtil.openClass(taskClass, config);
+        final UUID x = (UUID) runtime.runTask(task).next();
+        Iterator<Map<String, Object>> statusIterator = RuntimeUtil.statusIteratorForTask(x);
+        while (statusIterator.hasNext()) {
+            System.out.println(statusIterator.next());
+        }
+        RuntimeUtil.waitTask(x);
     }
 }

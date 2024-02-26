@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -85,7 +86,7 @@ public class SplitFileLineOutput implements OutputWriter {
     private BufferedWriter bufferedWriter;
     private int writeCountSinceLastFlush = 0;
     private AtomicLong linesWritten = new AtomicLong(0);
-
+    private ConcurrentHashMap<String,Semaphore> writerSync = new ConcurrentHashMap<>();
     /**
      * 8m buffer
      * we flush at 8m or at writesBeforeFlush, whichever comes first
@@ -106,7 +107,7 @@ public class SplitFileLineOutput implements OutputWriter {
         this.metric = metric;
         this.closed = true;
         this.bufferSize = Integer.parseInt(DirectoryOutput.CONFIG.getOrDefault(DirectoryOutput.Config.Keys.BUFFER_SIZE_KB, config)) * 1024;
-        this.outstanding = new Semaphore(bufferSize);
+        this.outstanding = new Semaphore(writesBeforeFlush);
     }
 
     public static SplitFileLineOutput create(final String label, final Encoder<String> encoder, final AtomicLong metric, final Configuration config) {
@@ -215,9 +216,8 @@ public class SplitFileLineOutput implements OutputWriter {
     public void close() {
         System.out.println("closing " + SplitFileLineOutput.class.getSimpleName() + ": " + this);
         try {
-            outstanding.acquire(bufferSize);
-            outstanding.release(bufferSize);
-
+            outstanding.acquire(writesBeforeFlush);
+            outstanding.release(writesBeforeFlush);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -241,6 +241,6 @@ public class SplitFileLineOutput implements OutputWriter {
 
     @Override
     public String toString() {
-        return String.format("SplitFileLineOutput: path: %s availablePermits: %d, bufferSize: %d", basePath.toString(), outstanding.availablePermits(), bufferSize);
+        return String.format("SplitFileLineOutput: path: %s availablePermits: %d, writesBeforeFlush: %d", basePath.toString(), outstanding.availablePermits(), writesBeforeFlush);
     }
 }

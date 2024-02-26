@@ -28,7 +28,7 @@ public class CLI {
                 UUID taskId = (UUID) x;
                 final Task.StatusMonitor taskMonitor = Task.StatusMonitor.from(taskId);
                 while (taskMonitor.isRunning()) {
-                    System.out.println(taskMonitor.statusMessage());
+                    System.out.println(taskMonitor.status(true));
                     Thread.sleep(1000L);
                 }
                 RuntimeUtil.waitTask((UUID) taskId);
