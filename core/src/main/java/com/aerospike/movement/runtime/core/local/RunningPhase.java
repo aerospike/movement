@@ -38,7 +38,7 @@ public class RunningPhase implements Iterator<Map<String, Object>> {
 
     private final ForkJoinTask task;
     private final List<Pipeline> pipelines;
-    private final Configuration config;
+    public final Configuration config;
     public final Runtime.PHASE phase;
 
     private RunningPhase(final ParallelStreamProcessor processor, final ForkJoinTask task, final List<Pipeline> pipelines, final Runtime.PHASE phase, final Configuration config) {

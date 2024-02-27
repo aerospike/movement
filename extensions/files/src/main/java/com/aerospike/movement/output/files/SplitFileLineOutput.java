@@ -57,18 +57,18 @@ public class SplitFileLineOutput implements OutputWriter {
 
 
         public static class Keys {
-            public static final String BUFFER_SIZE_KB = "output.bufferSizeKB";
-            public static final String WRITES_BEFORE_FLUSH = "output.writesBeforeFlush";
-            public static final String MAX_LINES = "output.entriesPerFile";
+            public static final String BUFFER_SIZE_KB = DirectoryOutput.Config.Keys.BUFFER_SIZE_KB;
+            public static final String WRITES_BEFORE_FLUSH = DirectoryOutput.Config.Keys.WRITES_BEFORE_FLUSH;
+            public static final String ENTRIES_PER_FILE = DirectoryOutput.Config.Keys.ENTRIES_PER_FILE;
             public static final String DIRECTORY = DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY;
 
             public static final String EXTENSION = "output.file.extension";
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
-            put(Config.Keys.MAX_LINES, "1000");
+            put(Config.Keys.ENTRIES_PER_FILE, "10000");
             put(Config.Keys.BUFFER_SIZE_KB, "4096");
-            put(Config.Keys.WRITES_BEFORE_FLUSH, "1000");
+            put(Config.Keys.WRITES_BEFORE_FLUSH, "10000");
             put(Config.Keys.DIRECTORY, DirectoryOutput.Config.INSTANCE.defaultConfigMap().get(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY));
         }};
     }
@@ -86,7 +86,7 @@ public class SplitFileLineOutput implements OutputWriter {
     private BufferedWriter bufferedWriter;
     private int writeCountSinceLastFlush = 0;
     private AtomicLong linesWritten = new AtomicLong(0);
-    private ConcurrentHashMap<String,Semaphore> writerSync = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, Semaphore> writerSync = new ConcurrentHashMap<>();
     /**
      * 8m buffer
      * we flush at 8m or at writesBeforeFlush, whichever comes first
@@ -102,7 +102,7 @@ public class SplitFileLineOutput implements OutputWriter {
         this.config = config;
         this.encoder = encoder;
         this.basePath = Path.of((String) (Config.INSTANCE.getOrDefault(Config.Keys.DIRECTORY, config)));
-        this.maxLines = Long.parseLong(Config.INSTANCE.getOrDefault(Config.Keys.MAX_LINES, config));
+        this.maxLines = Long.parseLong(Config.INSTANCE.getOrDefault(Config.Keys.ENTRIES_PER_FILE, config));
         this.writesBeforeFlush = Integer.parseInt(Config.INSTANCE.getOrDefault(Config.Keys.WRITES_BEFORE_FLUSH, config));
         this.metric = metric;
         this.closed = true;
@@ -133,7 +133,9 @@ public class SplitFileLineOutput implements OutputWriter {
     }
 
 
-
+    public String getLabel() {
+        return label;
+    }
 
 
     public AtomicLong getMetric() {
@@ -212,6 +214,7 @@ public class SplitFileLineOutput implements OutputWriter {
             throw new RuntimeException(e);
         }
     }
+
     @Override
     public void close() {
         System.out.println("closing " + SplitFileLineOutput.class.getSimpleName() + ": " + this);

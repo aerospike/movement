@@ -24,12 +24,11 @@ import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -80,8 +79,9 @@ public class ParallelStreamProcessor implements Runnable {
     public void run() {
         final WaitGroup waitGroup = WaitGroup.of(pipelines.size());
         final ExecutorService executorService = Executors.newFixedThreadPool(pipelines.size() + 1);
+        List<Future> futures = new ArrayList<>();
         pipelines.forEach(pipeline -> {
-            executorService.submit(() -> {
+            Future<?> x = executorService.submit(() -> {
                 maxRunningTasks.getAndUpdate(existingMax -> {
                     final int currentTaskCount = runningTasks.incrementAndGet();
                     return Math.max(existingMax, currentTaskCount);
@@ -106,9 +106,17 @@ public class ParallelStreamProcessor implements Runnable {
                 }
                 runningTasks.decrementAndGet();
             });
+            futures.add(x);
         });
         try {
             waitGroup.await();
+            futures.forEach(fut -> {
+                try {
+                    fut.get();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
             executorService.shutdown();
             RuntimeUtil.closeAllInstancesOfLoadable(WorkChunkDriver.class);
             RuntimeUtil.closeAllInstancesOfLoadable(Emitter.class);
@@ -142,14 +150,12 @@ public class ParallelStreamProcessor implements Runnable {
     }
 
     public static Iterator<Emitable> walk(final Stream<Emitable> input, final Output output) {
-        return IteratorUtils.flatMap(input.iterator(), emitable ->
-                IteratorUtils.flatMap(emitable.emit(output).iterator(),
-                        innerEmitable -> {
-                            try {
-                                return walk(innerEmitable.emit(output), output);
-                            } catch (final Exception e) {
-                                throw RuntimeUtil.getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleFatalError(e, output);
-                            }
-                        }));
+        return IteratorUtils.flatMap(input.iterator(), emitable -> {
+            try {
+                return walk(emitable.emit(output), output);
+            } catch (final Exception e) {
+                throw RuntimeUtil.getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleFatalError(e, output);
+            }
+        });
     }
 }

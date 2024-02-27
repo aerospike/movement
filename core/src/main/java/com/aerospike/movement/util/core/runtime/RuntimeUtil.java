@@ -122,17 +122,26 @@ public class RuntimeUtil {
         };
     }
 
-    public static Optional<RunningPhase> runningPhaseForTask(UUID taskId) {
-        return ((AtomicReference<Optional<RunningPhase>>)
-                Optional.ofNullable(LocalParallelStreamRuntime.runningTasks.get(taskId))
-                        .orElseThrow(() -> new RuntimeException("cannot find taskId " + taskId))
-                        .get(LocalParallelStreamRuntime.PHASE_REF_KEY)).get();
-    }
+
 
     public static Optional<Function<Object, String>> getObjectPrinter() {
         return Optional.of(Object::toString);
     }
 
+    public static LocalParallelStreamRuntime runtimeForTask(UUID taskId) {
+        AtomicReference<Optional<RunningPhase>> x = ((AtomicReference<Optional<RunningPhase>>)
+                Optional.ofNullable(LocalParallelStreamRuntime.runningTasks.get(taskId))
+                        .orElseThrow(() -> new RuntimeException("cannot find taskId " + taskId))
+                        .get(LocalParallelStreamRuntime.PHASE_REF_KEY));
+        return x.get().orElseThrow().processor.runtime;
+    }
+    public static Optional<RunningPhase> runningPhaseForTask(UUID taskId) {
+        AtomicReference<Optional<RunningPhase>> x = ((AtomicReference<Optional<RunningPhase>>)
+                Optional.ofNullable(LocalParallelStreamRuntime.runningTasks.get(taskId))
+                        .orElseThrow(() -> new RuntimeException("cannot find taskId " + taskId))
+                        .get(LocalParallelStreamRuntime.PHASE_REF_KEY));
+        return x.get();
+    }
 
     public enum DelayType {
         IO_THREAD_INIT
@@ -153,6 +162,7 @@ public class RuntimeUtil {
             final Class<?> x = maybeLoad.get();
             return openClass(maybeLoad.get(), config);
         } catch (Exception e) {
+            e.printStackTrace();
             throw RuntimeUtil.getErrorHandler(RuntimeUtil.class, config).handleFatalError(e);
         }
     }
@@ -291,12 +301,12 @@ public class RuntimeUtil {
     }
 
     public static Object load(final String configKeyOfClassName, final Configuration config) {
-        final Optional<String> driverIfPresent = Optional.ofNullable(config.getString(configKeyOfClassName));
-        if (driverIfPresent.isEmpty()) {
+        final Optional<String> className = Optional.ofNullable(config.getString(configKeyOfClassName));
+        if (className.isEmpty()) {
             throw getErrorHandler(RuntimeUtil.class)
                     .handleFatalError(new RuntimeException("Config key not set: " + configKeyOfClassName), configKeyOfClassName, config);
         }
-        return openClassRef(driverIfPresent.get(), config);
+        return openClassRef(className.get(), config);
     }
 
     public static <K, V> Map<K, V> mapReducer(Map<K, V> a, Map<K, V> b) {
@@ -336,6 +346,8 @@ public class RuntimeUtil {
             return LocalParallelStreamRuntime.encoders;
         if (Decoder.class.isAssignableFrom(targetClass))
             return LocalParallelStreamRuntime.decoders;
+        if (Task.class.isAssignableFrom(targetClass))
+            return LocalParallelStreamRuntime.tasks;
         if (OutputIdDriver.class.isAssignableFrom(targetClass))
             return Optional.ofNullable(LocalParallelStreamRuntime.outputIdDriver.get()).stream().collect(Collectors.toList());
         if (WorkChunkDriver.class.isAssignableFrom(targetClass))
@@ -363,8 +375,11 @@ public class RuntimeUtil {
             throw RuntimeUtil.getErrorHandler(RuntimeUtil.class, config).handleFatalError(new RuntimeException("Cannot find class: " + targetClass.getName()));
     }
 
-    private static Object loadTask(final String name, final Configuration config) {
-        return openClassRef(name, config);
+    public static Object loadTask(final String name, final Configuration config) {
+        final Task x = (Task) openClassRef(name, config);
+        LocalParallelStreamRuntime.taskAliases.put(x.getClass().getSimpleName(), x.getClass());
+        LocalParallelStreamRuntime.tasks.add(x);
+        return x;
     }
 
 
@@ -473,8 +488,10 @@ public class RuntimeUtil {
             LocalParallelStreamRuntime.encoders.clear();
         else if (Decoder.class.isAssignableFrom(clazz))
             LocalParallelStreamRuntime.decoders.clear();
+        else if (Task.class.isAssignableFrom(clazz))
+            LocalParallelStreamRuntime.tasks.clear();
         else
-            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class).handleFatalError(new RuntimeException("Unknown class: " + clazz.getName()));
+            RuntimeUtil.getLogger(RuntimeUtil.class.getSimpleName()).warn("cannot unload unknown class: " + clazz.getName() + ":" + clazz.getEnclosingClass());
     }
 
     public static <T> Set<Class<T>> findAvailableSubclasses(final Class<T> clazz, final String packagePrefix) {

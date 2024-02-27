@@ -115,11 +115,13 @@ public class TinkerPopGraphOutput extends Loadable implements Output, OutputWrit
 
     @Override
     public void writeToOutput(final Optional<Emitable> item) {
-        item.map(emitable -> {
+        if(item.isPresent()){
+            Emitable emitable = item.get();
             incrementMetrics(emitable);
             encoder.encode(emitable);
-            return null;
-        });
+        }else {
+            RuntimeUtil.getLogger(this).info("empty emitable");
+        }
     }
 
     private void incrementMetrics(final Emitable item) {

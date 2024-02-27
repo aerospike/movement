@@ -38,6 +38,8 @@ public class LocalParallelStreamRuntime implements Runtime {
     public final static List<Emitter> emitters = Collections.synchronizedList(new ArrayList<>());
     public final static List<Encoder> encoders = Collections.synchronizedList(new ArrayList<>());
     public final static List<Decoder> decoders = Collections.synchronizedList(new ArrayList<>());
+    public final static List<Task> tasks = Collections.synchronizedList(new ArrayList<>());
+
     public final static AtomicReference<OutputIdDriver> outputIdDriver = new AtomicReference<>();
     public final static AtomicReference<WorkChunkDriver> workChunkDriver = new AtomicReference<>();
     public final static Map<String, Class<? extends Task>> taskAliases = new ConcurrentHashMap<>();
@@ -162,6 +164,7 @@ public class LocalParallelStreamRuntime implements Runtime {
                 rpRef.set(Optional.of(rp));
                 sem.release();
                 rp.get();
+
                 phaseResults.put(rp.phase.name(), rp.status().next());
             });
             CompletableFuture.supplyAsync(() -> {
@@ -239,6 +242,7 @@ public class LocalParallelStreamRuntime implements Runtime {
                                              final LocalParallelStreamRuntime runtime,
                                              final List<Pipeline> pipelines,
                                              final Configuration config) {
+        RuntimeUtil.loadWorkChunkDriver(config).init(config);
         pipelines.forEach(it -> ((Loadable) it.getEmitter()).init(config));
         Output.init(phase, config);
         Emitter.init(phase, config);

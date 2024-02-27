@@ -25,16 +25,23 @@
         </license>
     </licenses>
 
-
     <distributionManagement>
         <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>local-repository</id>
+            <url>${local.repository}</url>
         </repository>
         <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <id>maven-repository</id>
+            <url>${local.repository}</url>
         </snapshotRepository>
+        <!--        <repository>-->
+        <!--            <id>ossrh</id>-->
+        <!--            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>-->
+        <!--        </repository>-->
+        <!--        <snapshotRepository>-->
+        <!--            <id>ossrh</id>-->
+        <!--            <url>https://oss.sonatype.org/content/repositories/snapshots</url>-->
+        <!--        </snapshotRepository>-->
     </distributionManagement>
 
     <properties>
@@ -47,6 +54,7 @@
         <commons-configuration2.version>2.9.0</commons-configuration2.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <tinkerpop.version>3.7.1</tinkerpop.version>
+        <local.repository>file:///tmp/maven-repository/</local.repository>
     </properties>
 
     <dependencies>
@@ -146,19 +154,19 @@
                 <artifactId>maven-gpg-plugin</artifactId>
                 <version>3.1.0</version>
                 <executions>
-<!--                    <execution>-->
-<!--                        <id>sign-artifacts</id>-->
-<!--                        <phase>verify</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>sign</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <gpgArguments>-->
-<!--                                <arg>&#45;&#45;pinentry-mode</arg>-->
-<!--                                <arg>loopback</arg>-->
-<!--                            </gpgArguments>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
+                    <!--                    <execution>-->
+                    <!--                        <id>sign-artifacts</id>-->
+                    <!--                        <phase>verify</phase>-->
+                    <!--                        <goals>-->
+                    <!--                            <goal>sign</goal>-->
+                    <!--                        </goals>-->
+                    <!--                        <configuration>-->
+                    <!--                            <gpgArguments>-->
+                    <!--                                <arg>&#45;&#45;pinentry-mode</arg>-->
+                    <!--                                <arg>loopback</arg>-->
+                    <!--                            </gpgArguments>-->
+                    <!--                        </configuration>-->
+                    <!--                    </execution>-->
                 </executions>
             </plugin>
         </plugins>

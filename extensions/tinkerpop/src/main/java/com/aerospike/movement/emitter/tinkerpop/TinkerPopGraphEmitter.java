@@ -48,7 +48,7 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
     public void init(final Configuration config) {
         vertexPropertyKeyCache.clear();
         edgePropertyKeyCache.clear();
-        driver.init(config);
+//        driver.init(config);
     }
 
     @Override
@@ -136,10 +136,14 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
         return chunks.flatMap(listOfIdsOrElements -> {
             try {
                 if (phase.equals(Runtime.PHASE.ONE)) {
-                    final List<Vertex> vertices = passthrough ? (List<Vertex>) listOfIdsOrElements : IteratorUtils.list(graph.vertices(listOfIdsOrElements.toArray()));
+                    final List<Vertex> vertices = passthrough ?
+                            (List<Vertex>) listOfIdsOrElements :
+                            IteratorUtils.list(graph.vertices(listOfIdsOrElements.toArray()));
                     return vertices.stream().map(TinkerPopVertex::new);
                 } else if (phase.equals(Runtime.PHASE.TWO)) {
-                    final List<Edge> edges = passthrough ? (List<Edge>) listOfIdsOrElements : IteratorUtils.list(graph.edges(listOfIdsOrElements.toArray()));
+                    final List<Edge> edges = passthrough ?
+                            (List<Edge>) listOfIdsOrElements :
+                            IteratorUtils.list(graph.edges(listOfIdsOrElements.toArray()));
                     return edges.stream().map(TinkerPopEdge::new);
                 } else {
                     throw errorHandler.error("Unimplemented PHASE", phase);

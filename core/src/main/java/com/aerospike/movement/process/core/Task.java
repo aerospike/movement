@@ -159,11 +159,14 @@ public abstract class Task extends Loadable {
     public static class StatusMonitor {
         private final UUID taskId;
         private final Iterator<Map<String, Object>> statusIterator;
+        private final LocalParallelStreamRuntime runtime;
 
         public StatusMonitor(UUID taskId) {
             this.taskId = taskId;
             this.statusIterator = RuntimeUtil.statusIteratorForTask(taskId);
+            this.runtime = RuntimeUtil.runtimeForTask(taskId);
         }
+
 
         public static StatusMonitor from(UUID taskId) {
             return new StatusMonitor(taskId);
@@ -236,7 +239,7 @@ public abstract class Task extends Loadable {
                     put("AVERAGE_IO", outputData.stream().map(ev -> (Double) ev.getValue().get(Keys.AVERAGE)).reduce((a, b) -> a + b).orElse(0.0));
                 }});
                 statusMessageData.put("WORK_CHUNKS", workChunks);
-                statusMessageData.put("OUTPUTS", outputData.stream().map(it -> Map.entry(it.getKey(), formatter.apply(it.getValue()))).collect(Collectors.toList()));
+                statusMessageData.put("OUTPUTS", outputData.stream().map(it -> List.of(it.getKey(), formatter.apply(it.getValue()))).collect(Collectors.toList()));
                 if (debug)
                     potentialRunningPhase.ifPresent(runningPhase -> statusMessageData.put("RUNNING_PHASE", potentialRunningPhase.map(thing -> thing.status().next()).orElse(Map.of())));
             }

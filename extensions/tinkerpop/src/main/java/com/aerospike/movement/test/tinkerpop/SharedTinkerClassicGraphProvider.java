@@ -12,9 +12,10 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 
 public class SharedTinkerClassicGraphProvider implements GraphProvider {
-    static final Graph classicGraph = TinkerFactory.createClassic();
+    static Graph classicGraph;
 
     public SharedTinkerClassicGraphProvider(final Configuration config) {
+        classicGraph = TinkerFactory.createClassic();
     }
 
     public static GraphProvider open(final Configuration config) {
@@ -26,6 +27,5 @@ public class SharedTinkerClassicGraphProvider implements GraphProvider {
     public Graph getProvided(GraphProviderContext ctx) {
         return classicGraph;
     }
-
 
 }

@@ -15,6 +15,7 @@ import com.aerospike.movement.runtime.core.driver.WorkList;
 import com.aerospike.movement.tinkerpop.common.GraphProvider;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.Batched;
+import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -77,12 +78,16 @@ public class TinkerPopGraphDriver extends WorkChunkDriver {
                 final Class providerClass = RuntimeUtil.loadClass(TinkerPopGraphEmitter.CONFIG.getOrDefault(TinkerPopGraphEmitter.Config.Keys.GRAPH_PROVIDER, config));
                 final GraphProvider graphProvider = (GraphProvider) RuntimeUtil.openClass(providerClass, config);
                 final Graph graph = graphProvider.getProvided(GraphProvider.GraphProviderContext.INPUT);
-                if (phase.equals(Runtime.PHASE.ONE))
-                    TinkerPopGraphDriver.iterator = Batched.batch(graph.vertices(), RuntimeUtil.getBatchSize(config));
-                else if (phase.equals(Runtime.PHASE.TWO))
-                    TinkerPopGraphDriver.iterator = Batched.batch(graph.edges(), RuntimeUtil.getBatchSize(config));
-                else
+                if (phase.equals(Runtime.PHASE.ONE)) {
+//                    TinkerPopGraphDriver.iterator = Batched.batch(graph.vertices(), RuntimeUtil.getBatchSize(config));
+                    TinkerPopGraphDriver.iterator = IteratorUtils.map(graph.vertices(), it -> List.of(it));
+
+                } else if (phase.equals(Runtime.PHASE.TWO)) {
+//                    TinkerPopGraphDriver.iterator = Batched.batch(graph.edges(), RuntimeUtil.getBatchSize(config));
+                    TinkerPopGraphDriver.iterator = IteratorUtils.map(graph.edges(), it -> List.of(it));
+                } else {
                     throw RuntimeUtil.getErrorHandler(this).handleFatalError(new RuntimeException("unknown phase"), phase);
+                }
                 initialized.set(true);
             }
         }

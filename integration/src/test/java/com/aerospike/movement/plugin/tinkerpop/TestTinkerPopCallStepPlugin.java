@@ -232,7 +232,7 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
 
         final Map<String, String> configMap =
                 Export.Config.INSTANCE.defaultConfigMap(new HashMap<>() {{
-                    put(LocalParallelStreamRuntime.Config.Keys.THREADS, String.valueOf(RuntimeUtil.getAvailableProcessors())); //TinkerGraph is not thread safe
+                    put(LocalParallelStreamRuntime.Config.Keys.THREADS, String.valueOf(1));
                 }});
 
         final Graph graph = SharedEmptyTinkerGraphGraphProvider.getGraphInstance();

@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
@@ -71,7 +72,6 @@ public class DirectoryOutput extends Loadable implements Output {
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
-//uui
             put(Keys.ENTRIES_PER_FILE, "1000");
             put(Keys.BUFFER_SIZE_KB, "4096");
             put(Keys.WRITES_BEFORE_FLUSH, "1000");
@@ -87,8 +87,8 @@ public class DirectoryOutput extends Loadable implements Output {
     private final Path path;
     private final Encoder<String> encoder;
 
-    private final Map<String, AtomicLong> metricsByOutputType = new ConcurrentHashMap<>();
-    private final Map<String, Map<String, OutputWriter>> fileWriters = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, SplitFileLineOutput>> fileWriters = new ConcurrentHashMap<>();
+    private final Map<String, AtomicLong> labelMetrics = new ConcurrentHashMap<>();
 
     protected DirectoryOutput(final Path path,
                               final Encoder<String> encoder,
@@ -102,7 +102,7 @@ public class DirectoryOutput extends Loadable implements Output {
 
     public static DirectoryOutput open(Configuration config) {
         final Encoder<String> encoder = (Encoder<String>) encoderCache.computeIfAbsent(CONFIG.getOrDefault(Config.Keys.ENCODER, config),
-                key -> (Encoder<String>) RuntimeUtil.lookupOrLoad(Encoder.class,config));
+                key -> (Encoder<String>) RuntimeUtil.lookupOrLoad(Encoder.class, config));
         final String outputDirectory = CONFIG.getOrDefault(Config.Keys.OUTPUT_DIRECTORY, config);
         return new DirectoryOutput(Path.of(outputDirectory), encoder, config);
     }
@@ -134,7 +134,7 @@ public class DirectoryOutput extends Loadable implements Output {
             writerConfig = ConfigUtil.withOverrides(config, Map.of(
                     Config.Keys.OUTPUT_DIRECTORY, typePath.toString()
             ));
-            final OutputWriter outputWriter = SplitFileLineOutput.create(label, encoder, getMetric(label), writerConfig);
+            final SplitFileLineOutput outputWriter = SplitFileLineOutput.create(label, encoder, getMetric(label), writerConfig);
             outputWriter.init();
             return outputWriter;
         });
@@ -153,8 +153,8 @@ public class DirectoryOutput extends Loadable implements Output {
         return DirectoryEmitter.open(readerConfig);
     }
 
-    private AtomicLong getMetric(final Object label) {
-        return metricsByOutputType.computeIfAbsent(label.toString(), it -> new AtomicLong());
+    private AtomicLong getMetric(final String label) {
+        return labelMetrics.computeIfAbsent(label, l -> new AtomicLong());
     }
 
     @Override
@@ -181,14 +181,12 @@ public class DirectoryOutput extends Loadable implements Output {
     }
 
     public Map<String, Object> getMetrics() {
-        return metricsByOutputType
-                .entrySet().stream()
-                .map(it ->
-                        Map.of(it.getKey(), (Object) it.getValue().get()))
-                .reduce(RuntimeUtil::mapReducer)
-                .orElse(new HashMap<>() {{
-                    put("status", 0L);
-                }});
+        return fileWriters
+                .entrySet()
+                .stream()
+                .flatMap(entry -> entry.getValue().entrySet().stream())
+                .map(labelWriter -> Map.entry(labelWriter.getKey(), labelWriter.getValue().getMetric().get()))
+                .collect(Collectors.toMap(k -> k.getKey(), v -> v.getValue()));
     }
 
     private static Path resolveOrCreate(final Path root, final String name) {
@@ -210,12 +208,12 @@ public class DirectoryOutput extends Loadable implements Output {
         stringBuilder.append("  path: ").append(path).append("\n");
         stringBuilder.append("  encoder: ").append(encoder).append("\n");
         stringBuilder.append("  metrics: ").append("\n");
-        metricsByOutputType.forEach((key, value) -> {
-            stringBuilder.append("    ").append(key).append(": ").append(value.get()).append("\n");
+        getMetrics().forEach((key, value) -> {
+            stringBuilder.append("    ").append(key).append(": ").append(value).append("\n");
         });
-        stringBuilder.append("  files: ").append("\n");
-        fileWriters.forEach((key, value) -> {
-            stringBuilder.append("    ").append(key).append(": ").append(value.keySet().stream().map(String::toString)).append("\n");
+        stringBuilder.append("  labelFiles: ").append("\n");
+        labelMetrics.forEach((key, value) -> {
+            stringBuilder.append("    ").append(key).append(": ").append(value).append("\n");
         });
         return stringBuilder.toString();
     }
