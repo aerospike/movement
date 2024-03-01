@@ -1,5 +1,7 @@
 package com.aerospike.movement.tinkerpop.common;
 
+import com.aerospike.movement.config.core.ConfigurationBase;
+import com.aerospike.movement.runtime.core.Runtime;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
@@ -19,16 +21,41 @@ public class RefrenceCountedSharedGraph implements Graph {
     public static final String GRAPH_IMPL = "wrapped.graph.impl";
     public static final String SHARED_GRAPH_NAME = "graph.shared.name";
     public static final String OPEN = "open";
+    public static final Function<Configuration, Boolean> preventCloseByPhase = (config) -> {
+        boolean preventClosePhaseOne = config.containsKey(Keys.PREVENT_CLOSE_PHASE_ONE) && config.getBoolean(Keys.PREVENT_CLOSE_PHASE_ONE);
+        boolean preventClosePhaseTwo = config.containsKey(Keys.PREVENT_CLOSE_PHASE_TWO) && config.getBoolean(Keys.PREVENT_CLOSE_PHASE_TWO);
+        boolean preventClosePhaseAny = config.containsKey(Keys.PREVENT_CLOSE_PHASE_ANY) && config.getBoolean(Keys.PREVENT_CLOSE_PHASE_ANY);
+        if (preventClosePhaseAny)
+            return false;
+
+        String indicator = config.getString(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR);
+        if (indicator.equals(Runtime.PHASE.ONE.name()) && preventClosePhaseOne) {
+            return false;
+        }
+        if (indicator.equals(Runtime.PHASE.TWO.name()) && preventClosePhaseTwo) {
+            return false;
+        }
+        return true;
+    };
 
     private static final ConcurrentHashMap<String, Graph> sharedGraphs = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, AtomicLong> refCounters = new ConcurrentHashMap<>();
     public final Graph wrappedGraph;
     private final String sharedName;
+    private final Configuration config;
+    // In some cases we want to prevent close on Phase 1. Closing a TinkerGraph will erase its contents.
+    private final Function<Configuration, Boolean> closeChecker;
 
 
-    public RefrenceCountedSharedGraph(final Graph wrappedGraph, final String sharedName) {
+    public RefrenceCountedSharedGraph(final Graph wrappedGraph, Function<Configuration, Boolean> closeChecker, final String sharedName, Configuration config) {
         this.wrappedGraph = wrappedGraph;
         this.sharedName = sharedName;
+        this.closeChecker = closeChecker;
+        this.config = config;
+    }
+
+    public Configuration wrapperConfig() {
+        return config;
     }
 
 
@@ -61,13 +88,20 @@ public class RefrenceCountedSharedGraph implements Graph {
         }
         final String sharedName = config.containsKey(SHARED_GRAPH_NAME) ? config.getString(SHARED_GRAPH_NAME) : config.getString(GRAPH_IMPL);
         final Graph wrappedGraph = getExistingOrCreate(sharedName, (key) -> graphByConfiguration(config));
-        return new RefrenceCountedSharedGraph(wrappedGraph, sharedName);
+        return new RefrenceCountedSharedGraph(wrappedGraph, (conf) -> true, sharedName, config);
     }
 
-    public static Graph from(Function<Configuration, Graph> graphGetter, final String sharedName, Configuration config) {
+    public static Graph from(final Function<Configuration, Graph> graphGetter,
+                             final Function<Configuration, Boolean> closeChecker,
+                             final String sharedName,
+                             final Configuration config) {
         final Graph wrappedGraph = getExistingOrCreate(sharedName, (name) -> graphGetter.apply(config));
-        final RefrenceCountedSharedGraph graph = new RefrenceCountedSharedGraph(wrappedGraph, sharedName);
+        final RefrenceCountedSharedGraph graph = new RefrenceCountedSharedGraph(wrappedGraph, closeChecker, sharedName, config);
         return graph;
+    }
+
+    public static Graph from(Function<Configuration, Graph> graphGetter, final String sharedName, final Configuration config) {
+        return from(graphGetter, (conf) -> true, sharedName, config);
     }
 
     @Override
@@ -128,7 +162,7 @@ public class RefrenceCountedSharedGraph implements Graph {
                 if (refCounter.get() <= 0)
                     throw new RuntimeException("Reference count is : " + refCounter.get());
                 long value = refCounter.decrementAndGet();
-                if (value == 0) {
+                if (value == 0 && closeChecker.apply(config)) {
                     wrappedGraph.close();
                     sharedGraphs.remove(sharedName);
                     refCounters.remove(sharedName);
@@ -157,5 +191,12 @@ public class RefrenceCountedSharedGraph implements Graph {
     @Override
     public Features features() {
         return wrappedGraph.features();
+    }
+
+    public static class Keys {
+        public static final String PREVENT_CLOSE_PHASE_ONE = "provider.graph.tinkergraph.empty.shared.prevent.close.phase.one";
+        public static final String PREVENT_CLOSE_PHASE_TWO = "provider.graph.tinkergraph.empty.shared.prevent.close.phase.two";
+        public static final String PREVENT_CLOSE_PHASE_ANY = "provider.graph.tinkergraph.empty.shared.prevent.close.phase.any";
+
     }
 }

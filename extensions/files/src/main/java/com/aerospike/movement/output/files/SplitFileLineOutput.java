@@ -74,7 +74,7 @@ public class SplitFileLineOutput implements OutputWriter {
     }
 
 
-    static final AtomicLong fileIncr = new AtomicLong(0);
+    public static final AtomicLong fileIncr = new AtomicLong(0);
     private final int writesBeforeFlush;
     private final Encoder encoder;
     private final long maxLines;

@@ -54,6 +54,7 @@ public class TestDirectoryWriter extends AbstractMovementTest {
         final String headerToWrite = "b";
         outputDirectory.toFile().mkdir();
         outputDirectory.resolve("test").toFile().mkdir();
+        SplitFileLineOutput.fileIncr.set(0);
         final SplitFileLineOutput x = SplitFileLineOutput.create("test", enc, fileMetric, testConfig);
         x.write(valueToWrite, headerToWrite);
         x.close();
@@ -72,7 +73,7 @@ public class TestDirectoryWriter extends AbstractMovementTest {
         }});
 
         MockEmitable emitable = new MockEmitable("z", true, ConfigUtil.empty());
-
+        SplitFileLineOutput.fileIncr.set(0);
         final DirectoryOutput o = DirectoryOutput.open(testConfig);
 
         o.writer(MockEmitable.class, "b").writeToOutput(Optional.of(emitable));
