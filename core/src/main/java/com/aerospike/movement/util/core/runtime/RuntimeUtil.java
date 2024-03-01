@@ -59,6 +59,9 @@ public class RuntimeUtil {
     public static Logger getLogger(final Object context) {
         return new SystemLogger(context);
     }
+    public static Logger getLogger() {
+        return new SystemLogger(null);
+    }
 
     public static void halt() {
         LocalParallelStreamRuntime.halt();
@@ -448,13 +451,11 @@ public class RuntimeUtil {
     }
 
     public static void closeAllInstancesOfLoadable(final Class clazz) {
-        System.out.printf("will close %d instances of %s\n", RuntimeUtil.lookup(clazz).size(), clazz.getSimpleName());
+        RuntimeUtil.getLogger(RuntimeUtil.class.getSimpleName()).debug("will close %d instances of %s\n", RuntimeUtil.lookup(clazz).size(), clazz.getSimpleName());
         RuntimeUtil.lookup(clazz).iterator().forEachRemaining(it -> {
                     if (!((Loadable)it).isClosed())
                         RuntimeUtil.closeWrap((Loadable) it);
-
                 }
-
         );
     }
 

@@ -11,6 +11,7 @@ import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.output.core.OutputWriter;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
+import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 
 import java.io.BufferedWriter;
@@ -217,7 +218,7 @@ public class SplitFileLineOutput implements OutputWriter {
 
     @Override
     public void close() {
-        System.out.println("closing " + SplitFileLineOutput.class.getSimpleName() + ": " + this);
+        RuntimeUtil.getLogger().info("closing " + SplitFileLineOutput.class.getSimpleName() + ": " + this);
         try {
             outstanding.acquire(writesBeforeFlush);
             outstanding.release(writesBeforeFlush);

@@ -38,23 +38,23 @@ public abstract class OutputLogger implements Logger, AutoCloseable {
 
 
     @Override
-    public void info(final String message, final Object... context) {
-        log(LogMessage.create(this, Level.INFO, message, context));
+    public void info(final Object message, final Object... context) {
+        log(LogMessage.create(this, Level.INFO, message.toString(), context));
     }
 
     @Override
-    public void error(final String message, final Object... context) {
-        log(LogMessage.create(this, Level.ERROR, message, context));
+    public void error(final Object message, final Object... context) {
+        log(LogMessage.create(this, Level.ERROR, message.toString(), context));
     }
 
     @Override
-    public void debug(final String message, final Object... context) {
-        log(LogMessage.create(this, Level.DEBUG, message, context));
+    public void debug(final Object message, final Object... context) {
+        log(LogMessage.create(this, Level.DEBUG, message.toString(), context));
     }
 
     @Override
-    public void warn(final String message, final Object... context) {
-        log(LogMessage.create(this, Level.WARN, message, context));
+    public void warn(final Object message, final Object... context) {
+        log(LogMessage.create(this, Level.WARN, message.toString(), context));
     }
     @Override
     public void close() {

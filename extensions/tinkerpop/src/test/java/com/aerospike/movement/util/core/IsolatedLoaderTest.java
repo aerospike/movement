@@ -28,7 +28,7 @@ public class IsolatedLoaderTest {
 
         Graph graph = (Graph) RuntimeUtil.openClass(c1, new MapConfiguration(Map.of()));
 
-        System.out.println(graph.variables());
+        RuntimeUtil.getLogger().info(graph.variables());
 
 
     }

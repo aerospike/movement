@@ -47,9 +47,9 @@ public class PluginEnabledGraph {
     public static Graph open(Configuration config) {
         final Graph graph = (Graph) RuntimeUtil.openClassRef(Config.INSTANCE.getOrDefault(Config.Keys.GRAPH_IMPL, config), config);
         final Plugin plugin = CallStepPlugin.open(config);
-        System.out.println("plugin: " + plugin.getClass().getName());
+        RuntimeUtil.getLogger().info("plugin: " + plugin.getClass().getName());
         plugin.plugInto(graph);
-        System.out.println(graph.traversal().call("--list").toList());
+        RuntimeUtil.getLogger().info(graph.traversal().call("--list").toList());
         return graph;
     }
 }

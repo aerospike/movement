@@ -12,6 +12,7 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.core.Emitter;
 import com.aerospike.movement.encoding.core.Decoder;
 import com.aerospike.movement.encoding.core.Encoder;
+import com.aerospike.movement.logging.core.Level;
 import com.aerospike.movement.runtime.core.Pipeline;
 import com.aerospike.movement.runtime.core.driver.OutputIdDriver;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
@@ -34,6 +35,7 @@ import java.util.stream.IntStream;
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
 public class LocalParallelStreamRuntime implements Runtime {
+    public static Level logLevel = Level.INFO;
     public final static List<Output> outputs = Collections.synchronizedList(new ArrayList<>());
     public final static List<Emitter> emitters = Collections.synchronizedList(new ArrayList<>());
     public final static List<Encoder> encoders = Collections.synchronizedList(new ArrayList<>());

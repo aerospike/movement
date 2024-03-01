@@ -135,7 +135,7 @@ public class TestDirectoryLoader {
                     put(OUTPUT_ID_DRIVER, PassthroughOutputIdDriver.class.getName());
                 }});
 
-        System.out.println(ConfigUtil.configurationToPropertiesFormat(testConfig));
+        RuntimeUtil.getLogger().info(ConfigUtil.configurationToPropertiesFormat(testConfig));
 
         final Runtime runtime = LocalParallelStreamRuntime.open(testConfig);
 
@@ -147,8 +147,8 @@ public class TestDirectoryLoader {
 
         long loadedVertices = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().count().next();
         long loadedEdges = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().E().count().next();
-        System.out.printf("vertices loaded: %s%n", loadedVertices);
-        System.out.printf("edges loaded: %s%n", loadedEdges);
+        RuntimeUtil.getLogger().info(String.format("vertices loaded: %s%n", loadedVertices));
+        RuntimeUtil.getLogger().info(String.format("edges loaded: %s%n", loadedEdges));
         assertEquals(6, loadedVertices);
         assertEquals(6, loadedEdges);
         assertTrue(outputDirectory.resolve("edges").toFile().isDirectory());
@@ -194,7 +194,7 @@ public class TestDirectoryLoader {
                     put(OUTPUT_ID_DRIVER, PassthroughOutputIdDriver.class.getName());
                 }});
 
-        System.out.println(ConfigUtil.configurationToPropertiesFormat(testConfig));
+        RuntimeUtil.getLogger().info(ConfigUtil.configurationToPropertiesFormat(testConfig));
 
         final Runtime runtime = LocalParallelStreamRuntime.open(testConfig);
 
@@ -206,8 +206,8 @@ public class TestDirectoryLoader {
 
         long loadedVertices = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().count().next();
         long loadedEdges = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().E().count().next();
-        System.out.printf("vertices loaded: %s%n", loadedVertices);
-        System.out.printf("edges loaded: %s%n", loadedEdges);
+        RuntimeUtil.getLogger().info(String.format("vertices loaded: %s%n", loadedVertices));
+        RuntimeUtil.getLogger().info(String.format("edges loaded: %s%n", loadedEdges));
         assertEquals(5, loadedVertices);
         assertEquals(5, loadedEdges);
         assertTrue(tempPath.resolve("edges").toFile().isDirectory());
@@ -252,7 +252,7 @@ public class TestDirectoryLoader {
                     put(OUTPUT_ID_DRIVER, PassthroughOutputIdDriver.class.getName());
                 }});
 
-        System.out.println(ConfigUtil.configurationToPropertiesFormat(testConfig));
+        RuntimeUtil.getLogger().info(ConfigUtil.configurationToPropertiesFormat(testConfig));
 
         final Runtime runtime = LocalParallelStreamRuntime.open(testConfig);
 
@@ -265,8 +265,8 @@ public class TestDirectoryLoader {
         runtime.close();
         long loadedVertices = SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().count().next();
         long loadedEdges = SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).E().count().next();
-        System.out.printf("vertices loaded: %s%n", loadedVertices);
-        System.out.printf("edges loaded: %s%n", loadedEdges);
+        RuntimeUtil.getLogger().info(String.format("vertices loaded: %s%n", loadedVertices));
+        RuntimeUtil.getLogger().info(String.format("edges loaded: %s%n", loadedEdges));
         assertEquals(5, loadedVertices);
         assertEquals(5, loadedEdges);
         assertTrue(tempPath.resolve("edges").toFile().isDirectory());
@@ -318,7 +318,7 @@ public class TestDirectoryLoader {
                     put(OUTPUT_ID_DRIVER, PassthroughOutputIdDriver.class.getName());
                 }});
 
-        System.out.println(ConfigUtil.configurationToPropertiesFormat(testConfig));
+        RuntimeUtil.getLogger().info(ConfigUtil.configurationToPropertiesFormat(testConfig));
 
         final Runtime runtime = LocalParallelStreamRuntime.open(testConfig);
 
@@ -331,8 +331,8 @@ public class TestDirectoryLoader {
         runtime.close();
         long loadedVertices = g.V().count().next();
         long loadedEdges = g.E().count().next();
-        System.out.printf("vertices loaded: %s%n", loadedVertices);
-        System.out.printf("edges loaded: %s%n", loadedEdges);
+        RuntimeUtil.getLogger().info(String.format("vertices loaded: %s%n", loadedVertices));
+        RuntimeUtil.getLogger().info(String.format("edges loaded: %s%n", loadedEdges));
 //        assertEquals(5, loadedVertices);
 //        assertEquals(5, loadedEdges);
 //        assertTrue(tempPath.resolve("edges").toFile().isDirectory());

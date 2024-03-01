@@ -17,7 +17,7 @@
  * under the License.
  */
 
-System.out.println("Hello from empty-sample.groovy");
+RuntimeUtil.getLogger().info("Hello from empty-sample.groovy");
 
 // An example of an initialization script that can be configured to run in Gremlin Server.
 // Functions defined here will go into global cache and will not be removed from there

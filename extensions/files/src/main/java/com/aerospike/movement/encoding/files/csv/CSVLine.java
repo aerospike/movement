@@ -31,7 +31,6 @@ public class CSVLine {
         try {
             return line.get(header.indexOf(key));
         } catch (IndexOutOfBoundsException e) {
-//            System.out.println(e);
             throw new RuntimeException("Key not found: " + key);
         }
     }
@@ -61,6 +60,11 @@ public class CSVLine {
             }
         }
         return results;
+    }
+
+    @Override
+    public String toString() {
+        return String.join(",", line.stream().map(it -> it.equals(CSVField.EMPTY) ? "" : it.toString()).collect(Collectors.toList()));
     }
 
 

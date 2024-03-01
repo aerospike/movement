@@ -74,7 +74,7 @@ public class TestLocalParallelStreamRuntime extends AbstractMovementTest {
 
         final double seconds = msTaken / 1000.0;
         final int NUMBER_OF_PHASES = 2;
-        System.out.printf("Moved %,d elements in %f seconds at approximately %,d elements per second: \n", TEST_SIZE, seconds, (int) (TEST_SIZE / seconds));
+        RuntimeUtil.getLogger(TestLocalParallelStreamRuntime.class.getSimpleName()).info("Moved %,d elements in %f seconds at approximately %,d elements per second: \n", TEST_SIZE, seconds, (int) (TEST_SIZE / seconds));
         runtime.close();
         final int threadCount = Integer.parseInt(LocalParallelStreamRuntime.CONFIG.getOrDefault(THREADS, config));
 //        assertEquals(TEST_SIZE * NUMBER_OF_PHASES, getHitCounter(MockEncoder.class, MockEncoder.Methods.ENCODE));
@@ -159,14 +159,14 @@ public class TestLocalParallelStreamRuntime extends AbstractMovementTest {
         phaseOne.get();
         phaseOne.close();
         final int maxConcurrencyPhaseOne = phaseOne.processor.maxRunningTasks.get();
-        System.out.println("maxConcurrencyPhaseOne:" + maxConcurrencyPhaseOne);
+        RuntimeUtil.getLogger().info("maxConcurrencyPhaseOne:" + maxConcurrencyPhaseOne);
 //        assertEquals(threadCount, maxConcurrencyPhaseOne);
 
         final RunningPhase phaseTwo = phaseIterator.next();
         phaseTwo.get();
         phaseTwo.close();
         final int maxConcurrencyPhaseTwo = phaseTwo.processor.maxRunningTasks.get();
-        System.out.println("maxConcurrencyPhaseTwo:" + maxConcurrencyPhaseTwo);
+        RuntimeUtil.getLogger().info("maxConcurrencyPhaseTwo:" + maxConcurrencyPhaseTwo);
 
 //        assertEquals(threadCount, maxConcurrencyPhaseTwo);
     }

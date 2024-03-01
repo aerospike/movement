@@ -82,7 +82,7 @@ public abstract class AbstractMovementTest {
         final UUID x = (UUID) runtime.runTask(task).next();
         Iterator<Map<String, Object>> statusIterator = RuntimeUtil.statusIteratorForTask(x);
         while (statusIterator.hasNext()) {
-            System.out.println(statusIterator.next());
+            RuntimeUtil.getLogger().info(statusIterator.next());
         }
         RuntimeUtil.waitTask(x);
     }

@@ -10,6 +10,7 @@ import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.structure.core.graph.EmittedVertex;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.structure.core.EmittedId;
+import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 
 
 import java.util.Optional;
@@ -56,7 +57,7 @@ public class CSVVertex implements EmittedVertex {
         try{
             return EmittedId.from((String) line.getEntry("~id"));
         }catch (Exception e){
-            System.out.println(line);
+            RuntimeUtil.getLogger(CSVVertex.class.getSimpleName()).error(line.toString());
             throw new RuntimeException(e);
         }
     }

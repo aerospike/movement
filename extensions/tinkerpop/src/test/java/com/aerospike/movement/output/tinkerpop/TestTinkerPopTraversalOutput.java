@@ -24,6 +24,7 @@ import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
 import com.aerospike.movement.util.core.runtime.IOUtil;
+import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
@@ -175,7 +176,7 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
                     put(RemoteGraphTraversalProvider.Config.Keys.HOST, "localhost");
                     put(RemoteGraphTraversalProvider.Config.Keys.PORT, 8182);
                 }});
-        System.out.println(ConfigUtil.configurationToPropertiesFormat(testConfig));
+        RuntimeUtil.getLogger().info(ConfigUtil.configurationToPropertiesFormat(testConfig));
 
         final GraphTraversalSource g = AnonymousTraversalSource
                 .traversal()
