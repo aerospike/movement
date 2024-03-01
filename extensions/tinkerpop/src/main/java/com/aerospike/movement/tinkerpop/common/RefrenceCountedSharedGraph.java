@@ -2,6 +2,7 @@ package com.aerospike.movement.tinkerpop.common;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.runtime.core.Runtime;
+import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
@@ -21,6 +22,8 @@ public class RefrenceCountedSharedGraph implements Graph {
     public static final String GRAPH_IMPL = "wrapped.graph.impl";
     public static final String SHARED_GRAPH_NAME = "graph.shared.name";
     public static final String OPEN = "open";
+
+
     public static final Function<Configuration, Boolean> preventCloseByPhase = (config) -> {
         boolean preventClosePhaseOne = config.containsKey(Keys.PREVENT_CLOSE_PHASE_ONE) && config.getBoolean(Keys.PREVENT_CLOSE_PHASE_ONE);
         boolean preventClosePhaseTwo = config.containsKey(Keys.PREVENT_CLOSE_PHASE_TWO) && config.getBoolean(Keys.PREVENT_CLOSE_PHASE_TWO);
@@ -46,6 +49,9 @@ public class RefrenceCountedSharedGraph implements Graph {
     // In some cases we want to prevent close on Phase 1. Closing a TinkerGraph will erase its contents.
     private final Function<Configuration, Boolean> closeChecker;
 
+    static {
+        LocalParallelStreamRuntime.cleanupCallbacks.put(RefrenceCountedSharedGraph.class.getSimpleName(), () -> refCounters.forEach((k, v) -> v.set(-1)));
+    }
 
     public RefrenceCountedSharedGraph(final Graph wrappedGraph, Function<Configuration, Boolean> closeChecker, final String sharedName, Configuration config) {
         this.wrappedGraph = wrappedGraph;
@@ -59,7 +65,7 @@ public class RefrenceCountedSharedGraph implements Graph {
     }
 
 
-    public static Graph graphByConfiguration(final Configuration config) {
+    public static Function<Configuration, Graph> graphByConfiguration = (config) -> {
         final Graph wrappedGraph;
         try {
             final Class<? extends Graph> graphImpl = (Class<? extends Graph>) Class.forName(config.getString(GRAPH_IMPL));
@@ -68,12 +74,12 @@ public class RefrenceCountedSharedGraph implements Graph {
             throw new RuntimeException(e);
         }
         return wrappedGraph;
-    }
+    };
 
     public static Graph getExistingOrCreate(final String sharedName, Function<String, Graph> getter) {
         synchronized (RefrenceCountedSharedGraph.class) {
             final Graph x = sharedGraphs.computeIfAbsent(sharedName, (key) -> {
-                refCounters.put(sharedName, new AtomicLong(0));
+                refCounters.put(sharedName, new AtomicLong(-1));
                 return getter.apply(key);
             });
             final AtomicLong ref = refCounters.get(sharedName);
@@ -87,8 +93,7 @@ public class RefrenceCountedSharedGraph implements Graph {
             throw new RuntimeException(GRAPH_IMPL + " not configured");
         }
         final String sharedName = config.containsKey(SHARED_GRAPH_NAME) ? config.getString(SHARED_GRAPH_NAME) : config.getString(GRAPH_IMPL);
-        final Graph wrappedGraph = getExistingOrCreate(sharedName, (key) -> graphByConfiguration(config));
-        return new RefrenceCountedSharedGraph(wrappedGraph, (conf) -> true, sharedName, config);
+        return from(graphByConfiguration, (conf) -> true, sharedName, config);
     }
 
     public static Graph from(final Function<Configuration, Graph> graphGetter,
@@ -158,11 +163,12 @@ public class RefrenceCountedSharedGraph implements Graph {
     public void close() throws Exception {
         synchronized (RefrenceCountedSharedGraph.class) {
             if (refCounters.containsKey(sharedName)) {
-                AtomicLong refCounter = refCounters.get(sharedName);
-                if (refCounter.get() <= 0)
-                    throw new RuntimeException("Reference count is : " + refCounter.get());
+                final AtomicLong refCounter = refCounters.get(sharedName);
                 long value = refCounter.decrementAndGet();
-                if (value == 0 && closeChecker.apply(config)) {
+                if (refCounter.get() < -1)
+                    throw new RuntimeException("Reference count is : " + refCounter.get());
+                boolean shouldClose = closeChecker.apply(config);
+                if (value == -1 && shouldClose) {
                     wrappedGraph.close();
                     sharedGraphs.remove(sharedName);
                     refCounters.remove(sharedName);

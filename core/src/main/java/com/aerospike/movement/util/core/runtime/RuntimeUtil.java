@@ -13,7 +13,6 @@ import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.emitter.core.Emitter;
 import com.aerospike.movement.logging.core.Logger;
 import com.aerospike.movement.logging.core.impl.SystemLogger;
-import com.aerospike.movement.output.Metered;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.process.core.Task;
 import com.aerospike.movement.runtime.core.Runtime;
@@ -194,15 +193,6 @@ public class RuntimeUtil {
         invokeMethod(className, "main", null, args);
     }
 
-    public static boolean blockOnBackpressure() {
-        final Iterator<Object> meteredOutputs = RuntimeUtil.match(Output.class, Metered.class);
-        if (meteredOutputs.hasNext()) {
-            Metered x = (Metered) meteredOutputs.next();
-//            x.barrier(); //@todo
-            return true;
-        }
-        return false;
-    }
 
     public static Class loadClassWithClassLoader(final String className, final ClassLoader classLoader) {
         try {

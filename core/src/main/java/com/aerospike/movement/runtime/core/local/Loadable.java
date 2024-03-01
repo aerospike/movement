@@ -56,9 +56,11 @@ public abstract class Loadable implements AutoCloseable {
 
     @Override
     public final void close() {
-        if (!closed)
-            onClose();
-        this.closed = true;
+        synchronized (Loadable.class) {
+            if (!closed)
+                onClose();
+            this.closed = true;
+        }
     }
 
     public boolean isClosed() {

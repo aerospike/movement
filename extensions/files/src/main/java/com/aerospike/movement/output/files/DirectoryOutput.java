@@ -179,12 +179,17 @@ public class DirectoryOutput extends Loadable implements Output {
     }
 
     public Map<String, Object> getMetrics() {
-        return fileWriters
+        Map<String, Long> x = fileWriters
                 .entrySet()
                 .stream()
                 .flatMap(entry -> entry.getValue().entrySet().stream())
                 .map(labelWriter -> Map.entry(labelWriter.getKey(), labelWriter.getValue().getMetric().get()))
                 .collect(Collectors.toMap(k -> k.getKey(), v -> v.getValue()));
+        final long ioOps = x.entrySet().stream().map(it -> it.getValue()).reduce((a, b) -> a + b).orElse(0L);
+        x.put(RuntimeUtil.IO_OPS, ioOps);
+        Map<String, Object> result = new HashMap<>();
+        x.forEach((k, v) -> result.put(k, v));
+        return result;
     }
 
     private static Path resolveOrCreate(final Path root, final String name) {

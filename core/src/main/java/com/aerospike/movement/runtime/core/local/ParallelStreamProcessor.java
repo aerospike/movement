@@ -78,7 +78,7 @@ public class ParallelStreamProcessor implements Runnable {
     @Override
     public void run() {
         final WaitGroup waitGroup = WaitGroup.of(pipelines.size());
-        final ExecutorService executorService = Executors.newFixedThreadPool(pipelines.size() + 1);
+        final ExecutorService executorService = Executors.newFixedThreadPool(pipelines.size()+1);
         List<Future> futures = new ArrayList<>();
         pipelines.forEach(pipeline -> {
             Future<?> x = executorService.submit(() -> {
@@ -104,6 +104,7 @@ public class ParallelStreamProcessor implements Runnable {
                     runningTasks.decrementAndGet();
                     throw errorHandler.handleFatalError(e, pipeline);
                 }
+
                 runningTasks.decrementAndGet();
             });
             futures.add(x);

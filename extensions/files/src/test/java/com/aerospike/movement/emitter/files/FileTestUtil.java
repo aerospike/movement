@@ -61,5 +61,6 @@ public class FileTestUtil {
             throw new RuntimeException(ioe);
         }
         RuntimeUtil.getLogger().info("eot");
+        runtime.close();
     }
 }

@@ -218,7 +218,7 @@ public class SplitFileLineOutput implements OutputWriter {
 
     @Override
     public void close() {
-        RuntimeUtil.getLogger().info("closing " + SplitFileLineOutput.class.getSimpleName() + ": " + this);
+        RuntimeUtil.getLogger(this).debug("close");
         try {
             outstanding.acquire(writesBeforeFlush);
             outstanding.release(writesBeforeFlush);
@@ -245,6 +245,6 @@ public class SplitFileLineOutput implements OutputWriter {
 
     @Override
     public String toString() {
-        return String.format("SplitFileLineOutput: path: %s availablePermits: %d, writesBeforeFlush: %d", basePath.toString(), outstanding.availablePermits(), writesBeforeFlush);
+        return String.format("SplitFileLineOutput: %s", basePath.toString());
     }
 }

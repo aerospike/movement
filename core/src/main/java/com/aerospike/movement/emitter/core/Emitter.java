@@ -34,8 +34,6 @@ public interface Emitter {
     }
 
     static void init(Runtime.PHASE phase, Configuration config) {
-
-//        RuntimeUtil.closeAllInstancesOfLoadable(Emitter.class);
     }
 
     Stream<Emitable> stream(final WorkChunkDriver workChunkDriver, final Runtime.PHASE phase);

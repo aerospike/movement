@@ -153,18 +153,18 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
                 .call(Load.class.getSimpleName())
                 .next();
         UUID id = (UUID) x.get("id");
-        System.out.println(x);
+        RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(x);
         List<Object> list = graph.traversal().call("--list").toList();
         Iterator<?> status = graph.traversal()
                 .call(PluginServiceFactory.TASK_STATUS)
                 .with(LocalParallelStreamRuntime.TASK_ID_KEY, id.toString());
 
-        if (status.hasNext()) System.out.println(status.next());
+        if (status.hasNext()) RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(status.next());
         RuntimeUtil.waitTask(id);
 
         System.out.printf("generated path: %s\n", tempPath.toAbsolutePath());
         Files.walk(tempPath).forEach(it -> {
-            System.out.println(it.toAbsolutePath());
+            RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(it.toAbsolutePath());
             try {
                 if (it.toFile().isFile())
                     Files.lines(it).forEach(System.out::println);
@@ -194,7 +194,7 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
         final Object plugin = RuntimeUtil.openClassRef(CallStepPlugin.class.getName(), config);
 
         plugin.getClass().getMethod(PluginInterface.Methods.PLUG_INTO, Object.class).invoke(plugin, graph);
-        System.out.println(graph.traversal().call("--list").toList());
+        RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(graph.traversal().call("--list").toList());
 
         MockUtil.setDefaultMockCallbacks();
         final GraphProvider inputGraphProvider = SharedTinkerClassicGraphProvider.open(config);
@@ -206,13 +206,13 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
                 .next();
 
         UUID id = (UUID) x.get("id");
-        System.out.println(x);
+        RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(x);
 
         Iterator<?> status = graph.traversal()
                 .call(PluginServiceFactory.TASK_STATUS)
                 .with(LocalParallelStreamRuntime.TASK_ID_KEY, id.toString());
 
-        if (status.hasNext()) System.out.println(status.next());
+        if (status.hasNext()) RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(status.next());
         RuntimeUtil.waitTask(id);
         long elapsed = System.nanoTime() - start;
         System.out.printf("elapsed time: %d ms\n", TimeUnit.NANOSECONDS.toMillis(elapsed));
@@ -241,7 +241,7 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
         final Object plugin = RuntimeUtil.openClassRef(CallStepPlugin.class.getName(), config);
 
         plugin.getClass().getMethod(PluginInterface.Methods.PLUG_INTO, Object.class).invoke(plugin, graph);
-        System.out.println(graph.traversal().call("--list").toList());
+        RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(graph.traversal().call("--list").toList());
 
         MockUtil.setDefaultMockCallbacks();
         final GraphProvider inputGraphProvider = SharedTinkerClassicGraphProvider.open(config);
@@ -253,20 +253,20 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
                 .with("emitter.tinkerpop.graph.provider", inputGraphProvider.getClass().getName());
         Map<String,Object> map = (Map<String, Object>) task.next();
         UUID id = (UUID) map.get("id");
-        System.out.println(task.next());
+        RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(task.next());
 
         Iterator<?> status = graph.traversal()
                 .call(PluginServiceFactory.TASK_STATUS)
                 .with(LocalParallelStreamRuntime.TASK_ID_KEY, id.toString());
 
-        if (status.hasNext()) System.out.println(status.next());
+        if (status.hasNext()) RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(status.next());
         RuntimeUtil.waitTask(id);
         long elapsed = System.nanoTime() - start;
         System.out.printf("elapsed time: %d ms\n", TimeUnit.NANOSECONDS.toMillis(elapsed));
         final long classicVertexCount = inputGraphProvider.getProvided(GraphProvider.GraphProviderContext.INPUT).traversal().V().count().next();
         final long classicEdgeCount = inputGraphProvider.getProvided(GraphProvider.GraphProviderContext.INPUT).traversal().E().count().next();
 
-        Files.walk(exportDir).filter(it -> it.toFile().isFile()).forEach(it -> System.out.println(it.toAbsolutePath()));
+        Files.walk(exportDir).filter(it -> it.toFile().isFile()).forEach(it -> RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(it.toAbsolutePath()));
         long filesWritten = Files.walk(exportDir).filter(it -> it.toFile().isFile()).count();
         long linesWritten = Files.walk(exportDir).filter(it -> it.toFile().isFile()).flatMap(it -> {
             try {

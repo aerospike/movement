@@ -11,6 +11,8 @@ import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,8 +33,6 @@ public class TestParameterized {
     final static Integer testLoops = 20;
 
     private final Integer threadCount;
-    Path exportDir;
-    private static long totalTime = 0;
 
     @Parameterized.Parameters
     public static Collection<Integer[]> data() {
@@ -58,41 +58,44 @@ public class TestParameterized {
                     put(LocalParallelStreamRuntime.Config.Keys.THREADS, String.valueOf(threadCount));
                 }});
 
-        final Graph graph = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT);
-        graph.traversal().V().drop().iterate();
+
+
+        final Graph controller = TinkerGraph.open();
+
         final Configuration config = new MapConfiguration(configMap);
         final Object plugin = RuntimeUtil.openClassRef(CallStepPlugin.class.getName(), config);
 
-        plugin.getClass().getMethod(PluginInterface.Methods.PLUG_INTO, Object.class).invoke(plugin, graph);
-        System.out.println(graph.traversal().call("--list").toList());
+        plugin.getClass().getMethod(PluginInterface.Methods.PLUG_INTO, Object.class).invoke(plugin, controller);
+        RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(controller.traversal().call("--list").toList());
 
         MockUtil.setDefaultMockCallbacks();
         final Path exportDir = Files.createTempDirectory("export");
         long start = System.nanoTime();
-        Iterator<?> task = graph.traversal()
+        Iterator<?> task = controller.traversal()
                 .call(Export.class.getSimpleName())
                 .with("output.directory", exportDir.toAbsolutePath().toString())
                 .with("emitter.tinkerpop.graph.provider", SharedTinkerClassicGraphProvider.class.getName());
         Map<String, Object> map = (Map<String, Object>) task.next();
         UUID id = (UUID) map.get("id");
-        System.out.println(task.next());
+        RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(task.next());
 
-        Iterator<?> status = graph.traversal()
+        Iterator<?> status = controller.traversal()
                 .call(PluginServiceFactory.TASK_STATUS)
                 .with(LocalParallelStreamRuntime.TASK_ID_KEY, id.toString());
 
-        if (status.hasNext()) System.out.println(status.next());
+        if (status.hasNext()) RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(status.next());
         RuntimeUtil.waitTask(id);
-//        graph.close();
-        SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).close();
+        controller.close();
+
         LocalParallelStreamRuntime.closeStatic();
         long elapsed = System.nanoTime() - start;
-        GraphProvider inputGraphProvider = SharedTinkerClassicGraphProvider.open();
+        Graph classic = TinkerFactory.createClassic();
         System.out.printf("elapsed time: %d ms\n", TimeUnit.NANOSECONDS.toMillis(elapsed));
-        final long classicVertexCount = inputGraphProvider.getProvided(GraphProvider.GraphProviderContext.INPUT).traversal().V().count().next();
-        final long classicEdgeCount = inputGraphProvider.getProvided(GraphProvider.GraphProviderContext.INPUT).traversal().E().count().next();
 
-        Files.walk(exportDir).filter(it -> it.toFile().isFile()).forEach(it -> System.out.println(it.toAbsolutePath()));
+        final long classicVertexCount = classic.traversal().V().count().next();
+        final long classicEdgeCount = classic.traversal().E().count().next();
+
+        Files.walk(exportDir).filter(it -> it.toFile().isFile()).forEach(it -> RuntimeUtil.getLogger(this.getClass().getSimpleName()).info(it.toAbsolutePath()));
         long filesWritten = Files.walk(exportDir).filter(it -> it.toFile().isFile()).count();
         long linesWritten = Files.walk(exportDir).filter(it -> it.toFile().isFile()).flatMap(it -> {
             try {

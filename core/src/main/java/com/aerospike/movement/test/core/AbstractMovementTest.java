@@ -69,6 +69,7 @@ public abstract class AbstractMovementTest {
             final RunningPhase phase = phaseIterator.next();
             phase.get();
             phase.close();
+            runtime.close();
         }
         runtime.close();
     }

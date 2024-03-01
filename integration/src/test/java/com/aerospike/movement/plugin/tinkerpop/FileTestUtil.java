@@ -11,6 +11,7 @@ import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
 import com.aerospike.movement.test.core.AbstractMovementTest;
 import com.aerospike.movement.test.tinkerpop.SharedTinkerClassicGraphProvider;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
+import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 
@@ -48,17 +49,17 @@ public class FileTestUtil {
                     put(WORK_CHUNK_DRIVER_PHASE_TWO, TinkerPopGraphDriver.class.getName());
                     put(OUTPUT_ID_DRIVER, RangedOutputIdDriver.class.getName());
                 }});
-        System.out.println(ConfigUtil.configurationToPropertiesFormat(testConfig));
+        RuntimeUtil.getLogger(FileTestUtil.class.getSimpleName()).info(ConfigUtil.configurationToPropertiesFormat(testConfig));
 
 
         final Runtime runtime = LocalParallelStreamRuntime.open(testConfig);
         final Iterator<RunningPhase> x = runtime.runPhases(List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO), testConfig);
         AbstractMovementTest.iteratePhasesAndCloseRuntime(x, runtime);
         try {
-            System.out.println(Files.list(outputDirectory).collect(Collectors.toList()));
+            RuntimeUtil.getLogger(FileTestUtil.class.getSimpleName()).info(Files.list(outputDirectory).collect(Collectors.toList()));
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         }
-        System.out.println("eot");
+        RuntimeUtil.getLogger(FileTestUtil.class.getSimpleName()).info("eot");
     }
 }

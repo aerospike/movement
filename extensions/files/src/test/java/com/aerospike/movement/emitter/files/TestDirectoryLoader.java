@@ -32,6 +32,7 @@ import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -54,68 +55,10 @@ import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TestDirectoryLoader {
-//    @Before
-//    public void clean(){
-//        LocalParallelStreamRuntime.closeStatic();
-//    }
-
-    @Test
-    public void testRecursiveDirectoryTraversalDriver() throws IOException {
-        final Path outputDirectory = Path.of(System.getProperty("java.io.tmpdir")).resolve("generate");
-        FileUtil.recursiveDelete(outputDirectory);
-
-        writeClassicGraphToDirectory(outputDirectory);
-
-        final Configuration testConfig = new MapConfiguration(
-                new HashMap<>() {{
-                    put(LocalParallelStreamRuntime.Config.Keys.THREADS, 1);
-                    put(EMITTER, DirectoryEmitter.class.getName());
-                    put(DECODER, GraphCSVDecoder.class.getName());
-                    put(ENCODER, TinkerPopGraphEncoder.class.getName());
-                    put(OUTPUT, TinkerPopGraphOutput.class.getName());
-                    put(TinkerPopGraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
-                    put(DirectoryEmitter.Config.Keys.BASE_PATH, "/tmp/generate");
-                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, "vertices");
-                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, "edges");
-                    put(WORK_CHUNK_DRIVER_PHASE_ONE, RecursiveDirectoryTraversalDriver.class.getName());
-                    put(WORK_CHUNK_DRIVER_PHASE_TWO, RecursiveDirectoryTraversalDriver.class.getName());
-                    put(OUTPUT_ID_DRIVER, PassthroughOutputIdDriver.class.getName());
-                }});
-        Configuration phaseOneConfig = ConfigUtil.withOverrides(testConfig, new HashMap<>() {{
-            put(INTERNAL_PHASE_INDICATOR, "ONE");
-        }});
-        Configuration phaseTwoConfig = ConfigUtil.withOverrides(testConfig, new HashMap<>() {{
-            put(INTERNAL_PHASE_INDICATOR, "TWO");
-        }});
-
-        RecursiveDirectoryTraversalDriver driver = RecursiveDirectoryTraversalDriver.open(phaseOneConfig);
-        driver.init(phaseOneConfig);
-        assertTrue(driver.getInitialized().get());
-
-        final List<WorkChunk> chunks = Stream.iterate(driver.getNext(), Optional::isPresent, i -> driver.getNext())
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
-
-
-        long driverElementCount = IteratorUtils.count(IteratorUtils.flatMap(chunks.iterator(), chunk -> ((Emitable) chunk).emit(RuntimeUtil.loadOutput(testConfig)).iterator()));
-        long fileDataRowCount = Files.walk(DirectoryEmitter.getPhasePath(Runtime.PHASE.ONE, testConfig))
-                .filter(it -> !it.toFile().isDirectory())
-                .flatMap(it -> {
-                    try {
-                        return Files.lines(it).skip(1);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .count();
-
-//        assertEquals(fileDataRowCount, driverElementCount);
-    }
 
 
     @Test
-    public void highLevelDirectoryLoaderTest() throws IOException {
+    public void highLevelDirectoryLoaderTest() throws Exception {
         final Path outputDirectory = Path.of(System.getProperty("java.io.tmpdir")).resolve("generate");
         FileUtil.recursiveDelete(outputDirectory);
         writeClassicGraphToDirectory(outputDirectory);
@@ -144,9 +87,10 @@ public class TestDirectoryLoader {
                 testConfig);
 
         iteratePhasesAndCloseRuntime(x, runtime);
-
-        long loadedVertices = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().count().next();
-        long loadedEdges = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().E().count().next();
+        Graph shared = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT);
+        long loadedVertices = shared.traversal().V().count().next();
+        long loadedEdges = shared.traversal().E().count().next();
+        shared.close();
         RuntimeUtil.getLogger().info(String.format("vertices loaded: %s%n", loadedVertices));
         RuntimeUtil.getLogger().info(String.format("edges loaded: %s%n", loadedEdges));
         assertEquals(6, loadedVertices);
@@ -156,8 +100,10 @@ public class TestDirectoryLoader {
     }
 
     @Test
-    public void testDirectoryLoaderDanglingEdgesGraph() throws IOException {
-        SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().drop().iterate();
+    public void testDirectoryLoaderDanglingEdgesGraph() throws Exception {
+        Graph shared = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT);
+        shared.traversal().V().drop().iterate();
+        shared.close();
         Path tempPath = IOUtil.createTempDir();
         assertTrue(tempPath.resolve(VERTICES).toFile().mkdir());
         assertTrue(tempPath.resolve(EDGES).toFile().mkdir());
@@ -188,7 +134,7 @@ public class TestDirectoryLoader {
                     put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, VERTICES);
                     put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, EDGES);
 
-                    put(TinkerPopGraphEncoder.Config.Keys.DROP_DANGLING_EDGES,true);
+                    put(TinkerPopGraphEncoder.Config.Keys.DROP_DANGLING_EDGES, true);
                     put(WORK_CHUNK_DRIVER_PHASE_ONE, RecursiveDirectoryTraversalDriver.class.getName());
                     put(WORK_CHUNK_DRIVER_PHASE_TWO, RecursiveDirectoryTraversalDriver.class.getName());
                     put(OUTPUT_ID_DRIVER, PassthroughOutputIdDriver.class.getName());
@@ -203,9 +149,10 @@ public class TestDirectoryLoader {
                 testConfig);
 
         iteratePhasesAndCloseRuntime(x, runtime);
-
-        long loadedVertices = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().count().next();
-        long loadedEdges = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().E().count().next();
+        shared = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT);
+        long loadedVertices = shared.traversal().V().count().next();
+        long loadedEdges = shared.traversal().E().count().next();
+        shared.close();
         RuntimeUtil.getLogger().info(String.format("vertices loaded: %s%n", loadedVertices));
         RuntimeUtil.getLogger().info(String.format("edges loaded: %s%n", loadedEdges));
         assertEquals(5, loadedVertices);
@@ -215,8 +162,10 @@ public class TestDirectoryLoader {
     }
 
     @Test
-    public void testDirectoryLoaderDanglingEdgesTraversal() throws IOException {
-        SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
+    public void testDirectoryLoaderDanglingEdgesTraversal() throws Exception {
+        Graph shared = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT);
+        shared.traversal().V().drop().iterate();
+        shared.close();
         Path tempPath = IOUtil.createTempDir();
         assertTrue(tempPath.resolve(VERTICES).toFile().mkdir());
         assertTrue(tempPath.resolve(EDGES).toFile().mkdir());
@@ -261,10 +210,10 @@ public class TestDirectoryLoader {
                 testConfig);
 
         iteratePhasesAndCloseRuntime(x, runtime);
-
-        runtime.close();
-        long loadedVertices = SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().count().next();
-        long loadedEdges = SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).E().count().next();
+        shared = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT);
+        long loadedVertices = shared.traversal().V().count().next();
+        long loadedEdges = shared.traversal().E().count().next();
+        shared.close();
         RuntimeUtil.getLogger().info(String.format("vertices loaded: %s%n", loadedVertices));
         RuntimeUtil.getLogger().info(String.format("edges loaded: %s%n", loadedEdges));
         assertEquals(5, loadedVertices);
@@ -273,69 +222,4 @@ public class TestDirectoryLoader {
         assertTrue(tempPath.resolve("vertices").toFile().isDirectory());
     }
 
-    @Test
-    @Ignore
-    public void testDirectoryLoaderExt() throws IOException {
-        final String host = "172.17.0.1";
-        final int port = 8182;
-        final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(
-                DriverRemoteConnection.using(host, port, "g"));
-        g.V().drop().iterate();
-        Path tempPath = Path.of("/data/files/all");
-//        assertTrue(tempPath.resolve(VERTICES).toFile().mkdir());
-//        assertTrue(tempPath.resolve(EDGES).toFile().mkdir());
-//        final String VERTEX_FILE = "classic_missing_peter.csv";
-//        final String EDGE_FILE = "classic_edges.csv";
-//        Files.move(
-//                IOUtil.copyFromResourcesIntoNewTempFile(
-//                        "missing_vertices/" + VERTEX_FILE,
-//                        VERTEX_FILE).toPath(),
-//                tempPath.resolve(VERTICES)
-//                        .resolve(VERTEX_FILE));
-//        Files.move(
-//                IOUtil.copyFromResourcesIntoNewTempFile(
-//                        "missing_vertices/" + EDGE_FILE,
-//                        EDGE_FILE).toPath(),
-//                tempPath.resolve(EDGES)
-//                        .resolve(EDGE_FILE));
-
-        final Configuration testConfig = new MapConfiguration(
-                new HashMap<>() {{
-                    put(LocalParallelStreamRuntime.Config.Keys.THREADS, RuntimeUtil.getAvailableProcessors());
-                    put(EMITTER, DirectoryEmitter.class.getName());
-                    put(DECODER, GraphCSVDecoder.class.getName());
-                    put(ENCODER, TinkerPopTraversalEncoder.class.getName());
-                    put(OUTPUT, TinkerPopTraversalOutput.class.getName());
-                    put(TinkerPopTraversalEncoder.Config.Keys.TRAVERSAL_PROVIDER, RemoteGraphTraversalProvider.class.getName());
-                    put(RemoteGraphTraversalProvider.Config.Keys.HOST, host);
-                    put(RemoteGraphTraversalProvider.Config.Keys.PORT, port);
-                    put(DirectoryEmitter.Config.Keys.BASE_PATH, tempPath.toAbsolutePath().toString());
-                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, VERTICES);
-                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, EDGES);
-                    put(WORK_CHUNK_DRIVER_PHASE_ONE, RecursiveDirectoryTraversalDriver.class.getName());
-                    put(WORK_CHUNK_DRIVER_PHASE_TWO, RecursiveDirectoryTraversalDriver.class.getName());
-                    put(TinkerPopTraversalEncoder.Config.Keys.DROP_DANGLING_EDGES, true);
-                    put(OUTPUT_ID_DRIVER, PassthroughOutputIdDriver.class.getName());
-                }});
-
-        RuntimeUtil.getLogger().info(ConfigUtil.configurationToPropertiesFormat(testConfig));
-
-        final Runtime runtime = LocalParallelStreamRuntime.open(testConfig);
-
-        final Iterator<RunningPhase> x = runtime.runPhases(
-                List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO),
-                testConfig);
-
-        iteratePhasesAndCloseRuntime(x, runtime);
-
-        runtime.close();
-        long loadedVertices = g.V().count().next();
-        long loadedEdges = g.E().count().next();
-        RuntimeUtil.getLogger().info(String.format("vertices loaded: %s%n", loadedVertices));
-        RuntimeUtil.getLogger().info(String.format("edges loaded: %s%n", loadedEdges));
-//        assertEquals(5, loadedVertices);
-//        assertEquals(5, loadedEdges);
-//        assertTrue(tempPath.resolve("edges").toFile().isDirectory());
-//        assertTrue(tempPath.resolve("vertices").toFile().isDirectory());
-    }
 }

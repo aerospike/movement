@@ -31,7 +31,6 @@ Pass through is more efficient (avoids double read), but some cases may require 
 public abstract class WorkChunkDriver extends Loadable implements PotentialSequence<WorkChunk> {
     private static final AtomicReference<WorkChunkDriver> INSTANCE = new AtomicReference<>();
     protected final Configuration config;
-    protected static Queue<UUID> outstanding = new ConcurrentLinkedQueue<>();
     private final AtomicLong chunksAcknowledged;
 
     protected final ErrorHandler errorHandler;
@@ -44,14 +43,6 @@ public abstract class WorkChunkDriver extends Loadable implements PotentialSeque
         this.errorHandler = RuntimeUtil.getErrorHandler(this, config);
     }
 
-    /*
-      note: acknowledging the WorkList has been consumed by the emitter is not the same as the output acknowledging it has processed them all
-    */
-    public void acknowledgeComplete(final UUID workChunkId) {
-//        if (!outstanding.remove(workChunkId))
-//            throw new RuntimeException(String.format("workChunkId %s is not in the outstanding queue", workChunkId));
-        chunksAcknowledged.addAndGet(1);
-    }
 
 
     protected abstract AtomicBoolean getInitialized();
@@ -68,24 +59,6 @@ public abstract class WorkChunkDriver extends Loadable implements PotentialSeque
         INSTANCE.set(null);
     }
 
-    private void waitOnOutstanding(final long maxWait) {
-        long waitTime = 0;
-        while (!outstanding.isEmpty() && waitTime < maxWait) {
-            try {
-                Thread.sleep(50);
-                waitTime += 50;
-            } catch (InterruptedException e) {
-                throw RuntimeUtil.getErrorHandler(this).handleError(new RuntimeException(e));
-            }
-        }
-        if (!outstanding.isEmpty()) {
-            throw RuntimeUtil.getErrorHandler(this)
-                    .handleError(new RuntimeException(String.format(
-                            "Timeout exceeded WorkChunkDriver has %d outstanding work chunks during phase %s",
-                            outstanding.size(),
-                            RuntimeUtil.getCurrentPhase(config))));
-        }
-    }
 
     public static WorkChunkDriver implicit(final Emitter emitter, final Configuration config) {
         if (!Emitter.SelfDriving.class.isAssignableFrom(emitter.getClass()))

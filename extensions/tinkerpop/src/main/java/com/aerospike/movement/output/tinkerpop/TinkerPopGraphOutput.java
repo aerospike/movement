@@ -107,6 +107,7 @@ public class TinkerPopGraphOutput extends Loadable implements Output, OutputWrit
     @Override
     public Map<String, Object> getMetrics() {
         return new HashMap<>() {{
+            put(RuntimeUtil.IO_OPS, vertexMetric.get() + edgeMetric.get());
             put("vertices", vertexMetric.get());
             put("edges", edgeMetric.get());
         }};

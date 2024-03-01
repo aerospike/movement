@@ -26,12 +26,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 public final class MockUtil {
-    private static final ConcurrentHashMap<Class, ConcurrentHashMap<String, AtomicLong>> methodCounters = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, AtomicLong> methodCounters = new ConcurrentHashMap<>();
 
     private static final ConcurrentHashMap<String, ConcurrentHashMap<String, AtomicLong>> metadataCounters = new ConcurrentHashMap<>();
 
     private static final Map<Class, Map<String, MockCallback>> callbacks = new HashMap<>();
-    public static final AtomicBoolean countHits = new AtomicBoolean(true);
 
 
     public static void clear() {
@@ -105,7 +104,7 @@ public final class MockUtil {
                     final EmitableGraphElement item;
                     try {
                         Object o = ((Optional<?>) args[1]).get();
-                        item = Optional.class.isAssignableFrom(o.getClass()) ? ((Optional<EmitableGraphElement>)o).get() : (EmitableGraphElement) o;
+                        item = Optional.class.isAssignableFrom(o.getClass()) ? ((Optional<EmitableGraphElement>) o).get() : (EmitableGraphElement) o;
                     } catch (Exception e) {
                         throw RuntimeUtil.getErrorHandler(MockUtil.class).handleError(new RuntimeException(e));
                     }
@@ -163,13 +162,11 @@ public final class MockUtil {
         callbacks.computeIfAbsent(clazz, k -> new HashMap<>()).put(method, callback);
     }
 
-    public static void incrementHitCounter(final Class<?> objectClass, final String getDriverForPhase) {
-        if (countHits.get())
-            methodCounters.computeIfAbsent(objectClass, (k) -> new ConcurrentHashMap<>()).computeIfAbsent(getDriverForPhase, (k) -> new AtomicLong(0)).incrementAndGet();
+    public static void incrementHitCounter(final Class<?> objectClass, final String name) {
+            methodCounters.computeIfAbsent(objectClass.getName() + ":" + name, (k) -> new AtomicLong(0)).incrementAndGet();
     }
 
     public static void incrementMetadataCounter(final String subtypeName, final String typeName) {
-        if (countHits.get())
             metadataCounters
                     .computeIfAbsent(typeName, (k) -> new ConcurrentHashMap<>())
                     .computeIfAbsent(subtypeName, (k) -> new AtomicLong(0))
@@ -177,7 +174,7 @@ public final class MockUtil {
     }
 
     public static long getHitCounter(final Class<?> clazz, final String method) {
-        return countHits.get() ? methodCounters.computeIfAbsent(clazz, aClass -> new ConcurrentHashMap<>()).computeIfAbsent(method, s -> new AtomicLong(0)).get() : 0L;
+        return methodCounters.computeIfAbsent(clazz.getName() + ":" + method, s -> new AtomicLong(0)).get();
     }
 
     public static long getMetadataHitCounter(final String typeName, final String subtypeName) {

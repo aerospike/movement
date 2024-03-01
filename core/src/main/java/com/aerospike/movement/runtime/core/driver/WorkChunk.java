@@ -24,8 +24,4 @@ public interface WorkChunk extends PotentialSequence<WorkItem> {
 
     UUID getId();
 
-    default void onComplete(final Configuration config) {
-        ((WorkChunkDriver) RuntimeUtil.lookupOrLoad(WorkChunkDriver.class, config)).acknowledgeComplete(this.getId());
-    }
-
 }

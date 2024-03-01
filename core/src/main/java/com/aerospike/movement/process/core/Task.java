@@ -158,25 +158,23 @@ public abstract class Task extends Loadable {
 
     public static class StatusMonitor {
         private final UUID taskId;
-        private final Iterator<Map<String, Object>> statusIterator;
         private final LocalParallelStreamRuntime runtime;
 
         public StatusMonitor(UUID taskId) {
             this.taskId = taskId;
-            this.statusIterator = RuntimeUtil.statusIteratorForTask(taskId);
             this.runtime = RuntimeUtil.runtimeForTask(taskId);
         }
 
 
         public static StatusMonitor from(UUID taskId) {
-            return new StatusMonitor(taskId);
+            return (StatusMonitor) LocalParallelStreamRuntime.runningTasks.get(taskId).get(LocalParallelStreamRuntime.STATUS_MONITOR_KEY);
         }
 
         public boolean isRunning() {
             return RuntimeUtil.statusIteratorForTask(taskId).hasNext();
         }
 
-        private long lastCheck = 0L;
+        private long lastCheck = System.nanoTime();
         private final long startTime = System.nanoTime();
         private Map<UUID, Long> oldIOCounters = new HashMap<>();
 

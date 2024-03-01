@@ -48,6 +48,8 @@ public class LocalParallelStreamRuntime implements Runtime {
     public final static AtomicReference<Optional<RunningPhase>> runningPhase = new AtomicReference<>();
     public final static Map<UUID, Map<String, Object>> runningTasks = new ConcurrentHashMap<>();
 
+    public final static Map<String, Runnable> cleanupCallbacks = new ConcurrentHashMap<>();
+
     public static void halt() {
         INSTANCE.customThreadPool.shutdown();
         INSTANCE.close();
@@ -84,13 +86,12 @@ public class LocalParallelStreamRuntime implements Runtime {
             put(Keys.THREADS, String.valueOf(RuntimeUtil.getAvailableProcessors()));
             put(Keys.DROP_OUTPUT, "false");
             put(Keys.DELAY_MS, "100");
-            put(Keys.BATCH_SIZE, "10");
+            put(Keys.BATCH_SIZE, "100");
         }};
     }
 
     public static Config CONFIG = new Config();
 
-    private static final String id = UUID.randomUUID().toString();
     public static LocalParallelStreamRuntime INSTANCE;
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ErrorHandler errorHandler;
@@ -137,8 +138,6 @@ public class LocalParallelStreamRuntime implements Runtime {
     }
 
     public RunningPhase runPhase(final PHASE phase, final List<Pipeline> pipelines, final Configuration config) {
-        // Id iterator drives the process, it may be bounded to a specific purpose, return unordered or sequential ids, or be unbounded
-        // If it is unbounded, it simply drives the stream and the emitter impl it is driving should end the process when finished.
         Optional<RunningPhase> x = Optional.of(executePhase(phase, customThreadPool, this, pipelines, setPhaseConfiguration(phase, config)));
         runningPhase.set(x);
         return x.get();
@@ -153,6 +152,7 @@ public class LocalParallelStreamRuntime implements Runtime {
     public static final String TASK_KEY = "task";
     public static final String FUTURE_KEY = "future";
     public static final String PHASE_REF_KEY = "phaseRef";
+    public static final String STATUS_MONITOR_KEY = "statusMonitor";
 
     @Override
     public Iterator<?> runTask(final Task task) {
@@ -187,6 +187,7 @@ public class LocalParallelStreamRuntime implements Runtime {
             put(FUTURE_KEY, fut);
             put(PHASE_REF_KEY, rpRef);
         }});
+        runningTasks.get(taskId).put(STATUS_MONITOR_KEY, new Task.StatusMonitor(taskId));
         return List.of(taskId).iterator();
     }
 
@@ -209,6 +210,7 @@ public class LocalParallelStreamRuntime implements Runtime {
         getAllLoaded().forEachRemaining(it -> {
             if (!it.isClosed()) RuntimeUtil.closeWrap(it);
         });
+        cleanupCallbacks.forEach((k, v) -> v.run());
         emitters.clear();
         outputs.clear();
         encoders.clear();

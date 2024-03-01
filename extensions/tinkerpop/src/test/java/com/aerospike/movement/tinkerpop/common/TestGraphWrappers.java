@@ -120,6 +120,7 @@ public class TestGraphWrappers {
             put(GraphProvider.Keys.CONTEXT,GraphProvider.GraphProviderContext.OUTPUT.toString());
             put(CachedGraph.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
         }})));
+
     }
 
     @Test

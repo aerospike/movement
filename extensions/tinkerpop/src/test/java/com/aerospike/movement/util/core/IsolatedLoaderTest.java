@@ -22,14 +22,8 @@ public class IsolatedLoaderTest {
     @Test
     public void testIsolatedClassLoading() throws ClassNotFoundException, MalformedURLException {
         URLClassLoader tinkerGraphJarLoader = new URLClassLoader(new URL[]{new File("src/test/resources/tinkergraph-gremlin-3.6.6.jar").toURL()}, Thread.currentThread().getContextClassLoader());
-
         Class<?> c1 = tinkerGraphJarLoader.loadClass(TinkerGraph.class.getName());
-
-
         Graph graph = (Graph) RuntimeUtil.openClass(c1, new MapConfiguration(Map.of()));
-
         RuntimeUtil.getLogger().info(graph.variables());
-
-
     }
 }
