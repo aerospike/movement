@@ -103,7 +103,7 @@ public class CallStepPlugin extends Plugin {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
 
     }
 }

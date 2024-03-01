@@ -90,7 +90,7 @@ public class GraphCSVEncoder extends CSVEncoder {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
 
     }
 

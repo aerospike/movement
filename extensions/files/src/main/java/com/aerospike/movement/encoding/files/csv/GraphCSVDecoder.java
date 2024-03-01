@@ -93,7 +93,7 @@ public class GraphCSVDecoder extends Loadable implements Decoder<String> {
 
 
     @Override
-    public void close() {
+    public void onClose() {
 
     }
 

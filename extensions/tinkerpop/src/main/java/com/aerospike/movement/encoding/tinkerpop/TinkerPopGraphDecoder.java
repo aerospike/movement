@@ -158,7 +158,7 @@ public class TinkerPopGraphDecoder extends Loadable implements Decoder<Element> 
     }
 
     @Override
-    public void close() {
+    public void onClose() {
 
     }
 

@@ -91,7 +91,7 @@ public class RangedOutputIdDriver extends OutputIdDriver {
 
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
         closeInstance();
     }
 

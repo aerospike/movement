@@ -91,7 +91,7 @@ public class MockTask extends Task {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose() {
 
     }
 }

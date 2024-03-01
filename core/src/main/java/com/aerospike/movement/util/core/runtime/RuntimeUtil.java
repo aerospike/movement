@@ -123,7 +123,6 @@ public class RuntimeUtil {
     }
 
 
-
     public static Optional<Function<Object, String>> getObjectPrinter() {
         return Optional.of(Object::toString);
     }
@@ -135,6 +134,7 @@ public class RuntimeUtil {
                         .get(LocalParallelStreamRuntime.PHASE_REF_KEY));
         return x.get().orElseThrow().processor.runtime;
     }
+
     public static Optional<RunningPhase> runningPhaseForTask(UUID taskId) {
         AtomicReference<Optional<RunningPhase>> x = ((AtomicReference<Optional<RunningPhase>>)
                 Optional.ofNullable(LocalParallelStreamRuntime.runningTasks.get(taskId))
@@ -431,6 +431,7 @@ public class RuntimeUtil {
 
     public static Optional<Throwable> closeWrap(final AutoCloseable closeable) {
         try {
+
             closeable.close();
         } catch (Exception e) {
             return Optional.of(e);
@@ -448,7 +449,13 @@ public class RuntimeUtil {
 
     public static void closeAllInstancesOfLoadable(final Class clazz) {
         System.out.printf("will close %d instances of %s\n", RuntimeUtil.lookup(clazz).size(), clazz.getSimpleName());
-        RuntimeUtil.lookup(clazz).iterator().forEachRemaining(it -> RuntimeUtil.closeWrap(((Loadable) it)));
+        RuntimeUtil.lookup(clazz).iterator().forEachRemaining(it -> {
+                    if (!((Loadable)it).isClosed())
+                        RuntimeUtil.closeWrap((Loadable) it);
+
+                }
+
+        );
     }
 
     public static void delay(final DelayType type, final Configuration config) {

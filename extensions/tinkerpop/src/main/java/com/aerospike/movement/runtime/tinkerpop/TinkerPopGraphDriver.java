@@ -94,7 +94,7 @@ public class TinkerPopGraphDriver extends WorkChunkDriver {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
         synchronized (TinkerPopGraphDriver.class) {
             if (initialized.compareAndSet(true, false)) {
                 iterator = null;

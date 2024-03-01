@@ -82,7 +82,7 @@ public class LocalParallelStreamRuntime implements Runtime {
             put(Keys.THREADS, String.valueOf(RuntimeUtil.getAvailableProcessors()));
             put(Keys.DROP_OUTPUT, "false");
             put(Keys.DELAY_MS, "100");
-            put(Keys.BATCH_SIZE, "1");
+            put(Keys.BATCH_SIZE, "10");
         }};
     }
 
@@ -204,7 +204,9 @@ public class LocalParallelStreamRuntime implements Runtime {
     }
 
     public static void closeStatic() {
-        getAllLoaded().forEachRemaining(RuntimeUtil::closeWrap);
+        getAllLoaded().forEachRemaining(it -> {
+            if (!it.isClosed()) RuntimeUtil.closeWrap(it);
+        });
         emitters.clear();
         outputs.clear();
         encoders.clear();

@@ -101,7 +101,7 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
         synchronized (RecursiveDirectoryTraversalDriver.class) {
             if (initialized.compareAndSet(true, false)) {
                 phaseSequences.remove(this.phase);

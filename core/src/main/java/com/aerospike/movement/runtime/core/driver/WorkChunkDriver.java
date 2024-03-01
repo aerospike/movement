@@ -61,7 +61,7 @@ public abstract class WorkChunkDriver extends Loadable implements PotentialSeque
         return value;
     }
 
-    public void close() throws Exception {
+    public void onClose()  {
         chunksAcknowledged.set(0);
         metric.set(0);
         getInitialized().set(false);

@@ -104,7 +104,7 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
         MockUtil.setDefaultMockCallbacks();
         RuntimeUtil.lookupOrLoad(MockTask.class, testConfig);
         RuntimeUtil.getTaskClassByAlias(MockTask.class.getSimpleName());
-        final Graph graph = SharedEmptyTinkerGraphGraphProvider.getGraphInstance();
+        final Graph graph = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.INPUT);
         final Plugin plugin = CallStepPlugin.open(testConfig);
 
         graph.traversal().V().drop().iterate();
@@ -142,7 +142,7 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
                     put(TinkerPopGraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
                 }});
 
-        final Graph graph = SharedEmptyTinkerGraphGraphProvider.getGraphInstance();
+        final Graph graph = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.INPUT);
         graph.traversal().V().drop().iterate();
 
         final Object plugin = RuntimeUtil.openClassRef(CallStepPlugin.class.getName(), new MapConfiguration(testConfig));
@@ -188,7 +188,7 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
                     put(LocalParallelStreamRuntime.Config.Keys.THREADS, String.valueOf(1)); //TinkerGraph is not thread safe
                 }});
 
-        final Graph graph = SharedEmptyTinkerGraphGraphProvider.getGraphInstance();
+        final Graph graph = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.INPUT);
         graph.traversal().V().drop().iterate();
         final Configuration config = new MapConfiguration(configMap);
         final Object plugin = RuntimeUtil.openClassRef(CallStepPlugin.class.getName(), config);
@@ -232,10 +232,10 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
 
         final Map<String, String> configMap =
                 Export.Config.INSTANCE.defaultConfigMap(new HashMap<>() {{
-                    put(LocalParallelStreamRuntime.Config.Keys.THREADS, String.valueOf(1));
+                    put(LocalParallelStreamRuntime.Config.Keys.THREADS, String.valueOf(8));
                 }});
 
-        final Graph graph = SharedEmptyTinkerGraphGraphProvider.getGraphInstance();
+        final Graph graph = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.INPUT);
         graph.traversal().V().drop().iterate();
         final Configuration config = new MapConfiguration(configMap);
         final Object plugin = RuntimeUtil.openClassRef(CallStepPlugin.class.getName(), config);

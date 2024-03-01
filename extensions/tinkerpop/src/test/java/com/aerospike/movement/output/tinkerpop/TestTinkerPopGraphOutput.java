@@ -16,6 +16,7 @@ import com.aerospike.movement.test.core.AbstractMovementTest;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphGraphProvider;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphTraversalProvider;
 import com.aerospike.movement.test.tinkerpop.SharedTinkerClassicGraphProvider;
+import com.aerospike.movement.tinkerpop.common.GraphProvider;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
@@ -57,28 +58,28 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
     public void setup() {
         setupCalls.incrementAndGet();
         super.setup();
-        SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().V().drop().iterate();
-        SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().drop().iterate();
+        SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().drop().iterate();
+        SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
     }
 
     @After
     public void cleanup() {
         cleanupCalls.incrementAndGet();
-        SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().V().drop().iterate();
-        SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().drop().iterate();
+        SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().drop().iterate();
+        SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
         super.cleanup();
     }
 
     @Test
     public void testWillTransferVerticesFromGraphAToGraphB() {
-        assertEquals((Long) 0L, (Long) SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().V().count().next());
+        assertEquals((Long) 0L, (Long) SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().count().next());
         final Configuration config = ConfigUtil.withOverrides(graphTransferConfig, new MapConfiguration(new HashMap<>() {{
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, TinkerPopGraphDriver.class.getName());
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, TinkerPopGraphDriver.class.getName());
 
         }}));
         registerCleanupCallback(() -> {
-            SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().V().drop().iterate();
+            SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().drop().iterate();
             LocalParallelStreamRuntime.getInstance(config).close();
         });
 
@@ -86,7 +87,7 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
         final Runtime runtime = LocalParallelStreamRuntime.getInstance(config);
 
         iteratePhasesTimed(runtime, List.of(Runtime.PHASE.ONE), config);
-        assertEquals(PHASE_ONE_TEST_SIZE, SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().V().count().next().longValue());
+        assertEquals(PHASE_ONE_TEST_SIZE, SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().count().next().longValue());
     }
 
     @Test
@@ -108,7 +109,7 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
         }}));
 
         registerCleanupCallback(() -> {
-            SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().V().drop().iterate();
+            SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().drop().iterate();
             LocalParallelStreamRuntime.getInstance(config).close();
         });
 
@@ -117,7 +118,7 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
 
         iteratePhasesTimed(runtime, List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO), config);
 
-        assertEquals(PHASE_TWO_TEST_SIZE, SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().E().count().next().longValue());
+        assertEquals(PHASE_TWO_TEST_SIZE, SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().E().count().next().longValue());
     }
     @Test
     public void loopEdgeTest() {

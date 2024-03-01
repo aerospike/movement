@@ -147,7 +147,7 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
     }
 
     @Override
-    public void close() {
+    public void onClose() {
 
     }
 

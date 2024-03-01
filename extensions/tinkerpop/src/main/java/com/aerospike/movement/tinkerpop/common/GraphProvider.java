@@ -13,7 +13,7 @@ import java.util.Optional;
 
 public interface GraphProvider extends Provider<Graph, GraphProvider.GraphProviderContext> {
 
-    final static Exception NO_CONTEXT = new RuntimeException("missing " + Keys.CONTEXT);
+    Exception NO_CONTEXT = new RuntimeException("missing " + Keys.CONTEXT);
 
     enum GraphProviderContext {
         INPUT, OUTPUT;

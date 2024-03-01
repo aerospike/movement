@@ -101,7 +101,7 @@ public class MockEncoder<T> extends Loadable implements Encoder<T> {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         MockUtil.onEvent(this.getClass(), Methods.CLOSE, this);
     }
 }

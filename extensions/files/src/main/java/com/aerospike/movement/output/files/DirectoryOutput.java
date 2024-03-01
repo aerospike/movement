@@ -158,15 +158,13 @@ public class DirectoryOutput extends Loadable implements Output {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         fileWriters.values().forEach(it -> {
             it.values().forEach(writer -> {
-                if (!((SplitFileLineOutput) writer).closed)
+                if (!writer.closed)
                     writer.close();
             });
         });
-//        encoder.close();
-        SplitFileLineOutput.fileIncr.set(0);
     }
 
     @Override

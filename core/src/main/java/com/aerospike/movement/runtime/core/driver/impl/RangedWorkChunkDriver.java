@@ -99,7 +99,7 @@ public class RangedWorkChunkDriver extends WorkChunkDriver {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
         closeInstance();
     }
 

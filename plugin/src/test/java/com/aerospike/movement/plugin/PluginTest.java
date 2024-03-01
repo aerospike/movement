@@ -38,7 +38,7 @@ public class PluginTest extends AbstractMovementTest {
         }
 
         @Override
-        public void close() throws Exception {
+        public void onClose()  {
 
         }
     }

@@ -57,7 +57,7 @@ public class TestLocalParallelStreamRuntime extends AbstractMovementTest {
         LocalParallelStreamRuntime.closeStatic();
         final Map<String, String> configMap = new HashMap<>() {{
             put(THREADS, String.valueOf(java.lang.Runtime.getRuntime().availableProcessors()));
-            put(BATCH_SIZE, String.valueOf(20_000));
+            put(BATCH_SIZE, String.valueOf(1000));
             put(WORK_CHUNK_DRIVER_PHASE_ONE, RangedWorkChunkDriver.class.getName());
             put(WORK_CHUNK_DRIVER_PHASE_TWO, RangedWorkChunkDriver.class.getName());
             put(RangedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, "0");
@@ -72,11 +72,10 @@ public class TestLocalParallelStreamRuntime extends AbstractMovementTest {
         MockUtil.setDefaultMockCallbacks();
         final long msTaken = iteratePhasesTimed(runtime, config);
 
-//        assert !workChunkDriver.hasNext();
         final double seconds = msTaken / 1000.0;
         final int NUMBER_OF_PHASES = 2;
         System.out.printf("Moved %,d elements in %f seconds at approximately %,d elements per second: \n", TEST_SIZE, seconds, (int) (TEST_SIZE / seconds));
-//        runtime.close();
+        runtime.close();
         final int threadCount = Integer.parseInt(LocalParallelStreamRuntime.CONFIG.getOrDefault(THREADS, config));
 //        assertEquals(TEST_SIZE * NUMBER_OF_PHASES, getHitCounter(MockEncoder.class, MockEncoder.Methods.ENCODE));
 //        assertEquals(TEST_SIZE * NUMBER_OF_PHASES, getHitCounter(MockOutput.class, MockOutput.Methods.WRITE_TO_OUTPUT));
@@ -132,8 +131,8 @@ public class TestLocalParallelStreamRuntime extends AbstractMovementTest {
         final Integer TEST_SIZE = TEN_MILLION;
 
         final Configuration config = getMockConfiguration(new HashMap<>() {{
-            put(THREADS, "4");
-            put(BATCH_SIZE, String.valueOf(1));
+            put(THREADS, "16");
+            put(BATCH_SIZE, String.valueOf(10));
             put(WORK_CHUNK_DRIVER_PHASE_ONE, RangedWorkChunkDriver.class.getName());
             put(WORK_CHUNK_DRIVER_PHASE_TWO, RangedWorkChunkDriver.class.getName());
 

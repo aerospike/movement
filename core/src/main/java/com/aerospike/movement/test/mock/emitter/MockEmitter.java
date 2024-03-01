@@ -93,7 +93,7 @@ public class MockEmitter extends Loadable implements Emitter {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         MockUtil.onEvent(this.getClass(), Methods.CLOSE, this);
     }
 }

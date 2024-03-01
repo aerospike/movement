@@ -143,9 +143,9 @@ public class TinkerPopGraphOutput extends Loadable implements Output, OutputWrit
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         try {
-            encoder.close();
+//            encoder.close();
         } catch (Exception e) {
             throw errorHandler.handleError(e);
         }

@@ -39,13 +39,13 @@ public class TestParameterized {
         final List<Integer[]> testParams = new ArrayList<>();
         IntStream.range(0, testLoops).forEach(loop -> {
             testParams.add(new Integer[]{
-                    (1)//+ new Random().nextInt(RuntimeUtil.getAvailableProcessors() * 2))
+                    (1 + new Random().nextInt(RuntimeUtil.getAvailableProcessors() * 2))
             });
         });
         return testParams;
     }
 
-    public TestParameterized( final Integer threadCount) {
+    public TestParameterized(final Integer threadCount) {
 
         this.threadCount = threadCount;
     }
@@ -58,7 +58,7 @@ public class TestParameterized {
                     put(LocalParallelStreamRuntime.Config.Keys.THREADS, String.valueOf(threadCount));
                 }});
 
-        final Graph graph = SharedEmptyTinkerGraphGraphProvider.getGraphInstance();
+        final Graph graph = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT);
         graph.traversal().V().drop().iterate();
         final Configuration config = new MapConfiguration(configMap);
         final Object plugin = RuntimeUtil.openClassRef(CallStepPlugin.class.getName(), config);
@@ -67,14 +67,13 @@ public class TestParameterized {
         System.out.println(graph.traversal().call("--list").toList());
 
         MockUtil.setDefaultMockCallbacks();
-        final GraphProvider inputGraphProvider = SharedTinkerClassicGraphProvider.open(config);
         final Path exportDir = Files.createTempDirectory("export");
         long start = System.nanoTime();
         Iterator<?> task = graph.traversal()
                 .call(Export.class.getSimpleName())
                 .with("output.directory", exportDir.toAbsolutePath().toString())
-                .with("emitter.tinkerpop.graph.provider", inputGraphProvider.getClass().getName());
-        Map<String,Object> map = (Map<String, Object>) task.next();
+                .with("emitter.tinkerpop.graph.provider", SharedTinkerClassicGraphProvider.class.getName());
+        Map<String, Object> map = (Map<String, Object>) task.next();
         UUID id = (UUID) map.get("id");
         System.out.println(task.next());
 
@@ -84,10 +83,11 @@ public class TestParameterized {
 
         if (status.hasNext()) System.out.println(status.next());
         RuntimeUtil.waitTask(id);
-        graph.close();
-        SharedEmptyTinkerGraphGraphProvider.getGraphInstance().close();
+//        graph.close();
+        SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).close();
         LocalParallelStreamRuntime.closeStatic();
         long elapsed = System.nanoTime() - start;
+        GraphProvider inputGraphProvider = SharedTinkerClassicGraphProvider.open();
         System.out.printf("elapsed time: %d ms\n", TimeUnit.NANOSECONDS.toMillis(elapsed));
         final long classicVertexCount = inputGraphProvider.getProvided(GraphProvider.GraphProviderContext.INPUT).traversal().V().count().next();
         final long classicEdgeCount = inputGraphProvider.getProvided(GraphProvider.GraphProviderContext.INPUT).traversal().E().count().next();
@@ -101,6 +101,7 @@ public class TestParameterized {
                 throw new RuntimeException(e);
             }
         }).count();
+
         assertEquals(classicEdgeCount + classicVertexCount, linesWritten - filesWritten);
     }
 }

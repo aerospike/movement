@@ -20,6 +20,7 @@ import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.runtime.core.local.RunningPhase;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphGraphProvider;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphTraversalProvider;
+import com.aerospike.movement.tinkerpop.common.GraphProvider;
 import com.aerospike.movement.tinkerpop.common.RemoteGraphTraversalProvider;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.IOUtil;
@@ -144,8 +145,8 @@ public class TestDirectoryLoader {
 
         iteratePhasesAndCloseRuntime(x, runtime);
 
-        long loadedVertices = SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().V().count().next();
-        long loadedEdges = SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().E().count().next();
+        long loadedVertices = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().count().next();
+        long loadedEdges = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().E().count().next();
         System.out.printf("vertices loaded: %s%n", loadedVertices);
         System.out.printf("edges loaded: %s%n", loadedEdges);
         assertEquals(6, loadedVertices);
@@ -156,7 +157,7 @@ public class TestDirectoryLoader {
 
     @Test
     public void testDirectoryLoaderDanglingEdgesGraph() throws IOException {
-        SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().V().drop().iterate();
+        SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().drop().iterate();
         Path tempPath = IOUtil.createTempDir();
         assertTrue(tempPath.resolve(VERTICES).toFile().mkdir());
         assertTrue(tempPath.resolve(EDGES).toFile().mkdir());
@@ -203,8 +204,8 @@ public class TestDirectoryLoader {
 
         iteratePhasesAndCloseRuntime(x, runtime);
 
-        long loadedVertices = SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().V().count().next();
-        long loadedEdges = SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().E().count().next();
+        long loadedVertices = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().count().next();
+        long loadedEdges = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().E().count().next();
         System.out.printf("vertices loaded: %s%n", loadedVertices);
         System.out.printf("edges loaded: %s%n", loadedEdges);
         assertEquals(5, loadedVertices);
@@ -215,7 +216,7 @@ public class TestDirectoryLoader {
 
     @Test
     public void testDirectoryLoaderDanglingEdgesTraversal() throws IOException {
-        SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().drop().iterate();
+        SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
         Path tempPath = IOUtil.createTempDir();
         assertTrue(tempPath.resolve(VERTICES).toFile().mkdir());
         assertTrue(tempPath.resolve(EDGES).toFile().mkdir());
@@ -262,8 +263,8 @@ public class TestDirectoryLoader {
         iteratePhasesAndCloseRuntime(x, runtime);
 
         runtime.close();
-        long loadedVertices = SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().count().next();
-        long loadedEdges = SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().E().count().next();
+        long loadedVertices = SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().count().next();
+        long loadedEdges = SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).E().count().next();
         System.out.printf("vertices loaded: %s%n", loadedVertices);
         System.out.printf("edges loaded: %s%n", loadedEdges);
         assertEquals(5, loadedVertices);

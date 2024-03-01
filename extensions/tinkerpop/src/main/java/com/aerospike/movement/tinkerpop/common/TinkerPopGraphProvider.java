@@ -30,8 +30,6 @@ public class TinkerPopGraphProvider implements GraphProvider {
     public static final Config CONFIG = new Config();
     private final Graph graph;
     private final Configuration config;
-    private Map<String, List<String>> vertexLabelCache = new ConcurrentHashMap<>();
-    private Map<String, List<String>> edgeLabelCache = new ConcurrentHashMap<>();
     private final GraphProviderContext ctx;
 
 
@@ -83,7 +81,7 @@ public class TinkerPopGraphProvider implements GraphProvider {
                 .fromString(Optional.ofNullable(config.getString(Keys.CONTEXT))
                         .orElseThrow(() -> new RuntimeException("no context set for graph provider")));
 
-        List<String> jarConfigs = ConfigUtil.filterBySubkeyMatchPrefixes(config, _JAR_FILE, INPUT.toString(), OUTPUT.toString());
+        List<String> jarConfigs = ConfigUtil.filterBySubkeyMatchPrefixes(config, _JAR_FILE, INPUT, OUTPUT);
         if (!jarConfigs.isEmpty()) {
             final String className = namespacedKey(CONFIG.getOrDefault(Config.Keys._GRAPH_IMPL, config), ctx);
             final Path jarLocation = Path.of(namespacedKey(CONFIG.getOrDefault(Config.Keys._JAR_FILE, config), ctx));

@@ -169,11 +169,11 @@ public class TinkerPopGraphEncoder extends Loadable implements Encoder<Element> 
 
 
     @Override
-    public void close() {
+    public void onClose() {
         try {
             graph.close();
         } catch (Exception e) {
-            throw errorHandler.handleError(e);
+            throw errorHandler.handleFatalError(e);
         }
     }
 

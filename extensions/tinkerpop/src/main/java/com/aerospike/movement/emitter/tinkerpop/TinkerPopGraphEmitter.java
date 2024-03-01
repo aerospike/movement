@@ -160,7 +160,7 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         try {
             vertexPropertyKeyCache.clear();
             edgePropertyKeyCache.clear();

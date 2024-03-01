@@ -13,6 +13,8 @@ import com.aerospike.movement.structure.core.graph.EmittedEdge;
 import com.aerospike.movement.structure.core.graph.EmittedVertex;
 import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.runtime.core.local.Loadable;
+import com.aerospike.movement.tinkerpop.common.GraphProvider;
+import com.aerospike.movement.tinkerpop.common.TraversalProvider;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -86,7 +88,7 @@ public class TinkerPopTraversalEncoder extends Loadable implements Encoder<Eleme
     }
 
     public static TinkerPopTraversalEncoder open(final Configuration config) {
-        final GraphTraversalSource g = (GraphTraversalSource) RuntimeUtil.openClassRef(CONFIG.getOrDefault(Config.Keys.TRAVERSAL_PROVIDER, config), config);
+        final GraphTraversalSource g = ((TraversalProvider) RuntimeUtil.openClassRef(CONFIG.getOrDefault(Config.Keys.TRAVERSAL_PROVIDER, config), config)).getProvided(GraphProvider.GraphProviderContext.OUTPUT);
         TinkerPopTraversalEncoder encoder = new TinkerPopTraversalEncoder(g, config);
         RuntimeUtil.getLogger(encoder).debug("using config:" + config);
         RuntimeUtil.getLogger(encoder).debug("using graph traversal source g:" + g);
@@ -196,7 +198,7 @@ public class TinkerPopTraversalEncoder extends Loadable implements Encoder<Eleme
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         try {
             g.close();
         } catch (Exception e) {

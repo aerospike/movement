@@ -115,7 +115,7 @@ public class CLIPlugin extends Plugin {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
 
     }
 }

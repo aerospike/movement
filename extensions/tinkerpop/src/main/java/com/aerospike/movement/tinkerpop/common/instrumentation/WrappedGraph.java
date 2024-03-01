@@ -64,8 +64,12 @@ public abstract class WrappedGraph extends Loadable implements Graph {
     }
 
     @Override
-    public void close() throws Exception {
-        wrappedGraph.close();
+    public void onClose()  {
+        try {
+            wrappedGraph.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

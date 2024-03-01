@@ -82,7 +82,7 @@ public class MockOutputIdDriver extends OutputIdDriver {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
         MockUtil.onEvent(this.getClass(), Methods.CLOSE, this);
     }
 }

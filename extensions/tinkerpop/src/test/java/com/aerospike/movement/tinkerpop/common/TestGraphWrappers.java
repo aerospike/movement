@@ -112,7 +112,7 @@ public class TestGraphWrappers {
 
     @Before
     public void clearTestGraph(){
-        SharedEmptyTinkerGraphGraphProvider.getGraphInstance().traversal().V().drop().iterate();
+        SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().drop().iterate();
     }
     @Test
     public void testCachedGraph() {

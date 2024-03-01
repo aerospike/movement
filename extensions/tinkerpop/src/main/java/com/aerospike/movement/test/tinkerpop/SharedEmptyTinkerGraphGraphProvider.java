@@ -7,22 +7,24 @@
 package com.aerospike.movement.test.tinkerpop;
 
 import com.aerospike.movement.tinkerpop.common.GraphProvider;
+import com.aerospike.movement.tinkerpop.common.RefrenceCountedSharedGraph;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 public class SharedEmptyTinkerGraphGraphProvider implements GraphProvider {
-    private static final Graph tinkerGraph = TinkerGraph.open();
-    private final Configuration config;
 
-    public static Graph getGraphInstance() {
-        return tinkerGraph;
-    }
+    private final Configuration config;
 
     public SharedEmptyTinkerGraphGraphProvider(final Configuration config) {
         this.config = config;
     }
 
+
+    public static SharedEmptyTinkerGraphGraphProvider open() {
+        return new SharedEmptyTinkerGraphGraphProvider(ConfigUtil.empty());
+    }
 
     public static SharedEmptyTinkerGraphGraphProvider open(final Configuration config) {
         return new SharedEmptyTinkerGraphGraphProvider(config);
@@ -30,6 +32,6 @@ public class SharedEmptyTinkerGraphGraphProvider implements GraphProvider {
 
     @Override
     public Graph getProvided(GraphProviderContext ctx) {
-        return tinkerGraph;
+        return RefrenceCountedSharedGraph.from((config) -> TinkerGraph.open(),TinkerGraph.class.getName(), config);
     }
 }

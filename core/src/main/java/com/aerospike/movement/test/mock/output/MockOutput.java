@@ -126,7 +126,7 @@ public class MockOutput extends Loadable implements Output, OutputWriter {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         MockUtil.onEvent(this.getClass(), Methods.CLOSE, this);
     }
 

@@ -16,8 +16,10 @@ import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
 import com.aerospike.movement.test.core.AbstractMovementTest;
 import com.aerospike.movement.test.tinkerpop.SharedTinkerClassicGraphProvider;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphTraversalProvider;
+import com.aerospike.movement.tinkerpop.common.GraphProvider;
 import com.aerospike.movement.tinkerpop.common.RemoteGraphTraversalProvider;
 import com.aerospike.movement.tinkerpop.common.TinkerPopGraphProvider;
+import com.aerospike.movement.tinkerpop.common.TraversalProvider;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
@@ -51,7 +53,7 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
     @Before
     @After
     public void cleanGraph() {
-        SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().drop().iterate();
+        SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
     }
 
 
@@ -75,7 +77,7 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
         put(ConfigurationBase.Keys.ENCODER, TinkerPopTraversalEncoder.class.getName());
         put(TinkerPopTraversalEncoder.Config.Keys.TRAVERSAL_PROVIDER, SharedEmptyTinkerGraphTraversalProvider.class.getName());
 
-        
+
         put(ConfigurationBase.Keys.OUTPUT, TinkerPopTraversalOutput.class.getName());
     }});
 
@@ -83,8 +85,9 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
     @Test
     public void testWillTransferVerticesFromGraphAToGraphBbyTraversal() {
 
-        assertEquals(0L, SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().E().count().next().longValue());
-        assertEquals(0L, SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().count().next().longValue());
+
+        assertEquals(0L, SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).E().count().next().longValue());
+        assertEquals(0L, SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().count().next().longValue());
 
         final Configuration config = ConfigUtil.withOverrides(graphTransferConfig, new MapConfiguration(new HashMap<>() {{
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, TinkerPopGraphDriver.class.getName());
@@ -95,7 +98,7 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
 
 
         registerCleanupCallback(() -> {
-            SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().drop().iterate();
+            SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
             LocalParallelStreamRuntime.getInstance(config).close();
         });
 
@@ -104,7 +107,7 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
 
         iteratePhasesTimed(runtime, List.of(Runtime.PHASE.ONE), config);
 
-        assertEquals(PHASE_ONE_TEST_SIZE, SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().count().next().longValue());
+        assertEquals(PHASE_ONE_TEST_SIZE, SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().count().next().longValue());
     }
 
 
@@ -113,36 +116,48 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
         IntStream.range(0, 1000).forEach(i -> {
             testWillTransferVerticesFromGraphAToGraphBbyTraversal();
             cleanup();
+            cleanGraph();
             setup();
         });
     }
 
     @Test
     public void testWillTransferEdgesFromGraphAToGraphBByTraversal() {
-        assertEquals(0L, SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().E().count().next().longValue());
-        assertEquals(0L, SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().count().next().longValue());
+        TraversalProvider provider = SharedEmptyTinkerGraphTraversalProvider.open();
+        GraphTraversalSource outputSink = provider.getProvided(GraphProvider.GraphProviderContext.OUTPUT);
+        assertEquals(0L, outputSink.E().count().next().longValue());
+        assertEquals(0L, outputSink.V().count().next().longValue());
         final Configuration config = ConfigUtil.withOverrides(graphTransferConfig, new MapConfiguration(new HashMap<>() {{
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, TinkerPopGraphDriver.class.getName());
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, TinkerPopGraphDriver.class.getName());
         }}));
         registerCleanupCallback(() -> {
-            SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().V().drop().iterate();
+//            SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
             LocalParallelStreamRuntime.getInstance(config).close();
         });
 
 
         final Runtime runtime = LocalParallelStreamRuntime.getInstance(config);
+        final Iterator<RunningPhase> x = runtime.runPhases(
+                List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO),
+                config);
+        iteratePhasesAndCloseRuntime(x,runtime);
 
-        iteratePhasesTimed(runtime, List.of(Runtime.PHASE.ONE, Runtime.PHASE.TWO), config);
-
-        assertEquals(PHASE_TWO_TEST_SIZE, SharedEmptyTinkerGraphTraversalProvider.getGraphInstance().traversal().E().count().next().longValue());
+        assertEquals(PHASE_TWO_TEST_SIZE, outputSink.E().count().next().longValue());
+        try {
+            outputSink.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
     public void loopEdgeTest() {
+        SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
         IntStream.range(0, 1000).forEach(i -> {
             testWillTransferEdgesFromGraphAToGraphBByTraversal();
             cleanup();
+            cleanGraph();
             setup();
         });
     }

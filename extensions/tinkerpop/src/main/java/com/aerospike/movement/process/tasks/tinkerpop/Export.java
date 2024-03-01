@@ -37,7 +37,7 @@ public class Export extends Task {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
 
     }
 
