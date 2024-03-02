@@ -46,6 +46,15 @@ import static org.reflections.scanners.Scanners.SubTypes;
 
 public class RuntimeUtil {
     public static final String IO_OPS = "io_ops";
+    public static Optional<String> envOrProperty(final String key) {
+        Optional<String> envVal = Optional.ofNullable(System.getenv(key));
+        Optional<String> propVal = Optional.ofNullable(System.getProperty(key));
+        if (envVal.isPresent())
+            return envVal;
+        if (propVal.isPresent())
+            return propVal;
+        return Optional.empty();
+    }
 
     public static ErrorHandler getErrorHandler(final Object loggedObject) {
         return getErrorHandler(loggedObject, ConfigUtil.empty());

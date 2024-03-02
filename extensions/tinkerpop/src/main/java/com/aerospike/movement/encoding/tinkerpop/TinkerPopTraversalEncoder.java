@@ -66,7 +66,7 @@ public class TinkerPopTraversalEncoder extends Loadable implements Encoder<Eleme
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
-            put(Keys.CLEAR, "true");
+            put(Keys.CLEAR, "false");
             put(Keys.DROP_DANGLING_EDGES, String.valueOf(false));
         }};
     }
