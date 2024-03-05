@@ -73,15 +73,6 @@ public class EmittableWorkChunkFile implements WorkChunk, Emitable {
         return new EmittableWorkChunkFile(filePath, header, pse, phase, decoder, config);
     }
 
-//    @Override
-//    public WorkItem next() {
-//        throw new IllegalStateException(EmittableWorkChunkFile.class + " is passthrough");
-//    }
-//
-//    @Override
-//    public boolean hasNext() {
-//        return iterator.hasNext();
-//    }
 
     @Override
     public UUID getId() {
@@ -102,10 +93,6 @@ public class EmittableWorkChunkFile implements WorkChunk, Emitable {
         throw new IllegalStateException(EmittableWorkChunkFile.class + " is passthrough");
     }
 
-//    public Stream<Optional<Emitable>> stream() {
-//        return IteratorUtils.stream(iterator)
-//                .map(it -> decoder.decodeElement(it, header, phase));
-//    }
 
     @Override
     public String type() {
@@ -113,19 +100,4 @@ public class EmittableWorkChunkFile implements WorkChunk, Emitable {
     }
 
 
-    public static class WorkFileEntryId extends WorkItem {
-        public final Path filePath;
-        public final String fileLine;
-
-        public WorkFileEntryId(final Long id, final Path filePath, final String line) {
-            super(new AbstractMap.SimpleEntry<>(filePath, id));
-            this.filePath = filePath;
-            this.fileLine = line;
-        }
-
-        @Override
-        public Map.Entry<Path, Long> unwrap() {
-            return (Map.Entry<Path, Long>) id;
-        }
-    }
 }

@@ -136,8 +136,6 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
                 .map(it -> {
                     return (EmittableWorkChunkFile) it.get();
                 });
-//                .flatMap(chunk -> (Stream<? extends Emitable>) chunk.stream().filter(Optional::isPresent)
-//                        .map(Optional::get).map(it -> (EmittableWorkChunkFile) it.getId()));
     }
 
 
