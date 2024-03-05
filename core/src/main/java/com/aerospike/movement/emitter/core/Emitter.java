@@ -30,7 +30,7 @@ public interface Emitter {
     static void encodeToOutput(Optional<Emitable> emitable, Output output) {
         if(emitable.isEmpty())
             return;
-        output.writer(emitable.get().getClass(), emitable.get().getClass().getSimpleName()).writeToOutput(emitable);
+        output.writer(emitable.get().getClass(), emitable.get().type()).writeToOutput(emitable);
     }
 
     static void init(Runtime.PHASE phase, Configuration config) {
