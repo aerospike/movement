@@ -13,7 +13,6 @@ import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.emitter.core.Emitter;
 import com.aerospike.movement.logging.core.Logger;
 import com.aerospike.movement.logging.core.impl.SystemLogger;
-import com.aerospike.movement.output.Metered;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.process.core.Task;
 import com.aerospike.movement.runtime.core.Runtime;
@@ -21,7 +20,8 @@ import com.aerospike.movement.runtime.core.driver.OutputIdDriver;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.runtime.core.local.RunningPhase;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorHandler;
 import com.aerospike.movement.util.core.error.LoggingErrorHandler;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
@@ -35,15 +35,29 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.aerospike.movement.config.core.ConfigurationBase.Keys.*;
 import static org.reflections.scanners.Scanners.SubTypes;
 
 public class RuntimeUtil {
+    public static final String IO_OPS = "io_ops";
+    public static Optional<String> envOrProperty(final String key) {
+        Optional<String> envVal = Optional.ofNullable(System.getenv(key));
+        Optional<String> propVal = Optional.ofNullable(System.getProperty(key));
+        if (envVal.isPresent())
+            return envVal;
+        if (propVal.isPresent())
+            return propVal;
+        return Optional.empty();
+    }
+
     public static ErrorHandler getErrorHandler(final Object loggedObject) {
-        return getErrorHandler(loggedObject, ConfigurationUtil.empty());
+        return getErrorHandler(loggedObject, ConfigUtil.empty());
     }
 
     public static ErrorHandler getErrorHandler(final Object loggedObject, final Configuration config) {
@@ -52,6 +66,9 @@ public class RuntimeUtil {
 
     public static Logger getLogger(final Object context) {
         return new SystemLogger(context);
+    }
+    public static Logger getLogger() {
+        return new SystemLogger(null);
     }
 
     public static void halt() {
@@ -81,6 +98,61 @@ public class RuntimeUtil {
         return Integer.parseInt(LocalParallelStreamRuntime.CONFIG.getOrDefault(LocalParallelStreamRuntime.Config.Keys.BATCH_SIZE, config));
     }
 
+    public static void waitTask(String x) {
+        waitTask(UUID.fromString(x));
+    }
+
+    public static void waitTask(UUID x) {
+        Future<Map<String, Object>> z = (Future<Map<String, Object>>) LocalParallelStreamRuntime.runningTasks.get(x).get(LocalParallelStreamRuntime.FUTURE_KEY);
+        try {
+            z.get();
+        } catch (Exception e) {
+            throw getErrorHandler(z).handleFatalError(e);
+        }
+    }
+
+
+    public static Iterator<Map<String, Object>> statusIteratorForTask(final UUID taskId) {
+        return new Iterator<Map<String, Object>>() {
+            @Override
+            public boolean hasNext() {
+                AtomicReference<Optional<RunningPhase>> x = ((AtomicReference<Optional<RunningPhase>>)
+                        Optional.ofNullable(LocalParallelStreamRuntime.runningTasks.get(taskId))
+                                .orElseThrow(() -> new RuntimeException("cannot find taskId " + taskId))
+                                .get(LocalParallelStreamRuntime.PHASE_REF_KEY));
+                return x.get().isPresent() && !x.get().get().isDone();
+            }
+
+            @Override
+            public Map<String, Object> next() {
+                return ((AtomicReference<Optional<RunningPhase>>)
+                        Optional.ofNullable(LocalParallelStreamRuntime.runningTasks.get(taskId))
+                                .orElseThrow(() -> new RuntimeException("cannot find taskId " + taskId))
+                                .get(LocalParallelStreamRuntime.PHASE_REF_KEY)).get().map(phase -> phase.status().next()).orElse(Map.of());
+            }
+        };
+    }
+
+
+    public static Optional<Function<Object, String>> getObjectPrinter() {
+        return Optional.of(Object::toString);
+    }
+
+    public static LocalParallelStreamRuntime runtimeForTask(UUID taskId) {
+        AtomicReference<Optional<RunningPhase>> x = ((AtomicReference<Optional<RunningPhase>>)
+                Optional.ofNullable(LocalParallelStreamRuntime.runningTasks.get(taskId))
+                        .orElseThrow(() -> new RuntimeException("cannot find taskId " + taskId))
+                        .get(LocalParallelStreamRuntime.PHASE_REF_KEY));
+        return x.get().orElseThrow().processor.runtime;
+    }
+
+    public static Optional<RunningPhase> runningPhaseForTask(UUID taskId) {
+        AtomicReference<Optional<RunningPhase>> x = ((AtomicReference<Optional<RunningPhase>>)
+                Optional.ofNullable(LocalParallelStreamRuntime.runningTasks.get(taskId))
+                        .orElseThrow(() -> new RuntimeException("cannot find taskId " + taskId))
+                        .get(LocalParallelStreamRuntime.PHASE_REF_KEY));
+        return x.get();
+    }
 
     public enum DelayType {
         IO_THREAD_INIT
@@ -101,6 +173,7 @@ public class RuntimeUtil {
             final Class<?> x = maybeLoad.get();
             return openClass(maybeLoad.get(), config);
         } catch (Exception e) {
+            e.printStackTrace();
             throw RuntimeUtil.getErrorHandler(RuntimeUtil.class, config).handleFatalError(e);
         }
     }
@@ -129,22 +202,25 @@ public class RuntimeUtil {
         invokeMethod(className, "main", null, args);
     }
 
-    public static boolean blockOnBackpressure() {
-        final Iterator<Object> meteredOutputs = RuntimeUtil.match(Output.class, Metered.class);
-        if (meteredOutputs.hasNext()) {
-            Metered x = (Metered) meteredOutputs.next();
-            x.barrier();
-            return true;
+
+    public static Class loadClassWithClassLoader(final String className, final ClassLoader classLoader) {
+        try {
+            return classLoader.loadClass(className);
+        } catch (ClassNotFoundException e) {
+            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class).handleFatalError(new RuntimeException("Error loading class: " + className, e));
         }
-        return false;
     }
 
-    public static Class loadClass(final String className) {
+    public static Class loadClass(final String className, final ClassLoader classLoader) {
         try {
             return Class.forName(className);
         } catch (ClassNotFoundException e) {
             throw RuntimeUtil.getErrorHandler(RuntimeUtil.class).handleFatalError(new RuntimeException("Error loading class: " + className, e));
         }
+    }
+
+    public static Class loadClass(final String className) {
+        return loadClass(className, Thread.currentThread().getContextClassLoader());
     }
 
     public static Optional<Object> invokeMethod(final String className, final String methodName, final Object object, final Object[] args) {
@@ -191,7 +267,7 @@ public class RuntimeUtil {
 
     public static Emitter loadEmitter(final Configuration config) {
         final Runtime.PHASE phase = getCurrentPhase(config);
-        final List<String> emitterPhaseConfigs = ConfigurationUtil.getSubKeys(config, EMITTER, PHASE);
+        final List<String> emitterPhaseConfigs = ConfigUtil.getSubKeys(config, EMITTER, PHASE);
         final Emitter emitterToUse;
         if (phase.equals(Runtime.PHASE.ONE) && emitterPhaseConfigs.contains(EMITTER_PHASE_ONE))
             emitterToUse = (Emitter) openClassRef(config.getString(EMITTER_PHASE_ONE), config);
@@ -227,12 +303,12 @@ public class RuntimeUtil {
     }
 
     public static Object load(final String configKeyOfClassName, final Configuration config) {
-        final Optional<String> driverIfPresent = Optional.ofNullable(config.getString(configKeyOfClassName));
-        if (driverIfPresent.isEmpty()) {
+        final Optional<String> className = Optional.ofNullable(config.getString(configKeyOfClassName));
+        if (className.isEmpty()) {
             throw getErrorHandler(RuntimeUtil.class)
                     .handleFatalError(new RuntimeException("Config key not set: " + configKeyOfClassName), configKeyOfClassName, config);
         }
-        return openClassRef(driverIfPresent.get(), config);
+        return openClassRef(className.get(), config);
     }
 
     public static <K, V> Map<K, V> mapReducer(Map<K, V> a, Map<K, V> b) {
@@ -246,18 +322,13 @@ public class RuntimeUtil {
         return x;
     }
 
-    private static Object nextOrLoad(final Iterator<Object> existing, Callable<Object> loader, Optional<UUID> optionalId) {
-        final Iterator<Object> iterator = optionalId
-                .map(uuid -> IteratorUtils.filter(existing, lodable -> ((Loadable) lodable).getId().equals(uuid)))
-                .orElse(existing);
-        if (iterator.hasNext()) {
-            return iterator.next();
-        }
+    private static Object nextOrLoad(final List<Loadable> existing, Callable<Object> loader, Optional<UUID> optionalId) {
         try {
-            return loader.call();
+            return optionalId.map(id -> existing.stream().filter(it -> (it).getId().equals(id))).orElse(Stream.empty()).findAny().orElse((Loadable) loader.call());
         } catch (Exception e) {
-            throw getErrorHandler(RuntimeUtil.class, ConfigurationUtil.empty()).handleFatalError(e);
+            throw getErrorHandler(RuntimeUtil.class, ConfigUtil.empty()).handleFatalError(e);
         }
+
     }
 
     public static Object lookupOrLoad(final Class targetClass, final Configuration config) {
@@ -265,24 +336,26 @@ public class RuntimeUtil {
     }
 
     public static Iterator<Object> match(final Object object, final Class matchingClass) {
-        return IteratorUtils.filter(lookup(object.getClass()), it -> matchingClass.isAssignableFrom(it.getClass()));
+        return IteratorUtils.filter(lookup(object.getClass()).iterator(), it -> matchingClass.isAssignableFrom(it.getClass()));
     }
 
-    public static Iterator<Object> lookup(final Class targetClass) {
+    public static List lookup(final Class targetClass) {
         if (Output.class.isAssignableFrom(targetClass))
-            return IteratorUtils.wrap(LocalParallelStreamRuntime.outputs);
+            return LocalParallelStreamRuntime.outputs;
         if (Emitter.class.isAssignableFrom(targetClass))
-            return IteratorUtils.wrap(LocalParallelStreamRuntime.emitters);
+            return LocalParallelStreamRuntime.emitters;
         if (Encoder.class.isAssignableFrom(targetClass))
-            return IteratorUtils.wrap(LocalParallelStreamRuntime.encoders);
+            return LocalParallelStreamRuntime.encoders;
         if (Decoder.class.isAssignableFrom(targetClass))
-            return IteratorUtils.wrap(LocalParallelStreamRuntime.decoders);
+            return LocalParallelStreamRuntime.decoders;
+        if (Task.class.isAssignableFrom(targetClass))
+            return LocalParallelStreamRuntime.tasks;
         if (OutputIdDriver.class.isAssignableFrom(targetClass))
-            return (Iterator<Object>) IteratorUtils.wrap(Optional.ofNullable(LocalParallelStreamRuntime.outputIdDriver.get()).stream().iterator());
+            return Optional.ofNullable(LocalParallelStreamRuntime.outputIdDriver.get()).stream().collect(Collectors.toList());
         if (WorkChunkDriver.class.isAssignableFrom(targetClass))
-            return (Iterator<Object>) IteratorUtils.wrap(Optional.ofNullable(LocalParallelStreamRuntime.workChunkDriver.get()).stream().iterator());
+            return Optional.ofNullable(LocalParallelStreamRuntime.workChunkDriver.get()).stream().collect(Collectors.toList());
         else
-            return Collections.emptyIterator();
+            return Collections.emptyList();
     }
 
     public static Object lookupOrLoad(final Class targetClass, final Configuration config, Optional<UUID> loadableId) {
@@ -304,8 +377,11 @@ public class RuntimeUtil {
             throw RuntimeUtil.getErrorHandler(RuntimeUtil.class, config).handleFatalError(new RuntimeException("Cannot find class: " + targetClass.getName()));
     }
 
-    private static Object loadTask(final String name, final Configuration config) {
-        return openClassRef(name, config);
+    public static Object loadTask(final String name, final Configuration config) {
+        final Task x = (Task) openClassRef(name, config);
+        LocalParallelStreamRuntime.taskAliases.put(x.getClass().getSimpleName(), x.getClass());
+        LocalParallelStreamRuntime.tasks.add(x);
+        return x;
     }
 
 
@@ -357,6 +433,7 @@ public class RuntimeUtil {
 
     public static Optional<Throwable> closeWrap(final AutoCloseable closeable) {
         try {
+
             closeable.close();
         } catch (Exception e) {
             return Optional.of(e);
@@ -373,7 +450,12 @@ public class RuntimeUtil {
     }
 
     public static void closeAllInstancesOfLoadable(final Class clazz) {
-        RuntimeUtil.lookup(clazz).forEachRemaining(it -> RuntimeUtil.closeWrap(((Loadable) it)));
+        RuntimeUtil.getLogger(RuntimeUtil.class.getSimpleName()).debug("will close %d instances of %s\n", RuntimeUtil.lookup(clazz).size(), clazz.getSimpleName());
+        RuntimeUtil.lookup(clazz).iterator().forEachRemaining(it -> {
+                    if (!((Loadable)it).isClosed())
+                        RuntimeUtil.closeWrap((Loadable) it);
+                }
+        );
     }
 
     public static void delay(final DelayType type, final Configuration config) {
@@ -393,7 +475,11 @@ public class RuntimeUtil {
     }
 
     public static Runtime.PHASE getCurrentPhase(final Configuration config) {
-        return Runtime.PHASE.valueOf(config.getString(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR));
+        return Runtime.PHASE.valueOf(
+                Optional.ofNullable(config.getString(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR))
+                        .or(() -> Optional.ofNullable(config.getString(PHASE)))
+                        .or(() -> Optional.of(Runtime.PHASE.ONE.name()))
+                        .orElseThrow(() -> new RuntimeException("Phase Configuration Error")));
     }
 
     public static void unload(final Class<? extends Loadable> clazz) {
@@ -409,14 +495,16 @@ public class RuntimeUtil {
             LocalParallelStreamRuntime.encoders.clear();
         else if (Decoder.class.isAssignableFrom(clazz))
             LocalParallelStreamRuntime.decoders.clear();
+        else if (Task.class.isAssignableFrom(clazz))
+            LocalParallelStreamRuntime.tasks.clear();
         else
-            throw RuntimeUtil.getErrorHandler(RuntimeUtil.class).handleFatalError(new RuntimeException("Unknown class: " + clazz.getName()));
+            RuntimeUtil.getLogger(RuntimeUtil.class.getSimpleName()).warn("cannot unload unknown class: " + clazz.getName() + ":" + clazz.getEnclosingClass());
     }
 
     public static <T> Set<Class<T>> findAvailableSubclasses(final Class<T> clazz, final String packagePrefix) {
         final ConfigurationBuilder c = new ConfigurationBuilder()
                 .setClassLoaders(new ClassLoader[]{
-                        ClassLoader.getPlatformClassLoader()
+                        clazz.getClassLoader()
                 })
                 .setUrls(ClasspathHelper.forPackage(packagePrefix))
                 .setScanners(SubTypes);

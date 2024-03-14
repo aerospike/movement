@@ -6,23 +6,34 @@
 
 package com.aerospike.movement.test.tinkerpop;
 
+import com.aerospike.movement.tinkerpop.common.GraphProvider;
+import com.aerospike.movement.tinkerpop.common.TraversalProvider;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-public class SharedEmptyTinkerGraphTraversalProvider {
-    private static final Graph tinkerGraph = TinkerGraph.open();
+public class SharedEmptyTinkerGraphTraversalProvider implements TraversalProvider {
 
-    public static Graph getGraphInstance() {
-        return tinkerGraph;
+
+    private final Configuration config;
+
+    private SharedEmptyTinkerGraphTraversalProvider(Configuration config) {
+        this.config = config;
     }
 
-    private SharedEmptyTinkerGraphTraversalProvider() {
+    public static TraversalProvider open(final Configuration config) {
+        return new SharedEmptyTinkerGraphTraversalProvider(config);
     }
 
-    public static GraphTraversalSource open(final Configuration config) {
-        return tinkerGraph.traversal();
+    public static TraversalProvider open() {
+        return new SharedEmptyTinkerGraphTraversalProvider(ConfigUtil.empty());
     }
 
+
+    @Override
+    public GraphTraversalSource getProvided(GraphProvider.GraphProviderContext ctx) {
+        final Graph graph = SharedEmptyTinkerGraphGraphProvider.open(config).getProvided(ctx);
+        return graph.traversal();
+    }
 }

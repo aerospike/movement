@@ -31,59 +31,34 @@ Pass through is more efficient (avoids double read), but some cases may require 
 public abstract class WorkChunkDriver extends Loadable implements PotentialSequence<WorkChunk> {
     private static final AtomicReference<WorkChunkDriver> INSTANCE = new AtomicReference<>();
     protected final Configuration config;
-    protected static Queue<UUID> outstanding = new ConcurrentLinkedQueue<>();
-    private final AtomicLong chunksEmitted, chunksAcknowledged;
+    private final AtomicLong chunksAcknowledged;
 
     protected final ErrorHandler errorHandler;
+    public static final AtomicLong metric = new AtomicLong(0);
 
     protected WorkChunkDriver(final ConfigurationBase configurationMeta, final Configuration config) {
         super(configurationMeta, config);
         this.config = config;
-        this.chunksEmitted = new AtomicLong(0);
         this.chunksAcknowledged = new AtomicLong(0);
         this.errorHandler = RuntimeUtil.getErrorHandler(this, config);
     }
 
-    /*
-      note: acknowledging the WorkList has been consumed by the emitter is not the same as the output acknowledging it has processed them all
-    */
-    public void acknowledgeComplete(final UUID workChunkId) {
-//        if (!outstanding.remove(workChunkId))
-//            throw new RuntimeException(String.format("workChunkId %s is not in the outstanding queue", workChunkId));
-        chunksAcknowledged.addAndGet(1);
-    }
 
 
     protected abstract AtomicBoolean getInitialized();
 
-    protected void onNextValue(final WorkChunk value) {
-        outstanding.add(value.getId());
+    protected WorkChunk onNextValue(final WorkChunk value) {
+        metric.incrementAndGet();
+        return value;
     }
 
-    public void close() throws Exception {
+    public void onClose()  {
         chunksAcknowledged.set(0);
+        metric.set(0);
         getInitialized().set(false);
         INSTANCE.set(null);
     }
 
-    private void waitOnOutstanding(final long maxWait) {
-        long waitTime = 0;
-        while (!outstanding.isEmpty() && waitTime < maxWait) {
-            try {
-                Thread.sleep(50);
-                waitTime += 50;
-            } catch (InterruptedException e) {
-                throw RuntimeUtil.getErrorHandler(this).handleError(new RuntimeException(e));
-            }
-        }
-        if (!outstanding.isEmpty()) {
-            throw RuntimeUtil.getErrorHandler(this)
-                    .handleError(new RuntimeException(String.format(
-                            "Timeout exceeded WorkChunkDriver has %d outstanding work chunks during phase %s",
-                            outstanding.size(),
-                            RuntimeUtil.getCurrentPhase(config))));
-        }
-    }
 
     public static WorkChunkDriver implicit(final Emitter emitter, final Configuration config) {
         if (!Emitter.SelfDriving.class.isAssignableFrom(emitter.getClass()))

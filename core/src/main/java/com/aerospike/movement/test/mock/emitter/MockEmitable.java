@@ -12,6 +12,7 @@ import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.test.mock.MockUtil;
 import org.apache.commons.configuration2.Configuration;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class MockEmitable implements Emitable {
@@ -32,7 +33,7 @@ public class MockEmitable implements Emitable {
 
     @Override
     public Stream<Emitable> emit(final Output output) {
-        output.writer(this.getClass(), "mock").writeToOutput(this);
+        output.writer(this.getClass(), "mock").writeToOutput(Optional.of(this));
         return this.empty ? Stream.empty() : (Stream<Emitable>) MockUtil.onEvent(this.getClass(), Methods.EMIT, this, output).orElseGet(Stream::empty);
     }
 

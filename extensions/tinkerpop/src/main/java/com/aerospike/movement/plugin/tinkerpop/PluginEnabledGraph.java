@@ -8,7 +8,7 @@ package com.aerospike.movement.plugin.tinkerpop;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.plugin.Plugin;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -32,7 +32,7 @@ public class PluginEnabledGraph {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(CallStepPlugin.Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(CallStepPlugin.Config.Keys.class);
         }
 
 
@@ -47,9 +47,9 @@ public class PluginEnabledGraph {
     public static Graph open(Configuration config) {
         final Graph graph = (Graph) RuntimeUtil.openClassRef(Config.INSTANCE.getOrDefault(Config.Keys.GRAPH_IMPL, config), config);
         final Plugin plugin = CallStepPlugin.open(config);
-        System.out.println("plugin: " + plugin.getClass().getName());
+        RuntimeUtil.getLogger().info("plugin: " + plugin.getClass().getName());
         plugin.plugInto(graph);
-        System.out.println(graph.traversal().call("--list").toList());
+        RuntimeUtil.getLogger().info(graph.traversal().call("--list").toList());
         return graph;
     }
 }

@@ -8,7 +8,8 @@ package com.aerospike.movement.tinkerpop.common.instrumentation.impl;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
 
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.tinkerpop.common.GraphProvider;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import com.google.common.cache.*;
@@ -34,12 +35,13 @@ public class CachedGraph implements Graph {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
         public static class Keys {
-            public static final String GRAPH_PROVIDER_IMPL = "graph.provider.impl";
-            public static final String CACHE_SIZE = "graph.provider.cache.size";
+            public static final String CONTEXT = GraphProvider.Keys.CONTEXT;
+            public static final String GRAPH_PROVIDER = "cached.graph.provider";
+            public static final String CACHE_SIZE = "cached.graph.cache.size";
 
         }
 
@@ -69,8 +71,8 @@ public class CachedGraph implements Graph {
     }
 
     public static CachedGraph open(final Configuration config) {
-        return new CachedGraph((Graph)
-                RuntimeUtil.openClassRef(Config.INSTANCE.getOrDefault(Config.Keys.GRAPH_PROVIDER_IMPL, config), config), config);
+        GraphProvider graphProvider = (GraphProvider) RuntimeUtil.openClassRef(Config.INSTANCE.getOrDefault(Config.Keys.GRAPH_PROVIDER, config), config);
+        return new CachedGraph(graphProvider.getProvided(GraphProvider.GraphProviderContext.fromConfig(config)), config);
     }
 
 

@@ -7,6 +7,7 @@
 package com.aerospike.movement.core.util;
 
 import com.aerospike.movement.util.core.stream.mechanics.PinionSystem;
+import com.aerospike.movement.util.core.stream.mechanics.ZipFunction;
 import org.junit.Test;
 
 import java.util.List;
@@ -26,9 +27,8 @@ public class PinionSystemTest {
     public void testPairOfStreamsWillHaltInSync() {
         Supplier<Stream<Integer>> streamSupplierA = () -> IntStream.range(0, 3).boxed();
         Supplier<Stream<Integer>> streamSupplierB = () -> IntStream.range(0, 3).boxed();
-        BiFunction<Integer, Integer, Integer> zipFunction = Integer::sum;
 
-        PinionSystem<Integer, Integer, Integer> pinionSystem = PinionSystem.of(streamSupplierA, streamSupplierB, zipFunction, PinionSystem::oneRotationHaltCheck);
+        PinionSystem<Integer, Integer, Integer> pinionSystem = PinionSystem.of(streamSupplierA, streamSupplierB, ZipFunction.zipAddition, PinionSystem::oneRotationHaltCheck);
         List<Integer> results = Stream.iterate(pinionSystem.getNext(), Optional::isPresent, i -> pinionSystem.getNext())
                 .filter(it -> {
                     return it.isPresent();
@@ -46,10 +46,9 @@ public class PinionSystemTest {
     public void testCustomHaltFunction() {
         Supplier<Stream<Integer>> streamSupplierA = () -> IntStream.range(0, 3).boxed();
         Supplier<Stream<Integer>> streamSupplierB = () -> IntStream.range(0, 3).boxed();
-        BiFunction<Integer, Integer, Integer> zipFunction = Integer::sum;
 
         //2 full rotations
-        final PinionSystem<Integer, Integer, Integer> pinionSystem = PinionSystem.of(streamSupplierA, streamSupplierB, zipFunction,
+        final PinionSystem<Integer, Integer, Integer> pinionSystem = PinionSystem.of(streamSupplierA, streamSupplierB, ZipFunction.zipAddition,
                 (a, b) -> {
                     if (a.startCounter.get() >= 2 && b.startCounter.get() >= 2)
                         return true;
@@ -70,9 +69,8 @@ public class PinionSystemTest {
         //rotate 2 different size gears together
         Supplier<Stream<Integer>> streamSupplierA = () -> IntStream.range(0, 6).boxed();
         Supplier<Stream<Integer>> streamSupplierB = () -> IntStream.range(0, 3).boxed();
-        BiFunction<Integer, Integer, Integer> zipFunction = Integer::sum;
 
-        PinionSystem<Integer, Integer, Integer> pinionSystem = PinionSystem.of(streamSupplierA, streamSupplierB, zipFunction, PinionSystem::oneRotationHaltCheck);
+        PinionSystem<Integer, Integer, Integer> pinionSystem = PinionSystem.of(streamSupplierA, streamSupplierB, ZipFunction.zipAddition, PinionSystem::oneRotationHaltCheck);
         List<Integer> results = Stream.iterate(pinionSystem.getNext(), Optional::isPresent, i -> pinionSystem.getNext())
                 .filter(Optional::isPresent)
                 .flatMap(Optional::get)
@@ -86,8 +84,7 @@ public class PinionSystemTest {
         //rotate 2 different size gears together
         Supplier<Stream<Integer>> streamSupplierA = () -> IntStream.range(0, 7).boxed();
         Supplier<Stream<Integer>> streamSupplierB = () -> IntStream.range(0, 3).boxed();
-        BiFunction<Integer, Integer, Integer> zipFunction = Integer::sum;
-        PinionSystem<Integer, Integer, Integer> pinionSystem = PinionSystem.of(streamSupplierA, streamSupplierB, zipFunction, PinionSystem::oneRotationHaltCheck);
+        PinionSystem<Integer, Integer, Integer> pinionSystem = PinionSystem.of(streamSupplierA, streamSupplierB, ZipFunction.zipAddition, PinionSystem::oneRotationHaltCheck);
         List<Integer> results = Stream.iterate(pinionSystem.getNext(), Optional::isPresent, i -> pinionSystem.getNext())
                 .filter(Optional::isPresent)
                 .flatMap(Optional::get)

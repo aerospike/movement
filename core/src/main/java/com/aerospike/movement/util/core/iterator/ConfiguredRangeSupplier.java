@@ -8,7 +8,7 @@
 package com.aerospike.movement.util.core.iterator;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import org.apache.commons.configuration2.Configuration;
 
 import java.util.HashMap;
@@ -31,7 +31,7 @@ public class ConfiguredRangeSupplier extends OneShotIteratorSupplier {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 

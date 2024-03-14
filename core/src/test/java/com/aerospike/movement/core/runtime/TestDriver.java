@@ -11,12 +11,11 @@ import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.OutputId;
 import com.aerospike.movement.runtime.core.driver.WorkChunk;
 import com.aerospike.movement.runtime.core.driver.WorkItem;
-import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedOutputIdDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedWorkChunkDriver;
 import com.aerospike.movement.util.core.iterator.ConfiguredRangeSupplier;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -40,49 +39,52 @@ import static org.junit.Assert.assertTrue;
 public class TestDriver {
     @Test
     public void testWorkChunkDriver() {
-        GeneratedOutputIdDriver.closeInstance();
+        RangedOutputIdDriver.closeInstance();
 
         Configuration config = new MapConfiguration(new HashMap<>() {{
             put(BATCH_SIZE, 10);
-            put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
+            put(WORK_CHUNK_DRIVER_PHASE_ONE, RangedWorkChunkDriver.class.getName());
             put(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR, Runtime.PHASE.ONE.name());
             put(ConfiguredRangeSupplier.Config.Keys.RANGE_BOTTOM, 0);
             put(ConfiguredRangeSupplier.Config.Keys.RANGE_TOP, 100);
-            put(SuppliedWorkChunkDriver.Config.Keys.ITERATOR_SUPPLIER_PHASE_ONE, ConfiguredRangeSupplier.class.getName());
+            put(RangedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, 0);
+            put(RangedWorkChunkDriver.Config.Keys.RANGE_TOP, 100);
         }});
-        SuppliedWorkChunkDriver driver = (SuppliedWorkChunkDriver) SuppliedWorkChunkDriver.open(config);
+        RangedWorkChunkDriver driver = (RangedWorkChunkDriver) RangedWorkChunkDriver.open(config);
         final WorkChunk chunk = driver.getNext().get();
-        assertTrue(chunk.hasNext());
-        long ctr = 0;
-        while (chunk.hasNext()) {
-            final WorkItem id = chunk.next();
-            assertEquals(ctr++, id.getId());
-        }
-        assertEquals(10, ctr);
+        final AtomicLong ctr = new AtomicLong(0);
+        chunk.stream().forEach(ln -> {
+            WorkItem x = ln.get();
+
+            assertEquals(ctr.getAndIncrement(), ln.get().unwrap());
+        });
+
+        assertEquals(10, ctr.get());
     }
+
 
     @Test
     public void testOutputIDDriver() throws Exception {
-        GeneratedOutputIdDriver.closeInstance();
+        RangedOutputIdDriver.closeInstance();
 
         Configuration config = new MapConfiguration(new HashMap<>() {{
             put(BATCH_SIZE, 10);
-            put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+            put(OUTPUT_ID_DRIVER, RangedOutputIdDriver.class.getName());
             put(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR, Runtime.PHASE.ONE.name());
-            put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, 0);
-            put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, 100);
+            put(RangedOutputIdDriver.Config.Keys.RANGE_BOTTOM, 0);
+            put(RangedOutputIdDriver.Config.Keys.RANGE_TOP, 100);
         }});
-        GeneratedOutputIdDriver driver = (GeneratedOutputIdDriver) GeneratedOutputIdDriver.open(config);
+        RangedOutputIdDriver driver = (RangedOutputIdDriver) RangedOutputIdDriver.open(config);
         final OutputId x = driver.getNext().get();
-        assertEquals(0L, x.getId());
-        long y = (Long) x.getId();
+        assertEquals(0L, x.unwrap());
+        long y = (Long) x.unwrap();
         Optional<OutputId> things;
         while (true) {
             things = driver.getNext();
             if (things.isEmpty()) {
                 break;
             }
-            assertEquals((Long) y + 1, things.get().getId());
+            assertEquals((Long) y + 1, things.get().unwrap());
             y++;
         }
         assertEquals(100L, y + 1);
@@ -91,15 +93,15 @@ public class TestDriver {
 
     @Test
     public void testOutputIdDriverConcurrent() {
-        GeneratedOutputIdDriver.closeInstance();
+        RangedOutputIdDriver.closeInstance();
         Configuration config = new MapConfiguration(new HashMap<>() {{
             put(BATCH_SIZE, 100);
-            put(OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName());
+            put(OUTPUT_ID_DRIVER, RangedOutputIdDriver.class.getName());
             put(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR, Runtime.PHASE.ONE.name());
-            put(GeneratedOutputIdDriver.Config.Keys.RANGE_BOTTOM, 0);
-            put(GeneratedOutputIdDriver.Config.Keys.RANGE_TOP, 100_000);
+            put(RangedOutputIdDriver.Config.Keys.RANGE_BOTTOM, 0);
+            put(RangedOutputIdDriver.Config.Keys.RANGE_TOP, 100_000);
         }});
-        GeneratedOutputIdDriver driver = (GeneratedOutputIdDriver) GeneratedOutputIdDriver.open(config);
+        RangedOutputIdDriver driver = (RangedOutputIdDriver) RangedOutputIdDriver.open(config);
         final AtomicLong hitCounter = new AtomicLong(0);
         final Set<Long> concurrentUniqueSet = new ConcurrentSkipListSet<>();
         LongStream.range(0, 1000).parallel().forEach(l -> {
@@ -114,7 +116,7 @@ public class TestDriver {
                 if (things.isEmpty()) {
                     break;
                 }
-                final Long newVal = (Long) things.get().getId();
+                final Long newVal = (Long) things.get().unwrap();
                 if (!concurrentUniqueSet.add(newVal)) {
                     throw new RuntimeException("Duplicate value found: " + newVal);
                 }
@@ -124,44 +126,4 @@ public class TestDriver {
         assertEquals(100_000L, hitCounter.get());
     }
 
-    @Test
-    @Ignore
-    @Deprecated
-    public void testWorkChunkDriverConcurrent() throws Exception {
-        GeneratedOutputIdDriver.closeInstance();
-        SuppliedWorkChunkDriver.closeStatic();
-        Configuration config = new MapConfiguration(new HashMap<>() {{
-            put(BATCH_SIZE, 100);
-            put(WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName());
-            put(ConfigurationBase.Keys.INTERNAL_PHASE_INDICATOR, Runtime.PHASE.ONE.name());
-            put(ConfiguredRangeSupplier.Config.Keys.RANGE_BOTTOM, 0);
-            put(ConfiguredRangeSupplier.Config.Keys.RANGE_TOP, 100_000);
-            put(SuppliedWorkChunkDriver.Config.Keys.ITERATOR_SUPPLIER_PHASE_ONE, ConfiguredRangeSupplier.class.getName());
-        }});
-        SuppliedWorkChunkDriver driver = (SuppliedWorkChunkDriver) SuppliedWorkChunkDriver.open(config);
-        final AtomicLong elementHitCounter = new AtomicLong(0);
-        final AtomicLong chunkHitCounter = new AtomicLong(0);
-        final Set<Long> concurrentUniqueSet = new ConcurrentSkipListSet<>();
-        LongStream.range(0, 1000).parallel().forEach(l -> {
-            try {
-                Thread.sleep(new Random().nextInt(100));
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            while (driver.getNext().isPresent()) {
-                final WorkChunk workChunk = driver.getNext().get();
-                if(workChunk.hasNext())
-                    chunkHitCounter.incrementAndGet();
-                while (workChunk.hasNext()) {
-                    final WorkItem newVal = workChunk.next();
-                    if (!concurrentUniqueSet.add((Long) newVal.getId())) {
-                        throw new RuntimeException("Duplicate value found: " + newVal);
-                    }
-                    elementHitCounter.incrementAndGet();
-                }
-            }
-        });
-        assertEquals(1000L, chunkHitCounter.get());
-        assertEquals(100_000L, elementHitCounter.get());
-    }
 }

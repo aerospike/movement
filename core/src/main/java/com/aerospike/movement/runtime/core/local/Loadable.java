@@ -17,10 +17,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 public abstract class Loadable implements AutoCloseable {
-    final UUID id;
+    protected final UUID id;
     private final ConfigurationBase configurationMeta;
     protected final ErrorHandler errorHandler;
     protected final Configuration config;
+    public boolean closed = false;
 
     protected Loadable(final ConfigurationBase configurationMeta, final Configuration config) {
         this.config = config;
@@ -39,10 +40,10 @@ public abstract class Loadable implements AutoCloseable {
     }
 
     public abstract void init(Configuration config);
-    public  Configuration getConfiguration(){
+
+    public Configuration getConfiguration() {
         return config;
     }
-
 
 
     public ConfigurationBase getConfigurationMeta() {
@@ -51,5 +52,25 @@ public abstract class Loadable implements AutoCloseable {
 
     public interface Notification {
         Object getMessage();
+    }
+
+    @Override
+    public final void close() {
+        synchronized (Loadable.class) {
+            if (!closed)
+                onClose();
+            this.closed = true;
+        }
+    }
+
+    public boolean isClosed() {
+        return closed;
+    }
+
+    public abstract void onClose();
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + ":" + this.getId().toString().split("-")[0];
     }
 }

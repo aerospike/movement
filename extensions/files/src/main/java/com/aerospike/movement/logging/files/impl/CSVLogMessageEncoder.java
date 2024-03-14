@@ -52,7 +52,7 @@ public class CSVLogMessageEncoder extends CSVEncoder {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
 
     }
 }

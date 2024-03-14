@@ -22,9 +22,9 @@ public interface EmittedEdge extends EmitableGraphElement {
         if (field.equals(LABEL))
             return edge.label();
         if (field.equals(TO))
-            return String.valueOf(edge.toId().getId());
+            return String.valueOf(edge.toId().unwrap());
         if (field.equals(FROM))
-            return String.valueOf(edge.fromId().getId());
+            return String.valueOf(edge.fromId().unwrap());
         else
             return String.valueOf(edge.propertyValue(field).orElse(""));
     }

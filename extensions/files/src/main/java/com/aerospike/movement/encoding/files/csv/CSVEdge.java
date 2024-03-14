@@ -26,12 +26,12 @@ public class CSVEdge implements EmittedEdge {
 
     @Override
     public EmittedId fromId() {
-        return EmittedId.from(Long.valueOf((String) line.getEntry("~from")));
+        return EmittedId.from((String) line.getEntry("~from"));
     }
 
     @Override
     public EmittedId toId() {
-        return EmittedId.from(Long.valueOf((String) line.getEntry("~to")));
+        return EmittedId.from((String) line.getEntry("~to"));
     }
 
     @Override
@@ -51,7 +51,7 @@ public class CSVEdge implements EmittedEdge {
 
     @Override
     public Stream<Emitable> emit(final Output output) {
-        output.writer(EmittedEdge.class,label()).writeToOutput(this);
+        output.writer(EmittedEdge.class, label()).writeToOutput(Optional.of(this));
         return Stream.empty();
     }
 

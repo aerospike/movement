@@ -6,10 +6,6 @@
 
 package com.aerospike.movement.test.tinkerpop;
 
-import com.aerospike.movement.config.core.ConfigurationBase;
-import com.aerospike.movement.encoding.tinkerpop.TinkerPopGraphEncoder;
-import com.aerospike.movement.output.tinkerpop.TinkerPopGraphOutput;
-import com.aerospike.movement.tinkerpop.common.TinkerPopGraphProvider;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
@@ -27,10 +23,7 @@ public class VerifyGraphWithTinkerPop {
 
     public static Configuration baseConfiguration(){
         return new MapConfiguration(new HashMap<>(){{
-            put(ConfigurationBase.Keys.ENCODER, TinkerPopGraphEncoder.class.getName());
-            put(TinkerPopGraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
-            put(TinkerPopGraphProvider.Config.Keys.GRAPH_IMPL, SharedEmptyTinkerGraphGraphProvider.class.getName());
-            put(ConfigurationBase.Keys.OUTPUT, TinkerPopGraphOutput.class.getName());
+
         }});
     }
     public static boolean verify(final Graph graph, final Long edgeCount, final Long vertexCount, final Function<Graph, Optional<Throwable>> check) {

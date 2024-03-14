@@ -7,10 +7,11 @@
 package com.aerospike.movement.tinkerpop.common.instrumentation.impl;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
+import com.aerospike.movement.tinkerpop.common.GraphProvider;
 import com.aerospike.movement.tinkerpop.common.instrumentation.InstrumentedGraph;
 import com.aerospike.movement.tinkerpop.common.instrumentation.WrappedGraph;
 
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -44,7 +45,7 @@ public class ThrottledGraph extends InstrumentedGraph {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
         public static class Keys {
@@ -84,10 +85,9 @@ public class ThrottledGraph extends InstrumentedGraph {
     }
 
     public static ThrottledGraph open(final Configuration config) {
-        final String wrappedGraphClassName = Config.INSTANCE.getOrDefault(Config.Keys.GRAPH_PROVIDER_IMPL,config);
-        final Graph wrappedGraph = (Graph) RuntimeUtil.openClassRef(wrappedGraphClassName,config);
-//        final Graph wrappedGraph = graphProvider.getGraph();
-        return new ThrottledGraph(wrappedGraph,config);
+        final String graphProviderName = Config.INSTANCE.getOrDefault(Config.Keys.GRAPH_PROVIDER_IMPL,config);
+        final GraphProvider graphProvider = (GraphProvider) RuntimeUtil.openClassRef(graphProviderName,config);
+        return new ThrottledGraph(graphProvider.getProvided(GraphProvider.GraphProviderContext.fromConfig(config)),config);
     }
 
     private static long getStallTime(final String methodName, final Configuration config) {

@@ -45,7 +45,7 @@ public class LogMessage implements Emitable {
 
     @Override
     public Stream<Emitable> emit(final Output output) {
-        output.writer(LogMessage.class, this.getClass().getName()).writeToOutput(this);
+        output.writer(LogMessage.class, this.getClass().getName()).writeToOutput(Optional.of(this));
         return stream();
     }
 

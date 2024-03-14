@@ -8,7 +8,7 @@
 package com.aerospike.movement.config.core;
 
 import com.aerospike.movement.util.core.Builder;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import org.apache.commons.configuration2.Configuration;
@@ -53,8 +53,8 @@ public abstract class ConfigurationBase {
 
         public static final String WORK_CHUNK_DRIVER_PHASE_ONE = WORK_CHUNK_DRIVER_PREFIX + DOT + PHASE + ONE;
         public static final String WORK_CHUNK_DRIVER_PHASE_TWO = WORK_CHUNK_DRIVER_PREFIX + DOT + PHASE + TWO;
-        public static final String EMITTER_PHASE_ONE = ConfigurationUtil.keyFromPathElements(EMITTER, PHASE, ONE);
-        public static final String EMITTER_PHASE_TWO = ConfigurationUtil.keyFromPathElements(EMITTER, PHASE, TWO);
+        public static final String EMITTER_PHASE_ONE = ConfigUtil.keyFromPathElements(EMITTER, PHASE, ONE);
+        public static final String EMITTER_PHASE_TWO = ConfigUtil.keyFromPathElements(EMITTER, PHASE, TWO);
 
         public static final String INTERNAL_PHASE_INDICATOR = INTERNAL + DOT + PHASE;
         public static final String PHASE_OVERRIDE = INTERNAL + DOT + "phaseOverride";
@@ -92,7 +92,7 @@ public abstract class ConfigurationBase {
     }
 
     public Configuration defaults(Configuration config) {
-        return new MapConfiguration(defaultConfigMap(ConfigurationUtil.toMap(config)));
+        return new MapConfiguration(defaultConfigMap(ConfigUtil.toMap(config)));
     }
 
     public Configuration defaults() {

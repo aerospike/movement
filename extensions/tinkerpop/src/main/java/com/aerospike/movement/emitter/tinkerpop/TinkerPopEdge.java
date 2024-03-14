@@ -18,6 +18,8 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static com.aerospike.movement.emitter.core.Emitter.encodeToOutput;
+
 public class TinkerPopEdge implements EmittedEdge {
     private final Edge edge;
 
@@ -27,7 +29,7 @@ public class TinkerPopEdge implements EmittedEdge {
 
     @Override
     public Stream<Emitable> emit(final Output output) {
-        output.writer(EmittedEdge.class, edge.label()).writeToOutput(this);
+        encodeToOutput(this,output);
         return Stream.empty();
     }
 

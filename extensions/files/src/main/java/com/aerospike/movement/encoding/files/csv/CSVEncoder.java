@@ -30,12 +30,14 @@ public abstract class CSVEncoder extends Loadable implements Encoder<String> {
 
 
     @Override
-    public String encode(final Emitable item) {
+    public Optional<String> encode(final Emitable item) {
+        if (Optional.class.isAssignableFrom(item.getClass()))
+            throw new RuntimeException("optional");
         if (EmittedEdge.class.isAssignableFrom(item.getClass())) {
-            return CSVEncoder.toCsvLine(toCsvFields((EmittedEdge) item));
+            return Optional.of(CSVEncoder.toCsvLine(toCsvFields((EmittedEdge) item)));
         }
         if (EmittedVertex.class.isAssignableFrom(item.getClass())) {
-            return CSVEncoder.toCsvLine(toCsvFields((EmittedVertex) item));
+            return Optional.of(CSVEncoder.toCsvLine(toCsvFields((EmittedVertex) item)));
         }
         throw ErrorUtil.runtimeException("Cannot encode %s", item.getClass().getName());
     }

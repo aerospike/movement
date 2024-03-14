@@ -16,6 +16,7 @@ public class CSVLine {
     public enum CSVField {
         EMPTY
     }
+
     private final List<Object> line;
     private final List<String> header;
 
@@ -30,7 +31,6 @@ public class CSVLine {
         try {
             return line.get(header.indexOf(key));
         } catch (IndexOutOfBoundsException e) {
-//            System.out.println(e);
             throw new RuntimeException("Key not found: " + key);
         }
     }
@@ -49,21 +49,22 @@ public class CSVLine {
     }
 
     private List<Object> parseLine(List<String> header, String line) {
-        StringTokenizer st = new StringTokenizer(line, ",", true);
+        String[] split = line.split(",", -1);
         List<Object> results = new ArrayList<>();
-        for (long i = 0; i < header.size(); i++) {
-            String token = st.nextToken();
-            if (token.equals(",")) {
-                // empty field
+        for (int i = 0; i < header.size(); i++) {
+            String token = split[i];
+            if (token.isEmpty()) {
                 results.add(CSVField.EMPTY);
             } else {
                 results.add(token);
-                if (st.hasMoreTokens() && !Objects.equals(st.nextToken(), ",")) {
-                    throw new RuntimeException("Expected comma after field");
-                }
             }
         }
         return results;
+    }
+
+    @Override
+    public String toString() {
+        return String.join(",", line.stream().map(it -> it.equals(CSVField.EMPTY) ? "" : it.toString()).collect(Collectors.toList()));
     }
 
 

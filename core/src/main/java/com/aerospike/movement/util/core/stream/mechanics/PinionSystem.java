@@ -7,7 +7,9 @@
 
 package com.aerospike.movement.util.core.stream.mechanics;
 
+import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
 import com.aerospike.movement.util.core.stream.sequence.PotentialSequence;
+import com.aerospike.movement.util.core.stream.sequence.SequenceUtil;
 
 import java.util.Iterator;
 import java.util.Optional;
@@ -46,21 +48,21 @@ public class PinionSystem<A, B, Z> implements PotentialSequence<Stream<Z>> {
     public final CyclicStream<A> gearA;
     public final CyclicStream<B> gearB;
     private final SlipWheel<A, B, Z> slipWheel;
-    private final Iterator<A> iteratorA;
-    private final Iterator<B> iteratorB;
+    private final PotentialSequence<A> sequenceA;
+    private final PotentialSequence<B> sequenceB;
     private final BiFunction<CyclicStream<?>, CyclicStream<?>, Boolean> checkPinionComplete;
 
 
     public PinionSystem(final Supplier<Stream<A>> a,
                         final Supplier<Stream<B>> b,
-                        final BiFunction<A, B, Z> zipFunction,
+                        final BiFunction<A, B, Optional<Z>> zipFunction,
                         final BiFunction<CyclicStream<?>, CyclicStream<?>, Boolean> checkPinionComplete) {
         this.checkPinionComplete = checkPinionComplete;
         this.gearA = CyclicStream.from(a, this::isComplete);
         this.gearB = CyclicStream.from(b, this::isComplete);
-        this.iteratorA = gearA.stream().iterator();
-        this.iteratorB = gearB.stream().iterator();
-        this.slipWheel = SlipWheel.with(1, zipFunction,this);
+        this.sequenceA = SequenceUtil.fuse(OneShotIteratorSupplier.of(() -> gearA.stream().iterator()));
+        this.sequenceB = SequenceUtil.fuse(OneShotIteratorSupplier.of(() -> gearB.stream().iterator()));
+        this.slipWheel = SlipWheel.with(1, zipFunction, this);
 
     }
 
@@ -78,7 +80,7 @@ public class PinionSystem<A, B, Z> implements PotentialSequence<Stream<Z>> {
 
     public static <A, B, Z> PinionSystem<A, B, Z> of(final Supplier<Stream<A>> a,
                                                      final Supplier<Stream<B>> b,
-                                                     final BiFunction<A, B, Z> zipFunction,
+                                                     final BiFunction<A, B, Optional<Z>> zipFunction,
                                                      final BiFunction<CyclicStream<?>, CyclicStream<?>, Boolean> checkPinionComplete) {
         return new PinionSystem<>(a, b, zipFunction, checkPinionComplete);
     }
@@ -91,18 +93,22 @@ public class PinionSystem<A, B, Z> implements PotentialSequence<Stream<Z>> {
         return value;
     }
 
+    public static <X> Optional<X> incrementOdometer(final AtomicLong od, final PotentialSequence<X> wheelSeq) {
+        if (counters)
+            od.incrementAndGet();
+        Optional<X> value = wheelSeq.getNext();
+        return value;
+    }
+
     @Override
     public Optional<Stream<Z>> getNext() {
         synchronized (this) {
             if (isComplete()) {
                 return Optional.empty();
             }
-            if (!iteratorA.hasNext()) {
-                return Optional.empty();
-            }
-            final A nextA = incrementOdometer(odometerA, iteratorA);
-            return Optional.of(slipWheel.apply(nextA, iteratorB));
+            final Optional<A> nextA = incrementOdometer(odometerA, sequenceA);
+            Optional<Stream<Z>> opportunity = nextA.map(a -> slipWheel.apply(a, sequenceB));
+            return opportunity;
         }
     }
-
 }

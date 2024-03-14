@@ -10,7 +10,7 @@ package com.aerospike.movement.runtime.core.driver;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.runtime.core.local.Loadable;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 
 import com.aerospike.movement.util.core.stream.sequence.PotentialSequence;
 import org.apache.commons.configuration2.Configuration;
@@ -45,7 +45,7 @@ public abstract class OutputIdDriver extends Loadable implements PotentialSequen
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 

@@ -8,13 +8,18 @@
 package com.aerospike.movement.util.core.runtime;
 
 
+
 import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 public final class IOUtil {
     private IOUtil() {
@@ -42,10 +47,14 @@ public final class IOUtil {
     }
 
     public static File copyFromResourcesIntoNewTempFile(final String resourceName) {
+        return copyFromResourcesIntoNewTempFile(resourceName, resourceName);
+    }
+
+    public static File copyFromResourcesIntoNewTempFile(final String resourcePath, final String tempFileName) {
         try {
-            final File tempFile = File.createTempFile("resource", resourceName);
+            final File tempFile = File.createTempFile("resource", tempFileName);
             tempFile.deleteOnExit();
-            try (InputStream is = IOUtil.class.getClassLoader().getResourceAsStream(resourceName);
+            try (InputStream is = IOUtil.class.getClassLoader().getResourceAsStream(resourcePath);
                  FileOutputStream fileOutputStream = new FileOutputStream(tempFile)) {
                 byte dataBuffer[] = new byte[1024];
                 int bytesRead;
@@ -78,5 +87,10 @@ public final class IOUtil {
         } catch (IOException e) {
             throw RuntimeUtil.getErrorHandler(e).handleError(e);
         }
+    }
+
+    public static String formatStruct(Map<?, ?> map) {
+        Optional<Function<Object,String>> formatter = RuntimeUtil.getObjectPrinter();
+        return formatter.get().apply(map);
     }
 }

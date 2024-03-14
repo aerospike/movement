@@ -13,7 +13,7 @@ import com.aerospike.movement.runtime.core.driver.OutputId;
 import com.aerospike.movement.runtime.core.driver.OutputIdDriver;
 import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.output.MockOutput;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import org.apache.commons.configuration2.Configuration;
 
 import java.util.HashMap;
@@ -39,7 +39,7 @@ public class MockOutputIdDriver extends OutputIdDriver {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(MockOutput.Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(MockOutput.Config.Keys.class);
         }
 
 
@@ -82,7 +82,7 @@ public class MockOutputIdDriver extends OutputIdDriver {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
         MockUtil.onEvent(this.getClass(), Methods.CLOSE, this);
     }
 }

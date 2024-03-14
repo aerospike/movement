@@ -10,16 +10,14 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.logging.core.LoggerFactory;
 import com.aerospike.movement.plugin.Plugin;
 import com.aerospike.movement.process.core.Task;
-import com.aerospike.movement.tinkerpop.common.PluginServiceFactory;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.process.tasks.tinkerpop.*;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class CallStepPlugin extends Plugin {
@@ -33,25 +31,26 @@ public class CallStepPlugin extends Plugin {
         }
 
         @Override
-        public Map<String, String> defaultConfigMap(final Map<String,Object> config) {
+        public Map<String, String> defaultConfigMap(final Map<String, Object> config) {
             return DEFAULTS;
         }
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
         public static class Keys {
+            public static final String SERVICE_NAME = "tinkerpop.plugin.service.name";
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
+            put(Keys.SERVICE_NAME, "movement");
         }};
     }
 
 
-    public static final String NAME = "movement";
     private final Configuration config;
 
     private CallStepPlugin(Configuration config) {
@@ -70,14 +69,22 @@ public class CallStepPlugin extends Plugin {
         if (!Graph.class.isAssignableFrom(system.getClass()))
             throw errorHandler.error("cannot setup movement plugin, valid graph to plug into");
         final Graph graph = (Graph) system;
-        final List<String> taskInfo = RuntimeUtil.findAvailableTaskAliases();
+        List<Class> knownTasks = List.of(Load.class, Export.class, Migrate.class, TaskStatus.class, WaitTask.class);
+        Set<String> tasks = new HashSet<>(RuntimeUtil.findAvailableTaskAliases());
 
-        for (final String entry : taskInfo) {
+        tasks.addAll(knownTasks.stream().map(it -> it.getSimpleName()).collect(Collectors.toList()));
+
+        knownTasks.forEach(task ->
+                RuntimeUtil.registerTaskAlias(task.getSimpleName(), task));
+
+        for (final String entry : tasks) {
             LoggerFactory.withContext(this).debug("Registering task: %s", entry);
             final Task task = (Task) RuntimeUtil.lookupOrLoad(RuntimeUtil.getTaskClassByAlias(entry), config);
             final PluginServiceFactory psf = PluginServiceFactory.create(task, this, graph, config);
             graph.getServiceRegistry().registerService(psf);
+
         }
+
     }
 
     @Override
@@ -87,7 +94,7 @@ public class CallStepPlugin extends Plugin {
 
     @Override
     public String toString() {
-        return NAME;
+        return "CallStepPlugin: " + config.getString(Config.Keys.SERVICE_NAME);
     }
 
     @Override
@@ -96,7 +103,7 @@ public class CallStepPlugin extends Plugin {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
 
     }
 }

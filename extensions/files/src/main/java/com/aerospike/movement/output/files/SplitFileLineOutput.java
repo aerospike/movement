@@ -10,7 +10,8 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.output.core.OutputWriter;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
+import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 
 import java.io.BufferedWriter;
@@ -21,6 +22,9 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -33,6 +37,7 @@ public class SplitFileLineOutput implements OutputWriter {
 
 
     private final String label;
+    private final Semaphore outstanding;
 
     public static class Config extends ConfigurationBase {
         public static final Config INSTANCE = new Config();
@@ -48,29 +53,29 @@ public class SplitFileLineOutput implements OutputWriter {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(DirectoryOutput.Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(DirectoryOutput.Config.Keys.class);
         }
 
 
         public static class Keys {
-            public static final String BUFFER_SIZE_KB = "output.bufferSizeKB";
-            public static final String WRITES_BEFORE_FLUSH = "output.writesBeforeFlush";
-            public static final String MAX_LINES = "output.entriesPerFile";
+            public static final String BUFFER_SIZE_KB = DirectoryOutput.Config.Keys.BUFFER_SIZE_KB;
+            public static final String WRITES_BEFORE_FLUSH = DirectoryOutput.Config.Keys.WRITES_BEFORE_FLUSH;
+            public static final String ENTRIES_PER_FILE = DirectoryOutput.Config.Keys.ENTRIES_PER_FILE;
             public static final String DIRECTORY = DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY;
 
             public static final String EXTENSION = "output.file.extension";
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
-            put(Config.Keys.MAX_LINES, "1000");
+            put(Config.Keys.ENTRIES_PER_FILE, "10000");
             put(Config.Keys.BUFFER_SIZE_KB, "4096");
-            put(Config.Keys.WRITES_BEFORE_FLUSH, "1000");
+            put(Config.Keys.WRITES_BEFORE_FLUSH, "10000");
             put(Config.Keys.DIRECTORY, DirectoryOutput.Config.INSTANCE.defaultConfigMap().get(DirectoryOutput.Config.Keys.OUTPUT_DIRECTORY));
         }};
     }
 
 
-    static final AtomicLong fileIncr = new AtomicLong(0);
+    public static final AtomicLong fileIncr = new AtomicLong(0);
     private final int writesBeforeFlush;
     private final Encoder encoder;
     private final long maxLines;
@@ -82,7 +87,7 @@ public class SplitFileLineOutput implements OutputWriter {
     private BufferedWriter bufferedWriter;
     private int writeCountSinceLastFlush = 0;
     private AtomicLong linesWritten = new AtomicLong(0);
-
+    private ConcurrentHashMap<String, Semaphore> writerSync = new ConcurrentHashMap<>();
     /**
      * 8m buffer
      * we flush at 8m or at writesBeforeFlush, whichever comes first
@@ -97,12 +102,13 @@ public class SplitFileLineOutput implements OutputWriter {
         this.label = label;
         this.config = config;
         this.encoder = encoder;
-        this.basePath = Path.of((String)(Config.INSTANCE.getOrDefault(Config.Keys.DIRECTORY, config)));
-        this.maxLines = Long.parseLong(Config.INSTANCE.getOrDefault(Config.Keys.MAX_LINES, config));
+        this.basePath = Path.of((String) (Config.INSTANCE.getOrDefault(Config.Keys.DIRECTORY, config)));
+        this.maxLines = Long.parseLong(Config.INSTANCE.getOrDefault(Config.Keys.ENTRIES_PER_FILE, config));
         this.writesBeforeFlush = Integer.parseInt(Config.INSTANCE.getOrDefault(Config.Keys.WRITES_BEFORE_FLUSH, config));
         this.metric = metric;
         this.closed = true;
         this.bufferSize = Integer.parseInt(DirectoryOutput.CONFIG.getOrDefault(DirectoryOutput.Config.Keys.BUFFER_SIZE_KB, config)) * 1024;
+        this.outstanding = new Semaphore(writesBeforeFlush);
     }
 
     public static SplitFileLineOutput create(final String label, final Encoder<String> encoder, final AtomicLong metric, final Configuration config) {
@@ -110,8 +116,16 @@ public class SplitFileLineOutput implements OutputWriter {
     }
 
     @Override
-    public void writeToOutput(final Emitable emitable) {
-        writeEmitable(emitable);
+    public void writeToOutput(final Optional<Emitable> potentialEmitable) {
+        if (potentialEmitable.isPresent()) {
+            try {
+                outstanding.acquire();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            Emitable emitable = potentialEmitable.get();
+            writeEmitable(emitable);
+        }
     }
 
 
@@ -119,22 +133,9 @@ public class SplitFileLineOutput implements OutputWriter {
     public void init() {
     }
 
-    @Override
-    public void close() {
-        flush();
-        closed = true;
-    }
 
-    @Override
-    public void flush() {
-        try {
-            if (!closed) {
-                bufferedWriter.flush();
-                writeCountSinceLastFlush = 0;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public String getLabel() {
+        return label;
     }
 
 
@@ -145,9 +146,14 @@ public class SplitFileLineOutput implements OutputWriter {
 
     public void writeEmitable(final Emitable item) {
         try {
-            Object x = encoder.encodeItemMetadata(item).orElseThrow(() -> new RuntimeException("No metadata for " + item));
-            final String header =  (String) x;
-            write(encoder.encode(item) + "\n",header);
+            final String header = (String) encoder.encodeItemMetadata(item).orElseThrow(() -> new RuntimeException("No metadata for " + item));
+            Optional encoded = encoder.encode(item);
+            if (encoded.isPresent()) {
+                write(encoded.get() + "\n", header);
+                outstanding.release();
+            } else {
+                throw new RuntimeException("could not encode item: " + item);
+            }
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -199,14 +205,40 @@ public class SplitFileLineOutput implements OutputWriter {
         }
     }
 
-    private void closeFile() {
-        closed = true;
-        flush();
+    @Override
+    public void flush() {
         try {
-            bufferedWriter.close();
-            fileWriter.close();
+            bufferedWriter.flush();
+            fileWriter.flush();
+            writeCountSinceLastFlush = 0;
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void close() {
+        RuntimeUtil.getLogger(this).debug("close");
+        try {
+            outstanding.acquire(writesBeforeFlush);
+            outstanding.release(writesBeforeFlush);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        closeFile();
+        closed = true;
+    }
+
+    private void closeFile() {
+        synchronized (this) {
+            closed = true;
+            flush();
+            try {
+                bufferedWriter.close();
+                fileWriter.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

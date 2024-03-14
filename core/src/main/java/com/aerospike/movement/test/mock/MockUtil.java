@@ -15,7 +15,7 @@ import com.aerospike.movement.test.mock.emitter.MockEmitable;
 import com.aerospike.movement.test.mock.emitter.MockEmitter;
 import com.aerospike.movement.test.mock.encoder.MockEncoder;
 import com.aerospike.movement.test.mock.output.MockOutput;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 
@@ -26,12 +26,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 public final class MockUtil {
-    private static final ConcurrentHashMap<Class, ConcurrentHashMap<String, AtomicLong>> methodCounters = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, AtomicLong> methodCounters = new ConcurrentHashMap<>();
 
     private static final ConcurrentHashMap<String, ConcurrentHashMap<String, AtomicLong>> metadataCounters = new ConcurrentHashMap<>();
 
     private static final Map<Class, Map<String, MockCallback>> callbacks = new HashMap<>();
-    public static final AtomicBoolean countHits = new AtomicBoolean(true);
 
 
     public static void clear() {
@@ -104,17 +103,18 @@ public final class MockUtil {
                 MockCallback.create((object, args) -> {
                     final EmitableGraphElement item;
                     try {
-                        item = (EmitableGraphElement) args[1];
+                        Object o = ((Optional<?>) args[1]).get();
+                        item = Optional.class.isAssignableFrom(o.getClass()) ? ((Optional<EmitableGraphElement>) o).get() : (EmitableGraphElement) o;
                     } catch (Exception e) {
                         throw RuntimeUtil.getErrorHandler(MockUtil.class).handleError(new RuntimeException(e));
                     }
                     if (EmittedVertex.class.isAssignableFrom(item.getClass())) {
                         final EmittedId id = ((EmittedVertex) item).id();
                         //Fail if an id is emitted twice
-                        if (emittedIds.contains(id.getId())) {
+                        if (emittedIds.contains(id.unwrap())) {
                             detected.set(true);
                         }
-                        emittedIds.add(id.getId());
+                        emittedIds.add(id.unwrap());
                     }
                     incrementHitCounter(MockOutput.class, MockOutput.Methods.WRITE_TO_OUTPUT);
                     return Optional.empty();
@@ -135,7 +135,7 @@ public final class MockUtil {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Keys.class);
+            return ConfigUtil.getKeysFromClass(Keys.class);
         }
 
         public static class Keys {
@@ -150,7 +150,8 @@ public final class MockUtil {
 
 
     public static Optional<Object> onEvent(final Class clazz, final String method, final Object object, Object... args) {
-        return lookupCallback(clazz, method).flatMap(c -> c.onEvent(object, args));
+        return lookupCallback(clazz, method).flatMap(c ->
+                c.onEvent(object, args));
     }
 
     private static Optional<MockCallback> lookupCallback(final Class clazz, final String method) {
@@ -161,13 +162,11 @@ public final class MockUtil {
         callbacks.computeIfAbsent(clazz, k -> new HashMap<>()).put(method, callback);
     }
 
-    public static void incrementHitCounter(final Class<?> objectClass, final String getDriverForPhase) {
-        if (countHits.get())
-            methodCounters.computeIfAbsent(objectClass, (k) -> new ConcurrentHashMap<>()).computeIfAbsent(getDriverForPhase, (k) -> new AtomicLong(0)).incrementAndGet();
+    public static void incrementHitCounter(final Class<?> objectClass, final String name) {
+            methodCounters.computeIfAbsent(objectClass.getName() + ":" + name, (k) -> new AtomicLong(0)).incrementAndGet();
     }
 
     public static void incrementMetadataCounter(final String subtypeName, final String typeName) {
-        if (countHits.get())
             metadataCounters
                     .computeIfAbsent(typeName, (k) -> new ConcurrentHashMap<>())
                     .computeIfAbsent(subtypeName, (k) -> new AtomicLong(0))
@@ -175,7 +174,7 @@ public final class MockUtil {
     }
 
     public static long getHitCounter(final Class<?> clazz, final String method) {
-        return countHits.get() ? methodCounters.computeIfAbsent(clazz, aClass -> new ConcurrentHashMap<>()).computeIfAbsent(method, s -> new AtomicLong(0)).get() : 0L;
+        return methodCounters.computeIfAbsent(clazz.getName() + ":" + method, s -> new AtomicLong(0)).get();
     }
 
     public static long getMetadataHitCounter(final String typeName, final String subtypeName) {

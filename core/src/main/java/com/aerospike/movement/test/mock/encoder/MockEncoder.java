@@ -13,7 +13,7 @@ import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.output.MockOutput;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorUtil;
 import org.apache.commons.configuration2.Configuration;
 
@@ -31,13 +31,13 @@ public class MockEncoder<T> extends Loadable implements Encoder<T> {
         }
 
         @Override
-        public Map<String, String> defaultConfigMap(final Map<String,Object> config) {
+        public Map<String, String> defaultConfigMap(final Map<String, Object> config) {
             return DEFAULTS;
         }
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(MockOutput.Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(MockOutput.Config.Keys.class);
         }
 
 
@@ -49,6 +49,7 @@ public class MockEncoder<T> extends Loadable implements Encoder<T> {
 
         }};
     }
+
     private final Configuration config;
 
     @Override
@@ -81,8 +82,10 @@ public class MockEncoder<T> extends Loadable implements Encoder<T> {
 
 
     @Override
-    public T encode(final Emitable item) {
-        return (T) MockUtil.onEvent(this.getClass(), Methods.ENCODE, this, item).orElseThrow(ErrorUtil::unimplemented);
+    public Optional<T> encode(final Emitable item) {
+        Object x = MockUtil.onEvent(this.getClass(), Methods.ENCODE, this, item).orElseThrow(ErrorUtil::unimplemented);
+        return Optional.class.isAssignableFrom(x.getClass()) ?
+                (Optional<T>) x : (Optional<T>) Optional.of(x);
     }
 
 
@@ -98,7 +101,7 @@ public class MockEncoder<T> extends Loadable implements Encoder<T> {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         MockUtil.onEvent(this.getClass(), Methods.CLOSE, this);
     }
 }

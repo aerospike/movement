@@ -10,18 +10,16 @@ import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.output.files.DirectoryOutput;
 import com.aerospike.movement.plugin.cli.CLIPlugin;
 import com.aerospike.movement.process.core.Task;
-import com.aerospike.movement.runtime.core.Runtime;
-import com.aerospike.movement.runtime.core.driver.impl.GeneratedOutputIdDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedOutputIdDriver;
+import com.aerospike.movement.runtime.core.driver.impl.RangedWorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
-import com.aerospike.movement.runtime.core.driver.impl.SuppliedWorkChunkDriver;
 import com.aerospike.movement.test.core.AbstractMovementTest;
 import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.encoder.MockEncoder;
 import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.test.mock.task.MockTask;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
-import com.aerospike.movement.util.core.iterator.OneShotIteratorSupplier;
 import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import junit.framework.TestCase;
@@ -34,7 +32,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 
 import static com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime.Config.Keys.BATCH_SIZE;
 import static com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime.Config.Keys.THREADS;
@@ -78,7 +75,7 @@ public class TestCLI extends AbstractMovementTest {
         final List<Object> y = IteratorUtils.list(x.get().call());
         final List<String> z = RuntimeUtil.findAvailableSubclasses(Task.class)
                 .stream().map(Class::getName).collect(Collectors.toList());
-        assertEquals(4, z.size());
+        assertEquals(6, z.size());
         assertEquals(z.size(), y.size());
         CLI.main(args);
     }
@@ -111,7 +108,7 @@ public class TestCLI extends AbstractMovementTest {
         assertEquals(0, getHitCounter(MockEncoder.class, MockEncoder.Methods.ENCODE));
         RuntimeUtil.loadClass(MockTask.class.getName());
         final Path tmpConfig = Files.createTempFile("movement", "test").toAbsolutePath();
-        final String configString = ConfigurationUtil.configurationToPropertiesFormat(getMockConfiguration(new HashMap<>()));
+        final String configString = ConfigUtil.configurationToPropertiesFormat(getMockConfiguration(new HashMap<>()));
         Files.write(tmpConfig, configString.getBytes());
 
 
@@ -122,23 +119,25 @@ public class TestCLI extends AbstractMovementTest {
                 CLI.MovementCLI.Args.DEBUG_SHORT,
                 CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(THREADS, "1"),
                 CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(BATCH_SIZE, String.valueOf(TEST_SIZE / getAvailableProcessors() / 8)),
-                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, SuppliedWorkChunkDriver.class.getName()),
-                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, GeneratedOutputIdDriver.class.getName()),
-        };
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.ONE, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
-        SuppliedWorkChunkDriver.setIteratorSupplierForPhase(Runtime.PHASE.TWO, OneShotIteratorSupplier.of(() -> (Iterator<Object>) IteratorUtils.wrap(LongStream.range(0, TEST_SIZE).iterator())));
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, RangedWorkChunkDriver.class.getName()),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(RangedWorkChunkDriver.Config.Keys.RANGE_BOTTOM, "0"),
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(RangedWorkChunkDriver.Config.Keys.RANGE_TOP, TEST_SIZE.toString()),
 
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(ConfigurationBase.Keys.OUTPUT_ID_DRIVER, RangedOutputIdDriver.class.getName()),
+        };
         MockUtil.setDefaultMockCallbacks();
 
         final Optional<CLIPlugin> x = CLI.parseAndLoadPlugin(args);
         assertTrue(x.isPresent());
-        final Iterator<Object> iterator = x.get().call();
+        Iterator<Object> callIterator = x.get().call();
+//        Object o = callIterator.next();
+        final UUID id = (UUID) callIterator.next();
+        Iterator<Map<String, Object>> iterator = RuntimeUtil.statusIteratorForTask(id);
         while (iterator.hasNext()) {
-            final Object it = iterator.next();
-            if (!iterator.hasNext()) {
-                System.out.println(it);
-            }
+            System.out.println(iterator.next());
+            Thread.sleep(1000L);
         }
+        RuntimeUtil.waitTask(id);
         LocalParallelStreamRuntime.closeStatic();
 
         final int NUMBER_OF_PHASES = 1;
@@ -148,11 +147,11 @@ public class TestCLI extends AbstractMovementTest {
 
     @Test
     @Ignore //@todo generator extraction
-    public void testRunExampleConfigurationGenerate() {
+    public void testRunExampleConfigurationGenerate() throws Exception {
         long TEST_SIZE = 10;
         RuntimeUtil.loadClass(MockTask.class.getName());
         final Path exampleConfig = Path.of("../conf/generator/example.properties");
-
+        Path outputDir = IOUtil.createTempDir();
         final String[] args = {
                 CLI.MovementCLI.Args.TEST_MODE,
 //                CLI.MovementCLI.Args.TASK, Generate.class.getSimpleName(),
@@ -162,7 +161,7 @@ public class TestCLI extends AbstractMovementTest {
                 CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(THREADS, "1"),
 //                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(SCALE_FACTOR, String.valueOf(TEST_SIZE)),
 //                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(YAMLSchemaParser.Config.Keys.YAML_FILE_PATH, "../extensions/generator/src/main/resources/example_schema.yaml"),
-                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(DirectoryOutput.Config.Keys.DIRECTORY, "/tmp/generate")
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(DirectoryOutput.Config.Keys.DIRECTORY, outputDir.toAbsolutePath().toString())
         };
 
         MockUtil.setDefaultMockCallbacks();

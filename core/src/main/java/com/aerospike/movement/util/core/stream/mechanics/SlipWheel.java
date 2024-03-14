@@ -7,33 +7,41 @@
 
 package com.aerospike.movement.util.core.stream.mechanics;
 
+import com.aerospike.movement.util.core.stream.sequence.PotentialSequence;
+
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static com.aerospike.movement.util.core.stream.mechanics.PinionSystem.incrementOdometer;
 
-public class SlipWheel<A, B, Z> implements BiFunction<A,Iterator<B>,Stream<Z>>{
+public class SlipWheel<A, B, Z> implements BiFunction<A, PotentialSequence<B>, Stream<Z>> {
     private final long notchesToSlip;
-    private final BiFunction<A, B, Z> zipFunction;
+    private final BiFunction<A, B, Optional<Z>> zipFunction;
     private final PinionSystem<A, B, Z> pinionSystem;
 
-    public SlipWheel(final long notchesToSlip, final BiFunction<A, B, Z> zipFunction, final PinionSystem<A, B, Z> pinionSystem) {
+    public SlipWheel(final long notchesToSlip, final BiFunction<A, B, Optional<Z>> zipFunction, final PinionSystem<A, B, Z> pinionSystem) {
         this.notchesToSlip = notchesToSlip;
         this.zipFunction = zipFunction;
         this.pinionSystem = pinionSystem;
     }
 
-    public static <A, B, Z> SlipWheel<A, B, Z> with(final long notchesToSlip, final BiFunction<A, B, Z> zipFunction, final PinionSystem<A, B, Z> pinionSystem) {
+    public static <A, B, Z> SlipWheel<A, B, Z> with(final long notchesToSlip, final BiFunction<A, B, Optional<Z>> zipFunction, final PinionSystem<A, B, Z> pinionSystem) {
         return new SlipWheel<>(notchesToSlip, zipFunction, pinionSystem);
     }
 
-    public Stream<Z> apply(final A a, final Iterator<B> bIterator) {
-        if (!bIterator.hasNext())
-            return Stream.empty();
-        return Stream.iterate(0,
-                        i -> i < notchesToSlip && bIterator.hasNext(),
+    @Override
+    public Stream<Z> apply(final A a, final PotentialSequence<B> bSeq) {
+
+        return (Stream<Z>) Stream.iterate(0,
+                        i -> i < notchesToSlip,
                         i -> i + 1)
-                .map(notch -> zipFunction.apply(a, incrementOdometer(pinionSystem.odometerB, bIterator)));
+                .map(notch -> {
+                    final Optional<B> x = incrementOdometer(pinionSystem.odometerB, bSeq);
+                    return x.isEmpty() ? Optional.empty() : zipFunction.apply(a, x.get());
+                }).filter(Optional::isPresent)
+                .map(Optional::get);
     }
+
 }

@@ -9,6 +9,7 @@ package com.aerospike.movement.runtime.core.local;
 
 import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.emitter.core.Emitter;
+import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.runtime.core.Handler;
 import com.aerospike.movement.runtime.core.Pipeline;
@@ -17,17 +18,21 @@ import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 
 import com.aerospike.movement.util.core.coordonation.WaitGroup;
 import com.aerospike.movement.util.core.error.ErrorHandler;
+import com.aerospike.movement.util.core.iterator.ext.CloseableIterator;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+
+import static com.aerospike.movement.util.core.runtime.RuntimeUtil.getAvailableProcessors;
 
 public class ParallelStreamProcessor implements Runnable {
     private final List<Pipeline> pipelines;
@@ -70,38 +75,54 @@ public class ParallelStreamProcessor implements Runnable {
         }
     }
 
-    //Make your elementIterators size equal to your threadpool size
     @Override
     public void run() {
         final WaitGroup waitGroup = WaitGroup.of(pipelines.size());
-        pipelines.stream().parallel().forEach(pipeline -> {
-            maxRunningTasks.getAndUpdate(existingMax -> {
-                final int currentTaskCount = runningTasks.incrementAndGet();
-                return Math.max(existingMax, currentTaskCount);
-            });
-            final Emitter emitter = pipeline.getEmitter();
-            final Output output = pipeline.getOutput();
-            final WorkChunkDriver driver = (WorkChunkDriver) RuntimeUtil.lookupOrLoad(WorkChunkDriver.class, config);
-            final ErrorHandler errorHandler = RuntimeUtil.getErrorHandler(this, config);
-            try {
-                driveIndividualThreadSync(phase,
-                        driver,
-                        emitter,
-                        output,
-                        () -> {
-                            RuntimeUtil.closeWrap(pipeline);
-                            waitGroup.done();
-                        }, RuntimeErrorHandler.create(waitGroup, errorHandler)
-                );
-            } catch (Exception e) {
+        final ExecutorService executorService = Executors.newFixedThreadPool(pipelines.size()+1);
+        List<Future> futures = new ArrayList<>();
+        pipelines.forEach(pipeline -> {
+            Future<?> x = executorService.submit(() -> {
+                maxRunningTasks.getAndUpdate(existingMax -> {
+                    final int currentTaskCount = runningTasks.incrementAndGet();
+                    return Math.max(existingMax, currentTaskCount);
+                });
+                final Emitter emitter = pipeline.getEmitter();
+                final Output output = pipeline.getOutput();
+                final WorkChunkDriver driver = (WorkChunkDriver) RuntimeUtil.lookupOrLoad(WorkChunkDriver.class, config);
+                final ErrorHandler errorHandler = RuntimeUtil.getErrorHandler(this, config);
+                try {
+                    driveIndividualThreadSync(phase,
+                            driver,
+                            emitter,
+                            output,
+                            () -> {
+                                RuntimeUtil.closeWrap(pipeline);
+                                waitGroup.done();
+                            }, RuntimeErrorHandler.create(waitGroup, errorHandler)
+                    );
+                } catch (Exception e) {
+                    runningTasks.decrementAndGet();
+                    throw errorHandler.handleFatalError(e, pipeline);
+                }
+
                 runningTasks.decrementAndGet();
-                throw errorHandler.handleError(e, pipeline);
-            }
-            runningTasks.decrementAndGet();
+            });
+            futures.add(x);
         });
         try {
             waitGroup.await();
+            futures.forEach(fut -> {
+                try {
+                    fut.get();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            executorService.shutdown();
             RuntimeUtil.closeAllInstancesOfLoadable(WorkChunkDriver.class);
+            RuntimeUtil.closeAllInstancesOfLoadable(Emitter.class);
+            RuntimeUtil.closeAllInstancesOfLoadable(Encoder.class);
+            RuntimeUtil.closeAllInstancesOfLoadable(Output.class);
             RuntimeUtil.unload(WorkChunkDriver.class);
         } catch (InterruptedException e) {
             throw errorHandler.handleError(e, phase, pipelines, waitGroup);
@@ -130,15 +151,12 @@ public class ParallelStreamProcessor implements Runnable {
     }
 
     public static Iterator<Emitable> walk(final Stream<Emitable> input, final Output output) {
-        return IteratorUtils.flatMap(input.iterator(), emitable ->
-                IteratorUtils.flatMap(emitable.emit(output).iterator(),
-                        innerEmitable -> {
-                            try {
-                                return walk(innerEmitable.emit(output), output);
-                            } catch (final Exception e) {
-                                RuntimeUtil.getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleError(e, output);
-                                return Collections.emptyIterator();
-                            }
-                        }));
+        return IteratorUtils.flatMap(input.iterator(), emitable -> {
+            try {
+                return walk(emitable.emit(output), output);
+            } catch (final Exception e) {
+                throw RuntimeUtil.getErrorHandler(output, new MapConfiguration(new HashMap<>())).handleFatalError(e, output);
+            }
+        });
     }
 }

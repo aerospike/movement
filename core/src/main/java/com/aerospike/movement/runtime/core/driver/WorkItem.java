@@ -17,7 +17,7 @@ public class WorkItem implements EmittedId {
     }
 
     @Override
-    public Object getId() {
+    public Object unwrap() {
         return id;
     }
 }

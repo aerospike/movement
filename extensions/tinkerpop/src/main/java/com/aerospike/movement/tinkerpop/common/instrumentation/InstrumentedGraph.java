@@ -89,7 +89,7 @@ public abstract class InstrumentedGraph extends WrappedGraph {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
         handlers
                 .getOrDefault(Methods.CLOSE, (BiFunction<Graph, Void, Void>) (graph, unused) -> {
                     try {

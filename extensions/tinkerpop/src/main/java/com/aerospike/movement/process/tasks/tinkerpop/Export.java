@@ -7,13 +7,20 @@
 package com.aerospike.movement.process.tasks.tinkerpop;
 
 import com.aerospike.movement.config.core.ConfigurationBase;
+import com.aerospike.movement.emitter.tinkerpop.TinkerPopGraphEmitter;
+import com.aerospike.movement.encoding.tinkerpop.TinkerPopGraphDecoder;
+import com.aerospike.movement.encoding.tinkerpop.TinkerPopGraphEncoder;
+import com.aerospike.movement.output.tinkerpop.TinkerPopGraphOutput;
 import com.aerospike.movement.process.core.Task;
 import com.aerospike.movement.runtime.core.Runtime;
+import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
 import com.aerospike.movement.test.mock.output.MockOutput;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorUtil;
+import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.MapConfiguration;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +38,7 @@ public class Export extends Task {
     }
 
     @Override
-    public void close() throws Exception {
+    public void onClose()  {
 
     }
 
@@ -43,13 +50,28 @@ public class Export extends Task {
         }
 
         @Override
-        public Map<String, String> defaultConfigMap(final Map<String,Object> config) {
-            return DEFAULTS;
+        public Map<String, String> defaultConfigMap(final Map<String, Object> config) {
+            final Map<String, String> newConfig = new HashMap<>();
+            config.entrySet().stream().forEach(entry -> {
+                newConfig.put(entry.getKey(), (String) entry.getValue());
+            });
+            newConfig.put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_ONE, TinkerPopGraphDriver.class.getName());
+            newConfig.put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, TinkerPopGraphDriver.class.getName());
+
+            newConfig.put(ConfigurationBase.Keys.EMITTER, TinkerPopGraphEmitter.class.getName());
+            newConfig.put(ConfigurationBase.Keys.DECODER, TinkerPopGraphDecoder.class.getName());
+
+            newConfig.put(ConfigurationBase.Keys.ENCODER, "com.aerospike.movement.encoding.files.csv.GraphCSVEncoder");
+            newConfig.put(ConfigurationBase.Keys.OUTPUT, "com.aerospike.movement.output.files.DirectoryOutput");
+            newConfig.put("output.directory", IOUtil.createTempDir().toAbsolutePath().toString());
+            newConfig.put("output.vertexDirectory", "vertices");
+            newConfig.put("output.edgeDirector", "edges");
+            return newConfig;
         }
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(MockOutput.Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(MockOutput.Config.Keys.class);
         }
 
 
@@ -65,13 +87,14 @@ public class Export extends Task {
     private Export(Configuration config) {
         super(Config.INSTANCE, config);
     }
+
     public static Export open(Configuration config) {
         return new Export(config);
     }
 
     @Override
     public Configuration getConfig(Configuration config) {
-        return config;
+        return ConfigUtil.withOverrides(new MapConfiguration(Config.INSTANCE.defaultConfigMap()), config);
     }
 
     @Override

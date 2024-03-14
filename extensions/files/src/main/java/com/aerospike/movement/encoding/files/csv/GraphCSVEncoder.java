@@ -13,7 +13,7 @@ import com.aerospike.movement.structure.core.graph.EmittedEdge;
 import com.aerospike.movement.structure.core.graph.EmittedVertex;
 import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.output.files.SplitFileLineOutput;
-import com.aerospike.movement.util.core.configuration.ConfigurationUtil;
+import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -40,7 +40,7 @@ public class GraphCSVEncoder extends CSVEncoder {
 
         @Override
         public List<String> getKeys() {
-            return ConfigurationUtil.getKeysFromClass(Config.Keys.class);
+            return ConfigUtil.getKeysFromClass(Config.Keys.class);
         }
 
 
@@ -86,11 +86,11 @@ public class GraphCSVEncoder extends CSVEncoder {
 
     @Override
     public Map<String, Object> getEncoderMetadata() {
-        return Map.of(SplitFileLineOutput.Config.Keys.EXTENSION,"csv");
+        return Map.of(SplitFileLineOutput.Config.Keys.EXTENSION, "csv");
     }
 
     @Override
-    public void close() {
+    public void onClose() {
 
     }
 
@@ -98,7 +98,7 @@ public class GraphCSVEncoder extends CSVEncoder {
         List<String> fields = new ArrayList<>();
         fields.add("~id");
         fields.add("~label");
-        ((Emitter) RuntimeUtil.lookupOrLoad(Emitter.class, config)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
+        ((Emitter) RuntimeUtil.lookup(Emitter.class).get(0)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
         return fields;
     }
 
@@ -107,12 +107,14 @@ public class GraphCSVEncoder extends CSVEncoder {
         fields.add("~label");
         fields.add("~from");
         fields.add("~to");
-        ((Emitter) RuntimeUtil.lookupOrLoad(Emitter.class, config)).getAllPropertyKeysForEdgeLabel(label).stream().sorted().forEach(fields::add);
+        ((Emitter) RuntimeUtil.lookup(Emitter.class).get(0)).getAllPropertyKeysForEdgeLabel(label).stream().sorted().forEach(fields::add);
         return fields;
     }
 
 
     public List<String> toCsvFields(final Emitable item) {
+        if (Optional.class.isAssignableFrom(item.getClass()))
+            throw new RuntimeException("optional");
         if (EmittedEdge.class.isAssignableFrom(item.getClass())) {
             return getEdgeHeaderFields(((EmittedEdge) item).label()).stream()
                     .map(f -> EmittedEdge.getFieldFromEdge(((EmittedEdge) item), f))

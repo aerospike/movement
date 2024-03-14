@@ -20,9 +20,8 @@ import java.util.stream.Stream;
 public interface PotentialSequence<T> {
     Optional<T> getNext();
 
-
     default Stream<Optional<T>> stream(final BiFunction<PotentialSequence<T>, Optional<T>, Boolean> haltChecker) {
-        return Stream.iterate(getNext(), it -> haltChecker.apply(this, it), it -> getNext());
+        return Stream.iterate(getNext(), it -> !haltChecker.apply(this, it), it -> getNext());
     }
 
     /*
