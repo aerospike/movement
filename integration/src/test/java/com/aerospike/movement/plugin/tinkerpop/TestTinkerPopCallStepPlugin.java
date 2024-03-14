@@ -123,9 +123,7 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
         TinkerGraph classic = TinkerFactory.createClassic();
         final long classicVertexCount = classic.traversal().V().count().next();
         final long classicEdgeCount = classic.traversal().E().count().next();
-        FileUtil.recursiveDelete(tempPath);
-        if (Path.of("/tmp/generate").toFile().exists())
-            FileUtil.recursiveDelete(Path.of("/tmp/generate"));
+
 
         FileTestUtil.writeClassicGraphToDirectory(tempPath);
 

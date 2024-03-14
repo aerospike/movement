@@ -17,6 +17,7 @@ import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
 import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorUtil;
+import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
@@ -62,7 +63,7 @@ public class Export extends Task {
 
             newConfig.put(ConfigurationBase.Keys.ENCODER, "com.aerospike.movement.encoding.files.csv.GraphCSVEncoder");
             newConfig.put(ConfigurationBase.Keys.OUTPUT, "com.aerospike.movement.output.files.DirectoryOutput");
-            newConfig.put("output.directory", "/tmp/export");
+            newConfig.put("output.directory", IOUtil.createTempDir().toAbsolutePath().toString());
             newConfig.put("output.vertexDirectory", "vertices");
             newConfig.put("output.edgeDirector", "edges");
             return newConfig;

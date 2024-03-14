@@ -20,6 +20,7 @@ import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.test.mock.task.MockTask;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
+import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import junit.framework.TestCase;
 import org.junit.After;
@@ -150,7 +151,7 @@ public class TestCLI extends AbstractMovementTest {
         long TEST_SIZE = 10;
         RuntimeUtil.loadClass(MockTask.class.getName());
         final Path exampleConfig = Path.of("../conf/generator/example.properties");
-
+        Path outputDir = IOUtil.createTempDir();
         final String[] args = {
                 CLI.MovementCLI.Args.TEST_MODE,
 //                CLI.MovementCLI.Args.TASK, Generate.class.getSimpleName(),
@@ -160,7 +161,7 @@ public class TestCLI extends AbstractMovementTest {
                 CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(THREADS, "1"),
 //                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(SCALE_FACTOR, String.valueOf(TEST_SIZE)),
 //                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(YAMLSchemaParser.Config.Keys.YAML_FILE_PATH, "../extensions/generator/src/main/resources/example_schema.yaml"),
-                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(DirectoryOutput.Config.Keys.DIRECTORY, "/tmp/generate")
+                CLI.MovementCLI.Args.SET_SHORT, CLI.setEquals(DirectoryOutput.Config.Keys.DIRECTORY, outputDir.toAbsolutePath().toString())
         };
 
         MockUtil.setDefaultMockCallbacks();
