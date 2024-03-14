@@ -30,9 +30,6 @@ public interface Emitable {
             }
         };
     }
-
     Stream<Emitable> emit(Output output);
-
-//    Stream<Emitable> stream();
     String type();
 }

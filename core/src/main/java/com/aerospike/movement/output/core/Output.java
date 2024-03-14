@@ -23,7 +23,6 @@ import java.util.UUID;
  */
 public interface Output extends AutoCloseable {
     static void init(Runtime.PHASE phase, Configuration config) {
-//        RuntimeUtil.closeAllInstancesOfLoadable(Output.class);
     }
 
     //for graph metadata is label of type string

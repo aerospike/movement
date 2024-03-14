@@ -81,10 +81,7 @@ public abstract class AbstractMovementTest {
         final Runtime runtime = LocalParallelStreamRuntime.open(config);
         Task task = (Task) RuntimeUtil.openClass(taskClass, config);
         final UUID x = (UUID) runtime.runTask(task).next();
-        Iterator<Map<String, Object>> statusIterator = RuntimeUtil.statusIteratorForTask(x);
-        while (statusIterator.hasNext()) {
-            RuntimeUtil.getLogger().info(statusIterator.next());
-        }
+
         RuntimeUtil.waitTask(x);
     }
 }
