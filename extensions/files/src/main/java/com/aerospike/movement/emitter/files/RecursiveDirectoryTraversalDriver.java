@@ -18,11 +18,15 @@ import com.aerospike.movement.util.core.stream.sequence.SequenceUtil;
 import org.apache.commons.configuration2.Configuration;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
     private final Runtime.PHASE phase;
@@ -50,6 +54,8 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
 
         public static class Keys {
             public static final String DIRECTORY_TO_TRAVERSE = "loader.traversal.directory";
+            public static final String DIRECTORY_TO_URI = "loader.traversal.uri";
+
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
@@ -75,21 +81,32 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
         return x;
     }
 
+    public static Path uriOrFile(String str){
+        try {
+            return Paths.get(URI.create(str));
+        } catch (Exception e) {
+            return Path.of(str);
+        }
+
+    }
     @Override
     public void init(final Configuration config) {
         synchronized (this) {
             if (!initialized.get()) {
-//                this.phase = RuntimeUtil.getphase(config);
-                final String baseDir = DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.BASE_PATH, config);
-                final Path basePath = Path.of(baseDir);
+                final Path basePath = uriOrFile(DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.BASE_PATH, config));
+
+                assert Files.exists(basePath);
                 final String phaseOnePath = DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, config);
                 final String phaseTwoPath = DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, config);
-                final Path elementTypePath =
-                        config.containsKey(Config.Keys.DIRECTORY_TO_TRAVERSE) ?
-                                Path.of(config.getString(Config.Keys.DIRECTORY_TO_TRAVERSE)) :
+
+                final Path elementTypePath;
+                if(config.containsKey(Config.Keys.DIRECTORY_TO_TRAVERSE))
+                                elementTypePath = uriOrFile(config.getString(Config.Keys.DIRECTORY_TO_TRAVERSE));
+                else
+                    elementTypePath =
                                 phase.equals(Runtime.PHASE.ONE) ?
-                                        basePath.resolve(phaseOnePath)
-                                        : basePath.resolve(phaseTwoPath);
+                                        Paths.get(basePath.toUri().resolve(phaseOnePath))
+                                        : Paths.get(basePath.toUri().resolve(phaseTwoPath));
                 if (!phaseSequences.containsKey(phase)) {
                     phaseSequences.put(phase, pathSequence(RuntimeUtil.getCurrentPhase(config), elementTypePath, config));
                 }
@@ -101,7 +118,7 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
     }
 
     @Override
-    public void onClose()  {
+    public void onClose() {
         synchronized (RecursiveDirectoryTraversalDriver.class) {
             if (initialized.compareAndSet(true, false)) {
                 phaseSequences.remove(this.phase);
@@ -123,7 +140,9 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
         if (phase.equals(Runtime.PHASE.ONE) || phase.equals(Runtime.PHASE.TWO)) {
             return SequenceUtil.fuse(OneShotIteratorSupplier.of(() -> {
                 try {
-                    return Files.walk(elementTypePath)
+                    List<Path> fileList = Files.walk(elementTypePath).collect(Collectors.toList());
+                    Collections.shuffle(fileList);
+                    return fileList.stream()
                             .filter(file -> !Files.isDirectory(file))
                             .map(it -> EmittableWorkChunkFile.from((Path) it, phase, config))
                             .iterator();

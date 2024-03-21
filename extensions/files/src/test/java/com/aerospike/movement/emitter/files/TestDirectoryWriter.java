@@ -14,6 +14,7 @@ import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.emitter.MockEmitable;
 import com.aerospike.movement.test.mock.encoder.MockEncoder;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
+import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.files.FileUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
@@ -32,7 +33,7 @@ import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TestDirectoryWriter extends AbstractMovementTest {
-    final Path outputDirectory = Path.of(System.getProperty("java.io.tmpdir")).resolve("generate");
+    final Path outputDirectory = IOUtil.createTempDir();
 
     @Before
     public void cleanDirectory() {

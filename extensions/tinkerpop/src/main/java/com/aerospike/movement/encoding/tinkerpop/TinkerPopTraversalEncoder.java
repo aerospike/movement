@@ -139,7 +139,7 @@ public class TinkerPopTraversalEncoder extends Loadable implements Encoder<Eleme
         }
         final Edge x = g
                 .V(outV)
-                .addE(EmittedEdge.getFieldFromEdge((EmittedEdge) edge, "~label"))
+                .addE((String)EmittedEdge.getFieldFromEdge(edge, "~label"))
                 .to(inV)
                 .property(keyValues)
                 .next();
@@ -170,6 +170,7 @@ public class TinkerPopTraversalEncoder extends Loadable implements Encoder<Eleme
             RuntimeUtil.getLogger(this).debug("wrote vertex: " + x);
             return Optional.of(x);
         } catch (Exception e) {
+            RuntimeUtil.getLogger(this).warn(e);
             RuntimeUtil.getLogger(this).warn("Error encoding vertex: %s", vertex);
         }
         return Optional.empty();

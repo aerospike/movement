@@ -18,7 +18,7 @@ public interface EmittedEdge extends EmitableGraphElement {
     EmittedId fromId();
 
     EmittedId toId();
-    static String getFieldFromEdge(EmittedEdge edge, String field) {
+    static Object getFieldFromEdge(EmittedEdge edge, String field) {
         if (field.equals(LABEL))
             return edge.label();
         if (field.equals(TO))
@@ -26,6 +26,6 @@ public interface EmittedEdge extends EmitableGraphElement {
         if (field.equals(FROM))
             return String.valueOf(edge.fromId().unwrap());
         else
-            return String.valueOf(edge.propertyValue(field).orElse(""));
+            return edge.propertyValue(field).orElse("");
     }
 }

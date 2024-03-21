@@ -134,6 +134,7 @@ public class LocalParallelStreamRuntime implements Runtime {
 
     @Override
     public RunningPhase runPhase(final PHASE phase, final Configuration config) {
+
         return runPhase(phase, setupPipelines(customThreadPool.getParallelism(), phase, config), config);
     }
 

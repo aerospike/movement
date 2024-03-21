@@ -59,7 +59,7 @@ public class TestDirectoryLoader {
 
     @Test
     public void highLevelDirectoryLoaderTest() throws Exception {
-        final Path outputDirectory = Path.of(System.getProperty("java.io.tmpdir")).resolve("generate");
+        final Path outputDirectory = IOUtil.createTempDir();
         FileUtil.recursiveDelete(outputDirectory);
         writeClassicGraphToDirectory(outputDirectory);
         final Configuration testConfig = new MapConfiguration(

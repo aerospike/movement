@@ -21,6 +21,7 @@ public class CSVLine {
     private final List<String> header;
 
 
+
     public CSVLine(String line, String headerLine) {
         final List<String> header = parseHeader(headerLine);
         this.line = parseLine(header, line);

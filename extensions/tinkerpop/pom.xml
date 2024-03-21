@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.aerospike.movement</groupId>
         <artifactId>extensions</artifactId>
-        <version>0.9.0</version>
+        <version>0.9.5-SNAPSHOT</version>
     </parent>
 
     <groupId>com.aerospike.movement</groupId>
@@ -17,7 +17,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <guava.version>31.1-jre</guava.version>
-        <logback.version>1.2.11</logback.version>
+        <logback.version>1.2.13</logback.version>
+        <slf4j.version>1.7.30</slf4j.version>
     </properties>
 
     <dependencies>
@@ -47,23 +48,50 @@
         <dependency>
             <groupId>com.aerospike.movement</groupId>
             <artifactId>core</artifactId>
-            <version>0.9.0</version>
+            <version>0.9.5-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.aerospike.movement</groupId>
             <artifactId>plugin</artifactId>
-            <version>0.9.0</version>
+            <version>0.9.5-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
+
+
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>${guava.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>gremlin-server</artifactId>
+            <version>3.7.1</version>
+            <scope>test</scope>
+        </dependency>
 
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
+            <scope>test</scope>
 
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
 
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+            <scope>test</scope>
+
+        </dependency>
     </dependencies>
     <build>
         <plugins>

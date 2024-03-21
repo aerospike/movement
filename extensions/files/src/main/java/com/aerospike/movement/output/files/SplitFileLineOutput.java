@@ -27,6 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver.uriOrFile;
+
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  * <p>
@@ -102,7 +104,7 @@ public class SplitFileLineOutput implements OutputWriter {
         this.label = label;
         this.config = config;
         this.encoder = encoder;
-        this.basePath = Path.of((String) (Config.INSTANCE.getOrDefault(Config.Keys.DIRECTORY, config)));
+        this.basePath = uriOrFile((String) (Config.INSTANCE.getOrDefault(Config.Keys.DIRECTORY, config)));
         this.maxLines = Long.parseLong(Config.INSTANCE.getOrDefault(Config.Keys.ENTRIES_PER_FILE, config));
         this.writesBeforeFlush = Integer.parseInt(Config.INSTANCE.getOrDefault(Config.Keys.WRITES_BEFORE_FLUSH, config));
         this.metric = metric;

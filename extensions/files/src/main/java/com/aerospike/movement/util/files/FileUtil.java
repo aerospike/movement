@@ -11,6 +11,8 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Comparator;
 
+import static com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver.uriOrFile;
+
 public class FileUtil {
 
     public static void copyResourceToDirectory(String resourceName, Path filePath) {
@@ -22,7 +24,7 @@ public class FileUtil {
     }
 
     public static long calculateDirectorySize(String directoryPath) throws IOException {
-        final Path path = Paths.get(directoryPath);
+        final Path path = uriOrFile(directoryPath);
         final SizeVisitor visitor = new SizeVisitor();
         Files.walkFileTree(path, visitor);
         return visitor.getTotalSize();

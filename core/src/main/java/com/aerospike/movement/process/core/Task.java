@@ -15,6 +15,7 @@ import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.runtime.core.local.RunningPhase;
+import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import com.aerospike.movement.util.core.runtime.IOUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
@@ -55,11 +56,10 @@ public abstract class Task extends Loadable {
         final Configuration jobConfig = task.getConfig(task.config);
         final LocalParallelStreamRuntime runtime = (LocalParallelStreamRuntime) LocalParallelStreamRuntime.getInstance(jobConfig);
         final List<Runtime.PHASE> phaseList = task.getPhases();
-        return phaseList.stream()
-                .map(it -> {
+        return IteratorUtils.map(runtime.runPhases(phaseList,jobConfig),it -> {
                     RuntimeUtil.getLogger(task).info("running phase: " + it);
-                    return runtime.runPhase(it, jobConfig);
-                }).iterator();
+                    return it;
+                });
     }
 
 

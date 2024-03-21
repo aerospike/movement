@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.aerospike</groupId>
         <artifactId>Movement</artifactId>
-        <version>0.9.0</version>
+        <version>0.9.5-SNAPSHOT</version>
     </parent>
 
     <groupId>com.aerospike.movement</groupId>
@@ -34,22 +34,22 @@
         <dependency>
             <groupId>com.aerospike.movement</groupId>
             <artifactId>core</artifactId>
-            <version>0.9.0</version>
+            <version>0.9.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.aerospike.movement</groupId>
             <artifactId>plugin</artifactId>
-            <version>0.9.0</version>
+            <version>0.9.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.aerospike.movement</groupId>
             <artifactId>files</artifactId>
-            <version>0.9.0</version>
+            <version>0.9.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.aerospike.movement</groupId>
             <artifactId>tinkerpop</artifactId>
-            <version>0.9.0</version>
+            <version>0.9.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>info.picocli</groupId>

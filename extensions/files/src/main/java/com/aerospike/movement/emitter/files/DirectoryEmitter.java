@@ -19,13 +19,16 @@ import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver.Config.Keys.DIRECTORY_TO_TRAVERSE;
+import static com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver.uriOrFile;
 import static org.apache.commons.configuration2.ConfigurationUtils.copy;
 
 
@@ -82,9 +85,11 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
 
 
     public Path getBaseDirectory(final Runtime.PHASE phase) {
+        Path x;
         if (config.containsKey(DIRECTORY_TO_TRAVERSE))
-            return Path.of(config.getString(DIRECTORY_TO_TRAVERSE));
-        return Path.of((String) CONFIG.getOrDefault(Config.Keys.BASE_PATH, config));
+            x= uriOrFile(((String)config.getString(DIRECTORY_TO_TRAVERSE)));
+        x= uriOrFile(((String) CONFIG.getOrDefault(Config.Keys.BASE_PATH, config)));
+        return x;
     }
 
     @Override
@@ -97,8 +102,8 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
     public WorkChunkDriver driver(final Configuration callerConfig) {
         Path driverPath = getBaseDirectory(RuntimeUtil.getCurrentPhase(config));
         String subPath = RuntimeUtil.getCurrentPhase(callerConfig).equals(Runtime.PHASE.ONE) ?
-                driverPath.resolve((String) CONFIG.getOrDefault(Config.Keys.PHASE_ONE_SUBDIR, callerConfig)).toString() :
-                driverPath.resolve((String) CONFIG.getOrDefault(Config.Keys.PHASE_TWO_SUBDIR, callerConfig)).toString();
+                driverPath.resolve((String) CONFIG.getOrDefault(Config.Keys.PHASE_ONE_SUBDIR, callerConfig)).toUri().toString() :
+                driverPath.resolve((String) CONFIG.getOrDefault(Config.Keys.PHASE_TWO_SUBDIR, callerConfig)).toUri().toString();
         final RecursiveDirectoryTraversalDriver directoryTraversal = RecursiveDirectoryTraversalDriver.open(ConfigUtil.withOverrides(config, new HashMap<>() {{
             put(DIRECTORY_TO_TRAVERSE, subPath);
         }}));
@@ -154,7 +159,7 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
     }
 
     public static Path getPhasePath(final Runtime.PHASE phase, final Configuration config) {
-        return Path.of((String) CONFIG.getOrDefault(Config.Keys.BASE_PATH, config))
+        return uriOrFile((String) CONFIG.getOrDefault(Config.Keys.BASE_PATH, config))
                 .resolve((String) CONFIG.getOrDefault(phase.equals(Runtime.PHASE.ONE) ?
                         Config.Keys.PHASE_ONE_SUBDIR : Config.Keys.PHASE_TWO_SUBDIR, config));
     }

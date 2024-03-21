@@ -43,8 +43,13 @@ public class RemoteGraphTraversalProvider implements TraversalProvider {
         public static URIConnectionInfo from(URI uri) {
             return new URIConnectionInfo(uri);
         }
+        public static URIConnectionInfo from(String host, int port, String traversalSourceName, boolean ssl) {
+            String scheme = ssl?"wss":"ws";
+            URI uri = URI.create(String.format("%s://%s:%d/%s",scheme,host,port,traversalSourceName));
+            return new URIConnectionInfo(uri);
+        }
 
-        public Object uri() {
+        public URI uri() {
             return uri;
         }
 

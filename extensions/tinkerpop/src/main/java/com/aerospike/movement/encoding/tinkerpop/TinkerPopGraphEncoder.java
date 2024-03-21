@@ -109,7 +109,7 @@ public class TinkerPopGraphEncoder extends Loadable implements Encoder<Element> 
                 }
                 return Optional.empty();
             } else {
-                return Optional.of(outV.get(0).addEdge(EmittedEdge.getFieldFromEdge(edge, "~label"), inV.get(0), args.toArray()));
+                return Optional.of(outV.get(0).addEdge((String)EmittedEdge.getFieldFromEdge(edge, "~label"), inV.get(0), args.toArray()));
             }
         } catch (Exception e) {
             throw errorHandler.handleFatalError(e, edge);

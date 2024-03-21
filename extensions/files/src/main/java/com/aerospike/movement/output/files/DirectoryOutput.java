@@ -29,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import static com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver.uriOrFile;
+
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
@@ -144,9 +146,9 @@ public class DirectoryOutput extends Loadable implements Output {
     public Emitter reader(final Runtime.PHASE phase, final Class type, final Optional<String> label, final Configuration callerConfig) {
         final Configuration readerConfig = ConfigUtil.withOverrides(config, new MapConfiguration(new HashMap<>() {{
             put(DirectoryEmitter.Config.Keys.LABEL, label);
-            put(DirectoryEmitter.Config.Keys.BASE_PATH, Path.of((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getParent().toString());
-            put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, Path.of((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getFileName().toString());
-            put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, Path.of((String) CONFIG.getOrDefault(Config.Keys.EDGE_OUTPUT_DIRECTORY, config)).getFileName().toString());
+            put(DirectoryEmitter.Config.Keys.BASE_PATH, uriOrFile((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getParent().toUri());
+            put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, uriOrFile((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getFileName().toUri());
+            put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, uriOrFile((String) CONFIG.getOrDefault(Config.Keys.EDGE_OUTPUT_DIRECTORY, config)).getFileName().toUri());
             put(ConfigurationBase.Keys.PHASE_OVERRIDE, phase.name());
         }}));
 

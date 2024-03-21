@@ -118,6 +118,7 @@ public class GraphCSVEncoder extends CSVEncoder {
         if (EmittedEdge.class.isAssignableFrom(item.getClass())) {
             return getEdgeHeaderFields(((EmittedEdge) item).label()).stream()
                     .map(f -> EmittedEdge.getFieldFromEdge(((EmittedEdge) item), f))
+                    .map(Object::toString)
                     .collect(Collectors.toList());
         } else if (EmittedVertex.class.isAssignableFrom(item.getClass())) {
             return getVertexHeaderFields(((EmittedVertex) item).label()).stream()

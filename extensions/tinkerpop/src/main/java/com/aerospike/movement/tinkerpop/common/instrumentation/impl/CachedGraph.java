@@ -78,11 +78,12 @@ public class CachedGraph implements Graph {
 
     @Override
     public Vertex addVertex(final Object... keyValues) {
-        final Optional<Object> idOption = ElementHelper.getIdValue(keyValues);
-        idOption.ifPresent(vertexCache::invalidate);
-        final Vertex x = graph.addVertex(keyValues);
-        vertexCache.put(x.id(), x);
-        return x;
+//        final Optional<Object> idOption = ElementHelper.getIdValue(keyValues);
+//        idOption.ifPresent(vertexCache::invalidate);
+//        final Vertex x = graph.addVertex(keyValues);
+//        vertexCache.put(x.id(), x);
+//        return x;
+        return graph.addVertex(keyValues);
     }
 
     @Override
