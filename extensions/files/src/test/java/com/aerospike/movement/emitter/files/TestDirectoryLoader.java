@@ -71,8 +71,8 @@ public class TestDirectoryLoader {
                     put(OUTPUT, TinkerPopGraphOutput.class.getName());
                     put(TinkerPopGraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
                     put(DirectoryEmitter.Config.Keys.BASE_PATH, outputDirectory.toAbsolutePath().toString());
-                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, "vertices");
-                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, "edges");
+                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_DIRECTORY, outputDirectory.resolve("vertices").toAbsolutePath().toString());
+                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_DIRECTORY, outputDirectory.resolve("edges").toAbsolutePath().toString());
                     put(WORK_CHUNK_DRIVER_PHASE_ONE, RecursiveDirectoryTraversalDriver.class.getName());
                     put(WORK_CHUNK_DRIVER_PHASE_TWO, RecursiveDirectoryTraversalDriver.class.getName());
                     put(OUTPUT_ID_DRIVER, PassthroughOutputIdDriver.class.getName());
@@ -131,8 +131,8 @@ public class TestDirectoryLoader {
                     put(OUTPUT, TinkerPopGraphOutput.class.getName());
                     put(TinkerPopGraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
                     put(DirectoryEmitter.Config.Keys.BASE_PATH, tempPath.toAbsolutePath().toString());
-                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, VERTICES);
-                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, EDGES);
+                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_DIRECTORY, tempPath.toAbsolutePath().resolve("vertices").toAbsolutePath().toString());
+                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_DIRECTORY, tempPath.toAbsolutePath().resolve("edges").toAbsolutePath().toString());
 
                     put(TinkerPopGraphEncoder.Config.Keys.DROP_DANGLING_EDGES, true);
                     put(WORK_CHUNK_DRIVER_PHASE_ONE, RecursiveDirectoryTraversalDriver.class.getName());
@@ -193,8 +193,8 @@ public class TestDirectoryLoader {
                     put(OUTPUT, TinkerPopTraversalOutput.class.getName());
                     put(TinkerPopTraversalEncoder.Config.Keys.TRAVERSAL_PROVIDER, SharedEmptyTinkerGraphTraversalProvider.class.getName());
                     put(DirectoryEmitter.Config.Keys.BASE_PATH, tempPath.toAbsolutePath().toString());
-                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, VERTICES);
-                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, EDGES);
+                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_DIRECTORY, tempPath.toAbsolutePath().resolve(VERTICES).toAbsolutePath().toString());
+                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_DIRECTORY, tempPath.toAbsolutePath().resolve(EDGES).toAbsolutePath().toString());
                     put(WORK_CHUNK_DRIVER_PHASE_ONE, RecursiveDirectoryTraversalDriver.class.getName());
                     put(WORK_CHUNK_DRIVER_PHASE_TWO, RecursiveDirectoryTraversalDriver.class.getName());
                     put(TinkerPopTraversalEncoder.Config.Keys.DROP_DANGLING_EDGES, true);

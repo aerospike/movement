@@ -170,7 +170,6 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
             remote.V().limit(1).hasNext();
 
         }catch (Exception e){
-            System.out.println(e);
             System.out.println("skipping test, could not connect to " + info.toString());
             return;
         }

@@ -118,15 +118,18 @@ public class TinkerPopGraphEncoder extends Loadable implements Encoder<Element> 
 
 
     public Optional<Element> encodeVertex(final EmittedVertex vertex) {
-        final List<Object> args = vertex.propertyNames().flatMap(name -> {
-            final ArrayList<Object> results = new ArrayList<Object>();
-            Optional<Object> op = vertex.propertyValue(name);
+        final Map<Object, Object> keyValues = new HashMap<>();
+        vertex.propertyNames().forEach(name ->{
+            final Optional<Object> op = vertex.propertyValue(name);
             if (op.isPresent()) {
-                results.add(name);
-                results.add(op.get());
+                keyValues.put(name,op.get());
             }
-            return results.stream();
-        }).collect(Collectors.toList());
+        });
+        final List<Object> args = new ArrayList<>();
+        keyValues.keySet().forEach(key ->{
+            args.add(key);
+            args.add(keyValues.get(key));
+        });
         args.addAll(0, new ArrayList() {{
             add(T.id);
             add(vertex.id().unwrap());

@@ -13,6 +13,7 @@ import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
+import com.aerospike.movement.structure.core.graph.TypedField;
 import com.aerospike.movement.tinkerpop.common.GraphProvider;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
@@ -35,8 +36,8 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
     public static final AtomicBoolean initialized = new AtomicBoolean(false);
     public final TinkerPopGraphDriver driver;
 
-    public static ConcurrentHashMap<String, List<String>> vertexPropertyKeyCache = new ConcurrentHashMap<>();
-    public static ConcurrentHashMap<String, List<String>> edgePropertyKeyCache = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, List<TypedField>> vertexPropertyKeyCache = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, List<TypedField>> edgePropertyKeyCache = new ConcurrentHashMap<>();
     public static ConcurrentHashMap<String, Semaphore> readLocks = new ConcurrentHashMap<>();
     public static final String GLOBAL = "GLOBAL";
 
@@ -171,7 +172,7 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
     }
 
 
-    public List<String> getAllPropertyKeysForVertexLabel(final String label) {
+    public List<TypedField> getAllPropertyKeysForVertexLabel(final String label) {
         final String lockName = "vertex:" + label;
         readLocks.computeIfAbsent(lockName, it -> new Semaphore(1));
         if (readLocks.get(lockName).availablePermits() == 0) {
@@ -187,12 +188,28 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
                     .dedup()
                     .toList();
             releaseReadLock(lockName);
-            return results;
+            return sampleVertexTypes(label, results);
         });
 
     }
 
-    public List<String> getAllPropertyKeysForEdgeLabel(final String label) {
+    private List<TypedField> sampleVertexTypes(String label, List<String> results) {
+        return results.stream().map(field -> {
+            final Object sample = graph.traversal().V().hasLabel(label).has(field).limit(1).properties(field).value().next();
+            final boolean list = List.class.isAssignableFrom(sample.getClass());
+            return new TypedField(field, list, sample.getClass());
+        }).collect(Collectors.toList());
+    }
+
+    private List<TypedField> sampleEdgeTypes(String label, List<String> results) {
+        return results.stream().map(field -> {
+            final Object sample = graph.traversal().E().hasLabel(label).has(field).limit(1).properties(field).value().next();
+            final boolean list = List.class.isAssignableFrom(sample.getClass());
+            return new TypedField(field, list, sample.getClass());
+        }).collect(Collectors.toList());
+    }
+
+    public List<TypedField> getAllPropertyKeysForEdgeLabel(final String label) {
         final String lockName = "edge:" + label;
         readLocks.computeIfAbsent(lockName, it -> new Semaphore(1));
         if (readLocks.get(lockName).availablePermits() == 0) {
@@ -208,7 +225,7 @@ public class TinkerPopGraphEmitter extends Loadable implements Emitter, Emitter.
                     .dedup()
                     .toList();
             releaseReadLock(lockName);
-            return results;
+            return sampleEdgeTypes(label, results);
         });
     }
 

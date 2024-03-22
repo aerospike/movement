@@ -53,8 +53,8 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
 
 
         public static class Keys {
-            public static final String DIRECTORY_TO_TRAVERSE = "loader.traversal.directory";
-            public static final String DIRECTORY_TO_URI = "loader.traversal.uri";
+            public static final String PHASE_ONE_DIRECTORY = "directory.phase.one";
+            public static final String PHASE_TWO_DIRECTORY = "directory.phase.two";
 
         }
 
@@ -81,7 +81,7 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
         return x;
     }
 
-    public static Path uriOrFile(String str){
+    public static Path uriOrFile(String str) {
         try {
             return Paths.get(URI.create(str));
         } catch (Exception e) {
@@ -89,24 +89,20 @@ public class RecursiveDirectoryTraversalDriver extends WorkChunkDriver {
         }
 
     }
+
     @Override
     public void init(final Configuration config) {
         synchronized (this) {
             if (!initialized.get()) {
-                final Path basePath = uriOrFile(DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.BASE_PATH, config));
 
-                assert Files.exists(basePath);
-                final String phaseOnePath = DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, config);
-                final String phaseTwoPath = DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, config);
+                final Path phaseOnePath = uriOrFile(DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.PHASE_ONE_DIRECTORY, config));
+                final Path phaseTwoPath = uriOrFile(DirectoryEmitter.CONFIG.getOrDefault(DirectoryEmitter.Config.Keys.PHASE_TWO_DIRECTORY, config));
 
-                final Path elementTypePath;
-                if(config.containsKey(Config.Keys.DIRECTORY_TO_TRAVERSE))
-                                elementTypePath = uriOrFile(config.getString(Config.Keys.DIRECTORY_TO_TRAVERSE));
-                else
-                    elementTypePath =
-                                phase.equals(Runtime.PHASE.ONE) ?
-                                        Paths.get(basePath.toUri().resolve(phaseOnePath))
-                                        : Paths.get(basePath.toUri().resolve(phaseTwoPath));
+                assert Files.exists(phaseOnePath);
+                assert Files.exists(phaseTwoPath);
+
+                final Path elementTypePath = phase.equals(Runtime.PHASE.ONE) ? phaseOnePath : phaseTwoPath;
+
                 if (!phaseSequences.containsKey(phase)) {
                     phaseSequences.put(phase, pathSequence(RuntimeUtil.getCurrentPhase(config), elementTypePath, config));
                 }

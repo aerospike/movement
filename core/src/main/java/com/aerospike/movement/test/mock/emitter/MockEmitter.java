@@ -12,6 +12,7 @@ import com.aerospike.movement.emitter.core.Emitter;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
+import com.aerospike.movement.structure.core.graph.TypedField;
 import com.aerospike.movement.test.mock.MockUtil;
 import com.aerospike.movement.test.mock.output.MockOutput;
 import com.aerospike.movement.util.core.error.ErrorHandler;
@@ -21,6 +22,7 @@ import com.aerospike.movement.util.core.iterator.ext.IteratorUtils;
 import org.apache.commons.configuration2.Configuration;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -78,13 +80,13 @@ public class MockEmitter extends Loadable implements Emitter {
 
 
     @Override
-    public List<String> getAllPropertyKeysForVertexLabel(final String label) {
-        return (List<String>) MockUtil.onEvent(this.getClass(), Methods.GET_ALL_PROPERTY_KEYS_FOR_VERTEX_LABEL, this, label).orElseThrow(ErrorUtil::unimplemented);
+    public List<TypedField> getAllPropertyKeysForVertexLabel(final String label) {
+        return (List< TypedField >) MockUtil.onEvent(this.getClass(), Methods.GET_ALL_PROPERTY_KEYS_FOR_VERTEX_LABEL, this, label).orElseThrow(ErrorUtil::unimplemented);
     }
 
     @Override
-    public List<String> getAllPropertyKeysForEdgeLabel(final String label) {
-        return (List<String>) MockUtil.onEvent(this.getClass(), Methods.GET_ALL_PROPERTY_KEYS_FOR_EDGE_LABEL, this, label).orElseThrow(ErrorUtil::unimplemented);
+    public List<TypedField> getAllPropertyKeysForEdgeLabel(final String label) {
+        return (List<TypedField>) MockUtil.onEvent(this.getClass(), Methods.GET_ALL_PROPERTY_KEYS_FOR_EDGE_LABEL, this, label).orElseThrow(ErrorUtil::unimplemented);
     }
 
     @Override

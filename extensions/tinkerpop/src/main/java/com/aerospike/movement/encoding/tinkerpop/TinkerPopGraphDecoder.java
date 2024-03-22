@@ -78,7 +78,7 @@ public class TinkerPopGraphDecoder extends Loadable implements Decoder<Element> 
 
 
     @Override
-    public Emitable decodeElement(final Element encodedElement, final String label, final Runtime.PHASE phase) {
+    public Emitable decodeElement(final Element encodedElement, final String metadata, final Runtime.PHASE phase) {
         if (Vertex.class.isAssignableFrom(encodedElement.getClass())) {
             return new EmittedVertex() {
                 @Override

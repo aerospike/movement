@@ -16,7 +16,7 @@ public interface Decoder<O>  {
     static void init(Runtime.PHASE phase, Configuration config) {
 //        RuntimeUtil.closeAllInstancesOfLoadable(Decoder.class);
     }
-    Emitable decodeElement(O encodedElement, String label, Runtime.PHASE phase);
+    Emitable decodeElement(O encodedElement, String metadata, Runtime.PHASE phase);
 
     void close();
 

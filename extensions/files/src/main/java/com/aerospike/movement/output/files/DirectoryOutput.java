@@ -147,8 +147,8 @@ public class DirectoryOutput extends Loadable implements Output {
         final Configuration readerConfig = ConfigUtil.withOverrides(config, new MapConfiguration(new HashMap<>() {{
             put(DirectoryEmitter.Config.Keys.LABEL, label);
             put(DirectoryEmitter.Config.Keys.BASE_PATH, uriOrFile((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getParent().toUri());
-            put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, uriOrFile((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getFileName().toUri());
-            put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, uriOrFile((String) CONFIG.getOrDefault(Config.Keys.EDGE_OUTPUT_DIRECTORY, config)).getFileName().toUri());
+            put(DirectoryEmitter.Config.Keys.PHASE_ONE_DIRECTORY, uriOrFile((String) CONFIG.getOrDefault(Config.Keys.VERTEX_OUTPUT_DIRECTORY, config)).getFileName().toUri());
+            put(DirectoryEmitter.Config.Keys.PHASE_TWO_DIRECTORY, uriOrFile((String) CONFIG.getOrDefault(Config.Keys.EDGE_OUTPUT_DIRECTORY, config)).getFileName().toUri());
             put(ConfigurationBase.Keys.PHASE_OVERRIDE, phase.name());
         }}));
 

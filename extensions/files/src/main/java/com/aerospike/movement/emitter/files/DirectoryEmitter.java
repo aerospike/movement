@@ -9,9 +9,11 @@ package com.aerospike.movement.emitter.files;
 import com.aerospike.movement.config.core.ConfigurationBase;
 import com.aerospike.movement.emitter.core.Emitable;
 import com.aerospike.movement.emitter.core.Emitter;
+import com.aerospike.movement.encoding.files.csv.CSVEncoder;
 import com.aerospike.movement.runtime.core.local.Loadable;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
+import com.aerospike.movement.structure.core.graph.TypedField;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorHandler;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
@@ -19,15 +21,12 @@ import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver.Config.Keys.DIRECTORY_TO_TRAVERSE;
 import static com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver.uriOrFile;
 import static org.apache.commons.configuration2.ConfigurationUtils.copy;
 
@@ -55,13 +54,11 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
         public static class Keys {
             public static final String LABEL = "loader.label";
             public static final String BASE_PATH = "loader.basePath";
-            public static final String PHASE_ONE_SUBDIR = "aerospike.graphloader.phaseOneSubdir";
-            public static final String PHASE_TWO_SUBDIR = "aerospike.graphloader.phaseTwoSubdir";
+            public static final String PHASE_ONE_DIRECTORY = "directory.phase.one";
+            public static final String PHASE_TWO_DIRECTORY = "directory.phase.two";
         }
 
         private static final Map<String, String> DEFAULTS = new HashMap<>() {{
-            put(Keys.PHASE_ONE_SUBDIR, "vertices");
-            put(Keys.PHASE_TWO_SUBDIR, "edges");
 
 
         }};
@@ -70,7 +67,7 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
     public static final Config CONFIG = new Config();
     private final Configuration config;
 
-    private ErrorHandler errorHandler;
+    private final ErrorHandler errorHandler;
 
     private DirectoryEmitter(final Configuration config) {
         super(Config.INSTANCE, config);
@@ -84,14 +81,6 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
     }
 
 
-    public Path getBaseDirectory(final Runtime.PHASE phase) {
-        Path x;
-        if (config.containsKey(DIRECTORY_TO_TRAVERSE))
-            x= uriOrFile(((String)config.getString(DIRECTORY_TO_TRAVERSE)));
-        x= uriOrFile(((String) CONFIG.getOrDefault(Config.Keys.BASE_PATH, config)));
-        return x;
-    }
-
     @Override
     public void init(final Configuration config) {
 
@@ -100,12 +89,9 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
 
     @Override
     public WorkChunkDriver driver(final Configuration callerConfig) {
-        Path driverPath = getBaseDirectory(RuntimeUtil.getCurrentPhase(config));
-        String subPath = RuntimeUtil.getCurrentPhase(callerConfig).equals(Runtime.PHASE.ONE) ?
-                driverPath.resolve((String) CONFIG.getOrDefault(Config.Keys.PHASE_ONE_SUBDIR, callerConfig)).toUri().toString() :
-                driverPath.resolve((String) CONFIG.getOrDefault(Config.Keys.PHASE_TWO_SUBDIR, callerConfig)).toUri().toString();
         final RecursiveDirectoryTraversalDriver directoryTraversal = RecursiveDirectoryTraversalDriver.open(ConfigUtil.withOverrides(config, new HashMap<>() {{
-            put(DIRECTORY_TO_TRAVERSE, subPath);
+            put(RecursiveDirectoryTraversalDriver.Config.Keys.PHASE_ONE_DIRECTORY, uriOrFile(CONFIG.getOrDefault(Config.Keys.PHASE_ONE_DIRECTORY, callerConfig)).toUri().toString());
+            put(RecursiveDirectoryTraversalDriver.Config.Keys.PHASE_TWO_DIRECTORY, uriOrFile(CONFIG.getOrDefault(Config.Keys.PHASE_TWO_DIRECTORY, callerConfig)).toUri().toString());
         }}));
         directoryTraversal.init(config);
         return directoryTraversal;
@@ -159,26 +145,28 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
     }
 
     public static Path getPhasePath(final Runtime.PHASE phase, final Configuration config) {
-        return uriOrFile((String) CONFIG.getOrDefault(Config.Keys.BASE_PATH, config))
-                .resolve((String) CONFIG.getOrDefault(phase.equals(Runtime.PHASE.ONE) ?
-                        Config.Keys.PHASE_ONE_SUBDIR : Config.Keys.PHASE_TWO_SUBDIR, config));
+        final String pathString = CONFIG.getOrDefault(phase.equals(Runtime.PHASE.ONE) ? Config.Keys.PHASE_ONE_DIRECTORY : Config.Keys.PHASE_TWO_DIRECTORY, config);
+        return uriOrFile(pathString);
     }
 
 
-    public List<String> getAllPropertyKeysForEdgeLabel(final String label) {
-        return readHeaderFromFileByType(getPhasePath(Runtime.PHASE.TWO, config), label).stream()
-                .filter(x -> !x.startsWith("~"))
+    public List<TypedField> getAllPropertyKeysForEdgeLabel(final String label) {
+        return readHeaderFromFileByType(getPhasePath(Runtime.PHASE.TWO, config), label)
+                .stream()
+
+                .filter(x -> !x.name.startsWith("~"))
                 .collect(Collectors.toList());
     }
 
 
-    public List<String> getAllPropertyKeysForVertexLabel(final String label) {
+    public List<TypedField> getAllPropertyKeysForVertexLabel(final String label) {
         return readHeaderFromFileByType(getPhasePath(Runtime.PHASE.ONE, config), label).stream()
-                .filter(x -> !x.startsWith("~"))
+                .filter(x -> !x.name.startsWith("~"))
                 .collect(Collectors.toList());
     }
 
-    private static List<String> readHeaderFromFileByType(final Path typePath, final String label) {
+
+    private static List<TypedField> readHeaderFromFileByType(final Path typePath, final String label) {
         try {
             return Files.walk(Path.of(typePath + "/" + label))
                     .filter(Files::isRegularFile)
@@ -190,11 +178,16 @@ public class DirectoryEmitter extends Loadable implements Emitter, Emitter.SelfD
                         }
                     })
                     .findFirst()
-                    .map(header -> Arrays.asList(header.split(",")))
+                    .map(header ->
+                            Arrays.asList(header.split(","))
+                                    .stream()
+                                    .map(CSVEncoder::fromCSVType)
+                                    .collect(Collectors.toList()))
                     .orElseThrow(() -> new RuntimeException("No header found for label " + label));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
+
 
 }

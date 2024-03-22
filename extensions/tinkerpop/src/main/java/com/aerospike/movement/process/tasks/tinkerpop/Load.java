@@ -26,7 +26,6 @@ public class Load extends Task {
         RuntimeUtil.registerTaskAlias(Load.class.getSimpleName(), Load.class);
     }
 
-    //avoid dependency loop in maven
     public static final String RECURSIVE_DIR_TRAVERSAL_CLASS_NAME = "com.aerospike.movement.emitter.files.RecursiveDirectoryTraversalDriver";
 
     public static class Config extends ConfigurationBase {

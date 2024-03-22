@@ -148,20 +148,13 @@ public class TinkerPopTraversalEncoder extends Loadable implements Encoder<Eleme
 
 
     public Optional<Element> encodeVertex(final EmittedVertex vertex) {
-        final List<Object> args = vertex.propertyNames().flatMap(name -> {
-            final ArrayList<Object> results = new ArrayList<Object>();
+        final Map<Object, Object> keyValues = new HashMap<>();
+        vertex.propertyNames().forEach(name ->{
             final Optional<Object> op = vertex.propertyValue(name);
             if (op.isPresent()) {
-                results.add(name);
-                results.add(op.get());
+                keyValues.put(name,op.get());
             }
-            return results.stream();
-        }).collect(Collectors.toList());
-        final Map<Object, Object> keyValues = new HashMap<>();
-        final Iterator<Object> i = args.iterator();
-        while (i.hasNext()) {
-            keyValues.put(i.next(), i.next());
-        }
+        });
         try {
             final Vertex x = g.addV(vertex.label())
                     .property(T.id, vertex.id().unwrap())

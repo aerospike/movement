@@ -82,12 +82,12 @@ public class GraphCSVDecoder extends Loadable implements Decoder<String> {
     }
 
     @Override
-    public EmitableGraphElement decodeElement(final String encodedElement, final String headerLine, final Runtime.PHASE phase) {
+    public EmitableGraphElement decodeElement(final String encodedElement, final String metadata, final Runtime.PHASE phase) {
         final Runtime.PHASE decodePhase = override.orElse(phase);
         if (decodePhase.equals(Runtime.PHASE.ONE))
-            return (EmitableGraphElement) new CSVVertex(new CSVLine(encodedElement, headerLine));
+            return (EmitableGraphElement) new CSVVertex(new CSVLine(encodedElement, metadata));
         else if (decodePhase.equals(Runtime.PHASE.TWO))
-            return (EmitableGraphElement) new CSVEdge(new CSVLine(encodedElement, headerLine));
+            return (EmitableGraphElement) new CSVEdge(new CSVLine(encodedElement, metadata));
         throw ErrorUtil.unimplemented();
     }
 

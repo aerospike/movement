@@ -6,11 +6,15 @@
 
 package com.aerospike.movement.encoding.files.csv;
 
+import com.aerospike.movement.structure.core.graph.TypedField;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.StringTokenizer;
 import java.util.stream.Collectors;
+
+import static com.aerospike.movement.encoding.files.csv.CSVEncoder.fromCSVType;
 
 public class CSVLine {
     public enum CSVField {
@@ -18,38 +22,50 @@ public class CSVLine {
     }
 
     private final List<Object> line;
-    private final List<String> header;
+    private final List<TypedField> header;
 
 
 
     public CSVLine(String line, String headerLine) {
-        final List<String> header = parseHeader(headerLine);
+        final List<TypedField> header = parseHeader(headerLine);
         this.line = parseLine(header, line);
         this.header = header;
     }
 
     public Object getEntry(final String key) {
         try {
-            return line.get(header.indexOf(key));
+            return CSVEncoder.decodeEntry(getType(key),line.get(getHeaderIndex(key)));
+        } catch (IndexOutOfBoundsException e) {
+            throw new RuntimeException("Key not found: " + key);
+        }
+    }
+    public TypedField getType(final String key) {
+        try {
+            return header.get(getHeaderIndex(key));
         } catch (IndexOutOfBoundsException e) {
             throw new RuntimeException("Key not found: " + key);
         }
     }
 
-    public List<String> propertyNames() {
-        return header.stream().filter(k -> !k.startsWith("~")).collect(Collectors.toList());
+    private int getHeaderIndex(String key) {
+       return header.stream().map(tf -> tf.name).collect(Collectors.toList()).indexOf(key);
     }
 
-    private static List<String> parseHeader(final String header) {
+    public List<String> propertyNames() {
+        return header.stream().filter(k -> !k.name.startsWith("~")).map(it->it.name).collect(Collectors.toList());
+    }
+
+    private static List<TypedField> parseHeader(final String header) {
+
         final StringTokenizer st = new StringTokenizer(header, ",");
-        final List<String> keys = new ArrayList<>();
+        final List<TypedField> keys = new ArrayList<>();
         while (st.hasMoreTokens()) {
-            keys.add(st.nextToken());
+            keys.add(fromCSVType(st.nextToken()));
         }
         return keys;
     }
 
-    private List<Object> parseLine(List<String> header, String line) {
+    private List<Object> parseLine(List<TypedField> header, String line) {
         String[] split = line.split(",", -1);
         List<Object> results = new ArrayList<>();
         for (int i = 0; i < header.size(); i++) {

@@ -135,8 +135,8 @@ public class TestTinkerPopCallStepPlugin extends AbstractMovementTest {
                     put(ConfigurationBase.Keys.DECODER, GraphCSVDecoder.class.getName());
                     put(ConfigurationBase.Keys.OUTPUT, TinkerPopGraphOutput.class.getName());
                     put(DirectoryEmitter.Config.Keys.BASE_PATH, tempPath.toString());
-                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_SUBDIR, "vertices");
-                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_SUBDIR, "edges");
+                    put(DirectoryEmitter.Config.Keys.PHASE_ONE_DIRECTORY, tempPath.toAbsolutePath().resolve("vertices").toAbsolutePath().toString());
+                    put(DirectoryEmitter.Config.Keys.PHASE_TWO_DIRECTORY, tempPath.toAbsolutePath().resolve("edges").toAbsolutePath().toString());
                     put(TinkerPopGraphEncoder.Config.Keys.GRAPH_PROVIDER, SharedEmptyTinkerGraphGraphProvider.class.getName());
                 }});
 

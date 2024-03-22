@@ -13,6 +13,7 @@ import com.aerospike.movement.structure.core.graph.EmittedEdge;
 import com.aerospike.movement.structure.core.graph.EmittedVertex;
 import com.aerospike.movement.encoding.core.Encoder;
 import com.aerospike.movement.output.files.SplitFileLineOutput;
+import com.aerospike.movement.structure.core.graph.TypedField;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import com.aerospike.movement.util.core.error.ErrorUtil;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
@@ -75,10 +76,10 @@ public class GraphCSVEncoder extends CSVEncoder {
     @Override
     public Optional<String> encodeItemMetadata(final Emitable item) {
         if (EmittedEdge.class.isAssignableFrom(item.getClass())) {
-            return Optional.of(toCsvLine(getEdgeHeaderFields(((EmittedEdge) item).label())));
+            return Optional.of(toCSVHeader(getEdgeHeaderFields(((EmittedEdge) item).label())));
         }
         if (EmittedVertex.class.isAssignableFrom(item.getClass())) {
-            return Optional.of(toCsvLine(getVertexHeaderFields(((EmittedVertex) item).label())));
+            return Optional.of(toCSVHeader(getVertexHeaderFields(((EmittedVertex) item).label())));
         }
         throw ErrorUtil.runtimeException("Cannot encode metadata for %s", item.getClass().getName());
     }
@@ -94,19 +95,19 @@ public class GraphCSVEncoder extends CSVEncoder {
 
     }
 
-    public List<String> getVertexHeaderFields(final String label) {
-        List<String> fields = new ArrayList<>();
-        fields.add("~id");
-        fields.add("~label");
+    public List<TypedField> getVertexHeaderFields(final String label) {
+        List<TypedField> fields = new ArrayList<>();
+        fields.add(new TypedField("~id", false, String.class));
+        fields.add(new TypedField("~label", false, String.class));
         ((Emitter) RuntimeUtil.lookup(Emitter.class).get(0)).getAllPropertyKeysForVertexLabel(label).stream().sorted().forEach(fields::add);
         return fields;
     }
 
-    public List<String> getEdgeHeaderFields(final String label) {
-        List<String> fields = new ArrayList<>();
-        fields.add("~label");
-        fields.add("~from");
-        fields.add("~to");
+    public List<TypedField> getEdgeHeaderFields(final String label) {
+        List<TypedField> fields = new ArrayList<>();
+        fields.add(new TypedField("~label",false,String.class));
+        fields.add(new TypedField("~from",false,String.class));
+        fields.add(new TypedField("~to",false,String.class));
         ((Emitter) RuntimeUtil.lookup(Emitter.class).get(0)).getAllPropertyKeysForEdgeLabel(label).stream().sorted().forEach(fields::add);
         return fields;
     }
@@ -117,12 +118,12 @@ public class GraphCSVEncoder extends CSVEncoder {
             throw new RuntimeException("optional");
         if (EmittedEdge.class.isAssignableFrom(item.getClass())) {
             return getEdgeHeaderFields(((EmittedEdge) item).label()).stream()
-                    .map(f -> EmittedEdge.getFieldFromEdge(((EmittedEdge) item), f))
+                    .map(field -> EmittedEdge.getFieldFromEdge(((EmittedEdge) item), field.name))
                     .map(Object::toString)
                     .collect(Collectors.toList());
         } else if (EmittedVertex.class.isAssignableFrom(item.getClass())) {
             return getVertexHeaderFields(((EmittedVertex) item).label()).stream()
-                    .map(f -> String.valueOf(((EmittedVertex) item).propertyValue(f).orElse("")))
+                    .map(field -> String.valueOf(((EmittedVertex) item).propertyValue(field.name).orElse("")))
                     .collect(Collectors.toList());
         }
         throw ErrorUtil.runtimeException("Cannot encode %s", item.getClass().getName());

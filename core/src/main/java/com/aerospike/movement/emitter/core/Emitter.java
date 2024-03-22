@@ -10,6 +10,7 @@ package com.aerospike.movement.emitter.core;
 import com.aerospike.movement.output.core.Output;
 import com.aerospike.movement.runtime.core.Runtime;
 import com.aerospike.movement.runtime.core.driver.WorkChunkDriver;
+import com.aerospike.movement.structure.core.graph.TypedField;
 import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 
@@ -39,9 +40,11 @@ public interface Emitter {
     Stream<Emitable> stream(final WorkChunkDriver workChunkDriver, final Runtime.PHASE phase);
 
     //@todo remove from interface, use static class lookups across runtime
-    List<String> getAllPropertyKeysForVertexLabel(final String label);
+    List<TypedField> getAllPropertyKeysForVertexLabel(final String label);
 
-    List<String> getAllPropertyKeysForEdgeLabel(final String label);
+    List<TypedField> getAllPropertyKeysForEdgeLabel(final String label);
+
+
 
     List<Runtime.PHASE> phases();
 

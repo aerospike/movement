@@ -84,7 +84,6 @@ public class PluginServiceFactory<I> implements Service.ServiceFactory<I, Map<St
         if (serviceName.equals(WAIT_TASK)) {
             RuntimeUtil.waitTask(UUID.fromString((String) params.get(TASK_ID)));
             return CloseableIterator.of(Collections.emptyIterator());
-
         }
         final Configuration overriddenConfig = ConfigUtil.withOverrides(config, params);
         if (Optional.ofNullable((String) params.get(HELP)).isPresent()) {
