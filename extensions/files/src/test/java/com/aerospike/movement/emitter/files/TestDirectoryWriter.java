@@ -121,6 +121,6 @@ public class TestDirectoryWriter extends AbstractMovementTest {
 
         assertEquals(TinkerFactory.createClassic().traversal().V().count().next() + vertexHeaderCount, totalVertexLines);
         assertEquals(TinkerFactory.createClassic().traversal().E().count().next() + edgeHeaderCount, totalEdgeLines);
-        assertEquals(3, Files.walk(outputDirectory).filter(it -> it.toFile().exists() && it.toFile().isFile()).count());
+        assertEquals(6, Files.walk(outputDirectory).filter(it -> it.toFile().exists() && it.toFile().isFile()).count());
     }
 }

@@ -82,7 +82,7 @@ public abstract class ConfigurationBase {
             return (T) it.get();
         throw RuntimeUtil
                 .getErrorHandler(this, config)
-                .handleError(new RuntimeException("Missing required configuration key: " + key));
+                .handleFatalError(new RuntimeException("Missing required configuration key: " + key));
     }
 
     public abstract Map<String, String> defaultConfigMap(final Map<String, Object> config);

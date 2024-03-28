@@ -18,6 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
+import static com.aerospike.movement.util.core.runtime.RuntimeUtil.closeWrap;
+
 public class RefrenceCountedSharedGraph implements Graph {
     public static final String GRAPH_IMPL = "wrapped.graph.impl";
     public static final String SHARED_GRAPH_NAME = "graph.shared.name";
@@ -40,6 +42,7 @@ public class RefrenceCountedSharedGraph implements Graph {
         }
         return true;
     };
+
 
     private static final ConcurrentHashMap<String, Graph> sharedGraphs = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, AtomicLong> refCounters = new ConcurrentHashMap<>();
@@ -108,7 +111,11 @@ public class RefrenceCountedSharedGraph implements Graph {
     public static Graph from(Function<Configuration, Graph> graphGetter, final String sharedName, final Configuration config) {
         return from(graphGetter, (conf) -> true, sharedName, config);
     }
-
+    public void reset(){
+        closeWrap(wrappedGraph);
+        sharedGraphs.clear();
+        refCounters.clear();
+    }
     @Override
     public Vertex addVertex(final Object... keyValues) {
         return wrappedGraph.addVertex(keyValues);

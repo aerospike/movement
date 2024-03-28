@@ -17,6 +17,7 @@ import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphGraphProvider
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphTraversalProvider;
 import com.aerospike.movement.test.tinkerpop.SharedTinkerClassicGraphProvider;
 import com.aerospike.movement.tinkerpop.common.GraphProvider;
+import com.aerospike.movement.tinkerpop.common.RefrenceCountedSharedGraph;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
@@ -65,8 +66,7 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
     @After
     public void cleanup() {
         cleanupCalls.incrementAndGet();
-        SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().drop().iterate();
-        SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
+        ((RefrenceCountedSharedGraph)SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT)).reset();
         super.cleanup();
     }
 
@@ -79,7 +79,7 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
 
         }}));
         registerCleanupCallback(() -> {
-            SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().drop().iterate();
+            ((RefrenceCountedSharedGraph)SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT)).reset();
             LocalParallelStreamRuntime.getInstance(config).close();
         });
 
@@ -89,6 +89,7 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
         iteratePhasesTimed(runtime, List.of(Runtime.PHASE.ONE), config);
         assertEquals(PHASE_ONE_TEST_SIZE, SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().count().next().longValue());
     }
+
 
     @Test
     public void loopVertexTest() {
@@ -109,7 +110,7 @@ public class TestTinkerPopGraphOutput extends AbstractMovementTest {
         }}));
 
         registerCleanupCallback(() -> {
-            SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).traversal().V().drop().iterate();
+            ((RefrenceCountedSharedGraph)SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT)).reset();
             LocalParallelStreamRuntime.getInstance(config).close();
         });
 

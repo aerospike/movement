@@ -83,6 +83,7 @@ public class Pipeline extends CheckedNotThreadSafe implements AutoCloseable {
     @Override
     public void close() throws Exception {
         ((Loadable) emitter).close();
+        output.getEncoder().get().close();
         output.close();
     }
 }

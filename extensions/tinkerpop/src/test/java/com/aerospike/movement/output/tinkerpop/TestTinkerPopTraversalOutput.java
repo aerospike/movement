@@ -14,10 +14,12 @@ import com.aerospike.movement.runtime.core.local.LocalParallelStreamRuntime;
 import com.aerospike.movement.runtime.core.local.RunningPhase;
 import com.aerospike.movement.runtime.tinkerpop.TinkerPopGraphDriver;
 import com.aerospike.movement.test.core.AbstractMovementTest;
+import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphGraphProvider;
 import com.aerospike.movement.test.tinkerpop.SharedTinkerClassicGraphProvider;
 import com.aerospike.movement.test.tinkerpop.SharedEmptyTinkerGraphTraversalProvider;
 import com.aerospike.movement.test.tinkerpop.TinkerModernGraphProvider;
 import com.aerospike.movement.tinkerpop.common.GraphProvider;
+import com.aerospike.movement.tinkerpop.common.RefrenceCountedSharedGraph;
 import com.aerospike.movement.tinkerpop.common.RemoteGraphTraversalProvider;
 import com.aerospike.movement.tinkerpop.common.TraversalProvider;
 import com.aerospike.movement.util.core.configuration.ConfigUtil;
@@ -27,6 +29,7 @@ import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.junit.After;
 import org.junit.Before;
@@ -49,7 +52,8 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
     @Before
     @After
     public void cleanGraph() {
-        SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
+        RefrenceCountedSharedGraph graph = (RefrenceCountedSharedGraph) SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT);
+        graph.reset();
     }
 
 
@@ -94,7 +98,7 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
 
 
         registerCleanupCallback(() -> {
-            SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
+            ((RefrenceCountedSharedGraph)SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT)).reset();
             LocalParallelStreamRuntime.getInstance(config).close();
         });
 
@@ -128,7 +132,7 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
             put(ConfigurationBase.Keys.WORK_CHUNK_DRIVER_PHASE_TWO, TinkerPopGraphDriver.class.getName());
         }}));
         registerCleanupCallback(() -> {
-//            SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
+            ((RefrenceCountedSharedGraph)SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT)).reset();
             LocalParallelStreamRuntime.getInstance(config).close();
         });
 
@@ -224,8 +228,10 @@ public class TestTinkerPopTraversalOutput extends AbstractMovementTest {
     }
 
     @Test
-    public void loopEdgeTest() {
-        SharedEmptyTinkerGraphTraversalProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT).V().drop().iterate();
+    public void loopEdgeTest() throws Exception {
+        Graph graph = SharedEmptyTinkerGraphGraphProvider.open().getProvided(GraphProvider.GraphProviderContext.OUTPUT);
+        graph.traversal().V().drop().iterate();
+        graph.close();
         IntStream.range(0, 1000).forEach(i -> {
             testWillTransferEdgesFromGraphAToGraphBByTraversal();
             cleanup();

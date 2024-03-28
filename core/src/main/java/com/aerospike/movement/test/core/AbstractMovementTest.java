@@ -48,7 +48,7 @@ public abstract class AbstractMovementTest {
 
     public void cleanup() {
         this.cleanupCallbacks.forEach(Runnable::run);
-
+        this.cleanupCallbacks.clear();
         clearMock();
     }
 

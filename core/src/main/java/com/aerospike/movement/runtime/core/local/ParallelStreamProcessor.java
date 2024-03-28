@@ -24,11 +24,9 @@ import com.aerospike.movement.util.core.runtime.RuntimeUtil;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 
+import java.io.UncheckedIOException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -40,8 +38,10 @@ public class ParallelStreamProcessor implements Runnable {
     private final Runtime.PHASE phase;
     private final ErrorHandler errorHandler;
     public final LocalParallelStreamRuntime runtime;
+
     public final AtomicInteger runningTasks = new AtomicInteger(0);
     public final AtomicInteger maxRunningTasks = new AtomicInteger(0);
+    private Optional<ForkJoinPool> threadPool;
 
     private ParallelStreamProcessor(final List<Pipeline> pipelines, final Runtime.PHASE phase, final LocalParallelStreamRuntime runtime, final Configuration config) {
         this.pipelines = pipelines;
@@ -53,6 +53,10 @@ public class ParallelStreamProcessor implements Runnable {
 
     public static ParallelStreamProcessor create(final List<Pipeline> pipelines, final Configuration config, final LocalParallelStreamRuntime runtime, final Runtime.PHASE phase) {
         return new ParallelStreamProcessor(pipelines, phase, runtime, config);
+    }
+
+    public void setThreadPool(ForkJoinPool customThreadPool) {
+        this.threadPool = Optional.ofNullable(customThreadPool);
     }
 
     private static class RuntimeErrorHandler implements Handler<Throwable> {
@@ -78,10 +82,10 @@ public class ParallelStreamProcessor implements Runnable {
     @Override
     public void run() {
         final WaitGroup waitGroup = WaitGroup.of(pipelines.size());
-        final ExecutorService executorService = Executors.newFixedThreadPool(pipelines.size()+1);
         List<Future> futures = new ArrayList<>();
         pipelines.forEach(pipeline -> {
-            Future<?> x = executorService.submit(() -> {
+            assert !threadPool.orElseThrow().isShutdown();
+            Future<?> x = threadPool.orElseThrow().submit(() -> {
                 maxRunningTasks.getAndUpdate(existingMax -> {
                     final int currentTaskCount = runningTasks.incrementAndGet();
                     return Math.max(existingMax, currentTaskCount);
@@ -118,12 +122,12 @@ public class ParallelStreamProcessor implements Runnable {
                     throw new RuntimeException(e);
                 }
             });
-            executorService.shutdown();
             RuntimeUtil.closeAllInstancesOfLoadable(WorkChunkDriver.class);
             RuntimeUtil.closeAllInstancesOfLoadable(Emitter.class);
             RuntimeUtil.closeAllInstancesOfLoadable(Encoder.class);
             RuntimeUtil.closeAllInstancesOfLoadable(Output.class);
             RuntimeUtil.unload(WorkChunkDriver.class);
+            threadPool.orElseThrow().shutdown();
         } catch (InterruptedException e) {
             throw errorHandler.handleError(e, phase, pipelines, waitGroup);
         }
@@ -147,7 +151,11 @@ public class ParallelStreamProcessor implements Runnable {
     }
 
     public static void processEmitable(final Emitable emitable, final Output output) {
-        IteratorUtils.iterate(walk(emitable.emit(output), output));
+        try {
+            IteratorUtils.iterate(walk(emitable.emit(output), output));
+        } catch (UncheckedIOException ioException) {
+            throw new RuntimeException(ioException);
+        }
     }
 
     public static Iterator<Emitable> walk(final Stream<Emitable> input, final Output output) {

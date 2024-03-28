@@ -31,6 +31,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static com.aerospike.movement.util.core.runtime.RuntimeUtil.closeWrap;
+
 /**
  * @author Grant Haywood (<a href="http://iowntheinter.net">http://iowntheinter.net</a>)
  */
@@ -51,7 +53,6 @@ public class LocalParallelStreamRuntime implements Runtime {
     public final static Map<String, Runnable> cleanupCallbacks = new ConcurrentHashMap<>();
 
     public static void halt() {
-        INSTANCE.customThreadPool.shutdown();
         INSTANCE.close();
     }
 
@@ -95,15 +96,17 @@ public class LocalParallelStreamRuntime implements Runtime {
     public static LocalParallelStreamRuntime INSTANCE;
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ErrorHandler errorHandler;
-    public final ForkJoinPool customThreadPool;
     private final Configuration config;
+    public int parallelIsm;
 
 
     private LocalParallelStreamRuntime(final Configuration config) {
         this.config = config;
-        this.customThreadPool = new ForkJoinPool(Integer.parseInt(CONFIG.getOrDefault(Config.Keys.THREADS, config)));
+        parallelIsm = 1 + Integer.parseInt(CONFIG.getOrDefault(Config.Keys.THREADS, config));
+        String cfg = CONFIG.getOrDefault(Config.Keys.THREADS, config);
         this.errorHandler = RuntimeUtil.getErrorHandler(this, config);
     }
+
 
     public LocalParallelStreamRuntime init(final Configuration config) {
         if (initialized.get()) {
@@ -118,11 +121,22 @@ public class LocalParallelStreamRuntime implements Runtime {
     }
 
     public static Runtime getInstance(final Configuration config) {
-        if (initialized.compareAndSet(false, true)) {
-            INSTANCE = new LocalParallelStreamRuntime(config);
+        synchronized (LocalParallelStreamRuntime.class) {
+            if (initialized.get()) {
+                return INSTANCE;
+            } else {
+                initialized.set(true);
+                INSTANCE = new LocalParallelStreamRuntime(config);
+            }
         }
         return INSTANCE;
     }
+
+    @Override
+    public RunningPhase runPhase(final PHASE phase, final Configuration config) {
+        return runPhase(phase, setupPipelines(parallelIsm, phase, config), config);
+    }
+
 
     @Override
     public Iterator<RunningPhase> runPhases(final List<PHASE> phases, final Configuration config) {
@@ -132,14 +146,9 @@ public class LocalParallelStreamRuntime implements Runtime {
         }}))).iterator();
     }
 
-    @Override
-    public RunningPhase runPhase(final PHASE phase, final Configuration config) {
-
-        return runPhase(phase, setupPipelines(customThreadPool.getParallelism(), phase, config), config);
-    }
 
     public RunningPhase runPhase(final PHASE phase, final List<Pipeline> pipelines, final Configuration config) {
-        Optional<RunningPhase> x = Optional.of(executePhase(phase, customThreadPool, this, pipelines, setPhaseConfiguration(phase, config)));
+        Optional<RunningPhase> x = Optional.of(executePhase(phase, this, pipelines, setPhaseConfiguration(phase, config)));
         runningPhase.set(x);
         return x.get();
     }
@@ -197,7 +206,7 @@ public class LocalParallelStreamRuntime implements Runtime {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("LocalParallelStreamRuntime: \n");
-        sb.append("  Threads: ").append(customThreadPool.getParallelism()).append("\n");
+        sb.append("  Threads: ").append((String) CONFIG.getOrDefault(Config.Keys.THREADS, config)).append("\n");
         sb.append("  Loaded: ").append("\n");
         return sb.toString();
     }
@@ -207,11 +216,26 @@ public class LocalParallelStreamRuntime implements Runtime {
         closeStatic();
     }
 
+    public void cancel() {
+        runningPhase.get().ifPresent(rp -> rp.close());
+
+        close();
+    }
+
     public static void closeStatic() {
+        Optional.ofNullable(runningPhase.get()).map(p -> p.get()).ifPresent(p -> {
+            p.get();
+            p.getPipelines().stream().forEach(pipeline -> closeWrap(pipeline));
+            p.getOutputs().stream().map(o -> closeWrap(o));
+            p.close();
+
+        });
+
         getAllLoaded().forEachRemaining(it -> {
-            if (!it.isClosed()) RuntimeUtil.closeWrap(it);
+            if (!it.isClosed()) closeWrap(it);
         });
         cleanupCallbacks.forEach((k, v) -> v.run());
+
         emitters.clear();
         outputs.clear();
         encoders.clear();
@@ -245,7 +269,6 @@ public class LocalParallelStreamRuntime implements Runtime {
     }
 
     private static RunningPhase executePhase(final Runtime.PHASE phase,
-                                             final ForkJoinPool customThreadPool,
                                              final LocalParallelStreamRuntime runtime,
                                              final List<Pipeline> pipelines,
                                              final Configuration config) {

@@ -29,7 +29,7 @@ public class SystemLogger implements Logger {
     }
 
 
-    private static String format(final Level level, final Object message, Optional<Object> loggerContext, Object... messageContext) {
+    public static String format(final Level level, final Object message, Optional<Object> loggerContext, Object... messageContext) {
         final String messageString;
         if (Map.class.isAssignableFrom(message.getClass()))
             messageString = formatMap((Map) message);
